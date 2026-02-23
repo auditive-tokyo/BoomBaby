@@ -56,16 +56,9 @@ void EnvelopeCurveEditor::paintWaveform(juce::Graphics &g, float w, float h,
     if (i > 0)
       phase += hz * (dtMs / 1000.0f) * juce::MathConstants<float>::twoPi;
 
-    // 波形モーフィング: BLEND 負側で Sine → 選択波形にクロスフェード
+    // 波形モーフィング: BLEND クロスフェード
     const float sinVal = std::sin(phase);
-    const float b = previewBlend;
-    float waveVal;
-    if (b >= 0.0f || previewShape == WaveShape::Sine) {
-      waveVal = sinVal;
-    } else {
-      const float shapeVal = shapeOscValue(previewShape, phase);
-      waveVal = std::lerp(sinVal, shapeVal, -b); // b=-1 → shapeVal 100%
-    }
+    const float waveVal = computePreviewWaveValue(sinVal, previewBlend, phase);
 
     // AMP: 振幅
     const float amplitude =
@@ -107,6 +100,34 @@ void EnvelopeCurveEditor::setPreviewBlend(float blend) {
     previewBlend = clamped;
     repaint();
   }
+}
+
+void EnvelopeCurveEditor::setPreviewHarmonicGain(int harmonicNum, float gain) {
+  if (harmonicNum >= 1 && harmonicNum <= 4) {
+    const auto idx = static_cast<size_t>(harmonicNum - 1);
+    if (std::abs(previewHarmonicGains[idx] - gain) > 1e-6f) {
+      previewHarmonicGains[idx] = gain;
+      repaint();
+    }
+  }
+}
+
+float EnvelopeCurveEditor::computePreviewWaveValue(float sinVal, float blend,
+                                                   float phase) const {
+  if (blend <= 0.0f) {
+    // -100 側: Sine → WaveShape
+    if (previewShape == WaveShape::Sine)
+      return sinVal;
+    return std::lerp(sinVal, shapeOscValue(previewShape, phase), -blend);
+  }
+  // +100 側: Sine → Additive（H1〜H4）
+  float addVal = 0.0f;
+  for (size_t n = 0; n < 4; ++n) {
+    if (previewHarmonicGains[n] > 0.0f)
+      addVal += previewHarmonicGains[n] *
+                std::sin(phase * static_cast<float>(n + 1));
+  }
+  return std::lerp(sinVal, addVal, blend);
 }
 
 float EnvelopeCurveEditor::shapeOscValue(WaveShape shape, float phase) {

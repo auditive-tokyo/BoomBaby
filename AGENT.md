@@ -69,6 +69,7 @@ BabySquatchは3つのモジュールで構成されています：
 - **H1〜H4 加算合成**（Phase 2 完了）: `HarmonicOsc` × 4 + `harmonicGains[4]`（atomic）を `OomphOscillator` に内蔵。`setHarmonicGain(int n, float gain)` API、`oomphOscillator()` アクセサ、oomphKnobs[4〜7] 配線済み
 - **BLEND クロスフェード**（Phase 3 完了）: `setBlend(float)` API（-1.0〜+1.0）追加、`getNextSample()` 内で `std::lerp` によるクロスフェード実装。b≤0: Sine↔Wavetable、b>0: Sine↔Additive。oomphKnobs[2]（BLEND）-100〜+100 配線済み
 - **波形選択 UI**（Phase 4 完了）: Tri / SQR / SAW の `TextButton` 3本を展開パネル内のノブ行下に配置。リラジオグループ方式（手動排他）0または1ボタンが選拡可能。OFF時は Sineに戻る。選択色はお〈oomphArc（青系）。不選択=Sine、Triボタン=Tri、SQRボタン=Square、SAWボタン=Saw
+- **波形プレビュー BLEND 連携**（完了）: `EnvelopeCurveEditor` に `setWaveShape()` / `setPreviewBlend()` API 追加。BLEND=0→Sine、BLEND=-100→選択波形、中間→lerp モーフィング描画。ボタン onClick・BLEND ノブ変更時に `repaint()`
 
 ## 描画方針
 
@@ -137,30 +138,6 @@ BabySquatchは3つのモジュールで構成されています：
     - **Triangle**: 奇数倍音のみ（3×, 5×, 7×...）、高域は急減衰。滑らかなボディ音
     - **Square**: 奇数倍音のみ（3×, 5×, 7×...）、Triより高域倍音が強い。中高域強調
     - **Saw**: 偶数・奇数両方（2×, 3×, 4×...）。最も密度が濃く鋭い音
-- **波形選択の BLEND 反映（EnvelopeCurveEditor プレビュー連携）**
-  - 現状: 波形プレビューはサイン波固定。BLEND・WaveShape が変わっても描画に反映されない
-  - 期待動作:
-    - BLEND=0: サイン波プレビュー
-    - BLEND=-100: 選択波形（Tri/SQR/SAW）の純粋な波形プレビュー
-    - BLEND 0〜-100: DSP と同じ `lerp(sineSample, shapeSample, -b)` でモーフィング描画
-  - 実装要点:
-    - `EnvelopeCurveEditor` に `setWaveShape(WaveShape)` と `setBlend(float)` API を追加
-    - ボタン onClick・BLEND ノブ変更時から呼んで `repaint()`
-    - プレビュー生成ループの `shapeSample` は算術式で代替（RT制約なしなので band-limited 不要）:
-      - Tri: `asin(sin(phase)) * 2/π`
-      - Square: `phase < π ? 1.0f : -1.0f`
-      - Saw: `phase/π - 1.0f`
-    - lerp 式は DSP（`OomphOscillator::getNextSample()`）と同一にして挙動を一致させる
-
-- **BLEND +100 側の加算合成波形改善（倍音比率プリセット方式）**
-  - 現状: BLEND=+100 かつ H1〜H4 全 MAX にすると、4本のサイン波が等振幅で干渉した不規則な波形になる（Kick Ninja の Oscillator Blend とは異なる）
-  - 期待する +100 側の挙動: 選択波形（Tri/SQR/SAW）の理論倍音比で H1〜H4 を自動スケールし、+100 で純粋な倍音構成の波形として鳴らす
-  - 倍音比率（各ゲインの理論値）:
-    - **Saw**: H1=1.0, H2=0.5, H3=0.333, H4=0.25（全倍音、1/n 減衰）
-    - **Square**: H1=1.0, H2=0, H3=0.333, H4=0（奇数倍音のみ）
-    - **Triangle**: H1=1.0, H2=0, H3=-0.111, H4=0（奇数倍音、1/n² 減衰、交互符号）
-  - 実装方針（方式A）: `getNextSample()` 内で `b > 0` のとき `harmonicGains[n]` の代わりに `harmonicGains[n] × harmonicPreset[waveShape][n]` を使う。H1〜H4 ノブは「倍音全体の量」として乗算スケール
-  - 現状の独立制御（方式C）を残す場合は、波形ごとのプリセットボタン（"SAW HMC" 等）を別途追加する選択肢もあり
 
 - **KeyboardComponent FIXEDモードのキーボード入力問題**
   - 現状: FIXEDモードでもmacのキーボード入力に反応してしまい、noteが選択されてしまう

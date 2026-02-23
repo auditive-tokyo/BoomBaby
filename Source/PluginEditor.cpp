@@ -44,10 +44,8 @@ void BabySquatchAudioProcessorEditor::setupPanelRouting(
       [&p](bool m) { p.channelState().setMute(click, m); });
   clickPanel.setOnSoloChanged(
       [&p](bool s) { p.channelState().setSolo(click, s); });
-  dryPanel.setOnMuteChanged(
-      [&p](bool m) { p.channelState().setMute(dry, m); });
-  dryPanel.setOnSoloChanged(
-      [&p](bool s) { p.channelState().setSolo(dry, s); });
+  dryPanel.setOnMuteChanged([&p](bool m) { p.channelState().setMute(dry, m); });
+  dryPanel.setOnSoloChanged([&p](bool s) { p.channelState().setSolo(dry, s); });
 
   oomphPanel.setLevelProvider(
       [&p]() { return p.channelState().getChannelLevelDb(oomph); });
@@ -70,26 +68,24 @@ void BabySquatchAudioProcessorEditor::setupEnvelopeCurveEditor() {
     bakeAmpLut();
     bakePitchLut();
     oomphKnobs[1].setEnabled(!ampEnvData.hasPoints());
-    oomphKnobs[1].setTooltip(ampEnvData.hasPoints()
-                                 ? "Value is controlled by envelope"
-                                 : "");
+    oomphKnobs[1].setTooltip(
+        ampEnvData.hasPoints() ? "Value is controlled by envelope" : "");
     oomphKnobs[0].setEnabled(!pitchEnvData.hasPoints());
-    oomphKnobs[0].setTooltip(pitchEnvData.hasPoints()
-                                 ? "Value is controlled by envelope"
-                                 : "");
+    oomphKnobs[0].setTooltip(
+        pitchEnvData.hasPoints() ? "Value is controlled by envelope" : "");
   });
 
   envelopeCurveEditor.setOnEditTargetChanged(
       [this](EnvelopeCurveEditor::EditTarget target) {
         using enum EnvelopeCurveEditor::EditTarget;
-        oomphKnobLabels[0].setColour(
-            juce::Label::textColourId,
-            target == pitch ? juce::Colours::cyan
-                            : UIConstants::Colours::labelText);
-        oomphKnobLabels[1].setColour(
-            juce::Label::textColourId,
-            target == amp ? juce::Colours::white
-                          : UIConstants::Colours::labelText);
+        oomphKnobLabels[0].setColour(juce::Label::textColourId,
+                                     target == pitch
+                                         ? juce::Colours::cyan
+                                         : UIConstants::Colours::labelText);
+        oomphKnobLabels[1].setColour(juce::Label::textColourId,
+                                     target == amp
+                                         ? juce::Colours::white
+                                         : UIConstants::Colours::labelText);
       });
 }
 
@@ -129,7 +125,7 @@ void BabySquatchAudioProcessorEditor::deselectOtherWaveShapeButtons(
 
 void BabySquatchAudioProcessorEditor::setupWaveShapeButtons() {
   static constexpr std::array<const char *, 3> kWaveLabels = {"Tri", "SQR",
-                                                               "SAW"};
+                                                              "SAW"};
   static constexpr std::array<WaveShape, 3> kShapes = {
       WaveShape::Tri, WaveShape::Square, WaveShape::Saw};
   for (size_t i = 0; i < 3; ++i) {
@@ -191,8 +187,8 @@ void BabySquatchAudioProcessorEditor::setupAmpKnob() {
                          juce::dontSendNotification);
   oomphKnobs[1].setDoubleClickReturnValue(true, 100.0);
   oomphKnobs[1].onValueChange = [this] {
-    ampEnvData.setDefaultValue(
-        static_cast<float>(oomphKnobs[1].getValue()) / 100.0f);
+    ampEnvData.setDefaultValue(static_cast<float>(oomphKnobs[1].getValue()) /
+                               100.0f);
     bakeAmpLut();
     envelopeCurveEditor.repaint();
   };
@@ -227,8 +223,9 @@ void BabySquatchAudioProcessorEditor::setupHarmonicKnobs() {
     oomphKnobs[idx].setDoubleClickReturnValue(true, 0.0);
     const int harmonicNum = i + 1;
     oomphKnobs[idx].onValueChange = [this, idx, harmonicNum] {
-      processorRef.oomphOscillator().setHarmonicGain(
-          harmonicNum, static_cast<float>(oomphKnobs[idx].getValue()));
+      const auto gain = static_cast<float>(oomphKnobs[idx].getValue());
+      processorRef.oomphOscillator().setHarmonicGain(harmonicNum, gain);
+      envelopeCurveEditor.setPreviewHarmonicGain(harmonicNum, gain);
     };
   }
 }
@@ -279,8 +276,7 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
       [this] { requestExpand(ExpandChannel::oomph); });
   clickPanel.setOnExpandRequested(
       [this] { requestExpand(ExpandChannel::click); });
-  dryPanel.setOnExpandRequested(
-      [this] { requestExpand(ExpandChannel::dry); });
+  dryPanel.setOnExpandRequested([this] { requestExpand(ExpandChannel::dry); });
 
   // 鍵盤モード変更コールバック
   keyboard.setOnModeChanged([this, &p](KeyboardComponent::Mode mode) {

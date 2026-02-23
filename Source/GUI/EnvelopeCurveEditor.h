@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <functional>
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -25,8 +26,11 @@ public:
   /// 波形プレビュー用: 選択波形を設定（Sine/Tri/Square/Saw）
   void setWaveShape(WaveShape shape);
 
-  /// 波形プレビュー用: BLEND 値を設定（-1.0〜+1.0, 負側のみモーフィング描画）
+  /// 波形プレビュー用: BLEND 値を設定（-1.0〜+1.0）
   void setPreviewBlend(float blend);
+
+  /// 波形プレビュー用: H1〜H4 倍音ゲインを設定（harmonicNum: 1〜4）
+  void setPreviewHarmonicGain(int harmonicNum, float gain);
 
   /// 表示するサイン波のサイクル数を設定
   void setDisplayCycles(float cycles);
@@ -83,6 +87,9 @@ private:
   /// 位相から波形サンプル値を返す（プレビュー用算術式）
   static float shapeOscValue(WaveShape shape, float phase);
 
+  /// BLEND + 波形選択に応じた1サンプルを返す（paintWaveform から委譲）
+  float computePreviewWaveValue(float sinVal, float blend, float phase) const;
+
   EnvelopeData &ampEnvData;
   EnvelopeData &pitchEnvData;
   EnvelopeData *editEnvData; // 編集中のエンベロープ（amp or pitch）
@@ -91,6 +98,7 @@ private:
   float displayCycles = 4.0f;
   WaveShape previewShape = WaveShape::Sine;
   float previewBlend = 0.0f; // -1.0〜+1.0
+  std::array<float, 4> previewHarmonicGains = {0.0f, 0.0f, 0.0f, 0.0f};
   int dragPointIndex{-1};
   std::function<void()> onChange;
   std::function<void(EditTarget)> onEditTargetChanged;
