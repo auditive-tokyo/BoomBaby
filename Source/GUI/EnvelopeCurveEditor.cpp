@@ -6,8 +6,12 @@
 #include <cmath>
 
 EnvelopeCurveEditor::EnvelopeCurveEditor(EnvelopeData &ampData,
-                                         EnvelopeData &pitchData)
-    : ampEnvData(ampData), pitchEnvData(pitchData), editEnvData(&ampData) {
+                                         EnvelopeData &pitchData,
+                                         EnvelopeData &distData,
+                                         EnvelopeData &blendData)
+    : ampEnvData(ampData), pitchEnvData(pitchData),
+      distEnvData(distData), blendEnvData(blendData),
+      editEnvData(&ampData) {
   setOpaque(true);
 }
 
@@ -172,11 +176,15 @@ void EnvelopeCurveEditor::paintEnvelopeOverlay(juce::Graphics &g,
       envLine.lineTo(x, ey);
   }
 
-  // Pitch=シアン、AMP=oomphArc で描画
+  // タブカラーに合わせたエンベロープ描画
   using enum EditTarget;
-  const auto envColour = (editTarget == pitch)
-                             ? juce::Colours::cyan
-                             : UIConstants::Colours::oomphArc.brighter(0.4f);
+  juce::Colour envColour;
+  switch (editTarget) {
+    case amp:   envColour = UIConstants::Colours::oomphArc.brighter(0.4f); break;
+    case pitch: envColour = juce::Colours::cyan; break;
+    case dist:  envColour = juce::Colour(0xFFFF9500); break;  // オレンジ
+    case blend: envColour = juce::Colour(0xFF4CAF50); break;  // グリーン
+  }
   g.setColour(envColour);
   g.strokePath(envLine, juce::PathStrokeType(1.5f));
 
@@ -267,12 +275,17 @@ float EnvelopeCurveEditor::plotHeight() const {
 
 float EnvelopeCurveEditor::editMinValue() const {
   using enum EditTarget;
-  return (editTarget == pitch) ? 20.0f : 0.0f;
+  if (editTarget == pitch) return 20.0f;
+  if (editTarget == blend) return -1.0f;
+  return 0.0f;  // amp: 0〜2, dist: 0〜1
 }
 
 float EnvelopeCurveEditor::editMaxValue() const {
   using enum EditTarget;
-  return (editTarget == pitch) ? 20000.0f : 2.0f;
+  if (editTarget == pitch) return 20000.0f;
+  if (editTarget == dist)  return 1.0f;
+  if (editTarget == blend) return 1.0f;
+  return 2.0f;  // amp
 }
 
 float EnvelopeCurveEditor::valueToY(float value) const {
@@ -283,8 +296,16 @@ float EnvelopeCurveEditor::valueToY(float value) const {
     const float lo = std::log(20.0f);
     const float hi = std::log(20000.0f);
     const float logVal = std::log(std::max(value, 20.0f));
-    const float norm = (logVal - lo) / (hi - lo); // 0..1
+    const float norm = (logVal - lo) / (hi - lo);
     return h - norm * h;
+  }
+  if (editTarget == dist) {
+    // DIST: 0.0 → 下端、1.0 → 上端
+    return h - value * h;
+  }
+  if (editTarget == blend) {
+    // BLEND: -1.0 → 下端、0.0 → 中央、+1.0 → 上端
+    return h - ((value + 1.0f) * 0.5f) * h;
   }
   // AMP: value 0.0 → 下端、value 2.0 → 上端
   return h - (value / 2.0f) * h;
@@ -303,6 +324,13 @@ float EnvelopeCurveEditor::yToValue(float y) const {
     const float hi = std::log(20000.0f);
     const float norm = (h > 0.0f) ? (1.0f - y / h) : 0.5f;
     return std::exp(std::lerp(lo, hi, norm));
+  }
+  if (editTarget == dist) {
+    return (h > 0.0f) ? (1.0f - y / h) : 0.0f;
+  }
+  if (editTarget == blend) {
+    // norm 0..1 → value -1..+1
+    return (h > 0.0f) ? (1.0f - y / h) * 2.0f - 1.0f : 0.0f;
   }
   return (h > 0.0f) ? (1.0f - y / h) * 2.0f : 1.0f;
 }
@@ -344,17 +372,13 @@ void EnvelopeCurveEditor::mouseDown(const juce::MouseEvent &e) {
   const auto pt = e.position;
 
   // タブクリック判定
-  if (ampTabRect().contains(pt)) {
-    setEditTarget(amp);
-    if (onEditTargetChanged)
-      onEditTargetChanged(amp);
-    return;
-  }
-  if (pitchTabRect().contains(pt)) {
-    setEditTarget(pitch);
-    if (onEditTargetChanged)
-      onEditTargetChanged(pitch);
-    return;
+  for (const auto t : {amp, pitch, dist, blend}) {
+    if (tabRect(t).contains(pt)) {
+      setEditTarget(t);
+      if (onEditTargetChanged)
+        onEditTargetChanged(t);
+      return;
+    }
   }
 
   dragPointIndex =
@@ -383,7 +407,12 @@ void EnvelopeCurveEditor::mouseUp(const juce::MouseEvent & /*e*/) {
 void EnvelopeCurveEditor::setEditTarget(EditTarget target) {
   using enum EditTarget;
   editTarget = target;
-  editEnvData = (target == amp) ? &ampEnvData : &pitchEnvData;
+  switch (target) {
+    case amp:   editEnvData = &ampEnvData;   break;
+    case pitch: editEnvData = &pitchEnvData; break;
+    case dist:  editEnvData = &distEnvData;  break;
+    case blend: editEnvData = &blendEnvData; break;
+  }
   dragPointIndex = -1;
   repaint();
 }
@@ -395,38 +424,66 @@ void EnvelopeCurveEditor::setOnEditTargetChanged(
 
 // ── タブ描画・ヒット領域 ──
 
-juce::Rectangle<float> EnvelopeCurveEditor::ampTabRect() const {
-  const float x = static_cast<float>(getWidth()) - tabPad - tabW * 2.0f - 2.0f;
-  return {x, tabPad, tabW, tabH};
-}
-
-juce::Rectangle<float> EnvelopeCurveEditor::pitchTabRect() const {
-  const float x = static_cast<float>(getWidth()) - tabPad - tabW;
+// 右から左に: BLEND=0, DIST=1, PITCH=2, AMP=3
+juce::Rectangle<float> EnvelopeCurveEditor::tabRect(EditTarget target) const {
+  using enum EditTarget;
+  int slot = 0;
+  switch (target) {
+    case blend: slot = 0; break;
+    case dist:  slot = 1; break;
+    case pitch: slot = 2; break;
+    case amp:   slot = 3; break;
+  }
+  const float x = static_cast<float>(getWidth())
+                  - tabPad - tabW * static_cast<float>(slot + 1)
+                  - static_cast<float>(slot) * 2.0f;
   return {x, tabPad, tabW, tabH};
 }
 
 void EnvelopeCurveEditor::paintTabs(juce::Graphics &g) const {
-  const auto ampRect = ampTabRect();
-  const auto pitchRect = pitchTabRect();
+  using enum EditTarget;
+  const auto ampR   = tabRect(amp);
+  const auto pitchR = tabRect(pitch);
+  const auto distR  = tabRect(dist);
+  const auto blendR = tabRect(blend);
 
   using enum EditTarget;
-  const bool isAmp = (editTarget == amp);
+  g.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
 
   // AMP タブ
-  g.setColour(isAmp ? UIConstants::Colours::oomphArc.withAlpha(0.8f)
-                    : juce::Colours::white.withAlpha(0.12f));
-  g.fillRoundedRectangle(ampRect, 3.0f);
-  g.setColour(isAmp ? juce::Colours::white
-                    : juce::Colours::white.withAlpha(0.5f));
-  g.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
-  g.drawText("AMP", ampRect, juce::Justification::centred, false);
-
+  {
+    const bool active = (editTarget == amp);
+    g.setColour(active ? UIConstants::Colours::oomphArc.withAlpha(0.8f)
+                       : juce::Colours::white.withAlpha(0.12f));
+    g.fillRoundedRectangle(ampR, 3.0f);
+    g.setColour(active ? juce::Colours::white : juce::Colours::white.withAlpha(0.5f));
+    g.drawText("AMP", ampR, juce::Justification::centred, false);
+  }
   // PITCH タブ
-  g.setColour(!isAmp ? juce::Colours::cyan.withAlpha(0.8f)
-                     : juce::Colours::white.withAlpha(0.12f));
-  g.fillRoundedRectangle(pitchRect, 3.0f);
-  g.setColour(!isAmp ? juce::Colours::white
-                     : juce::Colours::white.withAlpha(0.5f));
-  g.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
-  g.drawText("PITCH", pitchRect, juce::Justification::centred, false);
+  {
+    const bool active = (editTarget == pitch);
+    g.setColour(active ? juce::Colours::cyan.withAlpha(0.8f)
+                       : juce::Colours::white.withAlpha(0.12f));
+    g.fillRoundedRectangle(pitchR, 3.0f);
+    g.setColour(active ? juce::Colours::white : juce::Colours::white.withAlpha(0.5f));
+    g.drawText("PITCH", pitchR, juce::Justification::centred, false);
+  }
+  // DIST タブ
+  {
+    const bool active = (editTarget == dist);
+    g.setColour(active ? juce::Colour(0xFFFF9500).withAlpha(0.8f)
+                       : juce::Colours::white.withAlpha(0.12f));
+    g.fillRoundedRectangle(distR, 3.0f);
+    g.setColour(active ? juce::Colours::white : juce::Colours::white.withAlpha(0.5f));
+    g.drawText("DIST", distR, juce::Justification::centred, false);
+  }
+  // BLEND タブ
+  {
+    const bool active = (editTarget == blend);
+    g.setColour(active ? juce::Colour(0xFF4CAF50).withAlpha(0.8f)
+                       : juce::Colours::white.withAlpha(0.12f));
+    g.fillRoundedRectangle(blendR, 3.0f);
+    g.setColour(active ? juce::Colours::white : juce::Colours::white.withAlpha(0.5f));
+    g.drawText("BLEND", blendR, juce::Justification::centred, false);
+  }
 }

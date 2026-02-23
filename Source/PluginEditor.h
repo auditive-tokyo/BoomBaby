@@ -28,6 +28,8 @@ private:
   // ── コンストラクター分割ヘルパー ──
   void bakeAmpLut();
   void bakePitchLut();
+  void bakeDistLut();
+  void bakeBlendLut();
   void setupPanelRouting(BabySquatchAudioProcessor &p);
   void setupEnvelopeCurveEditor();
   void setupOomphKnobsRow();
@@ -59,7 +61,9 @@ private:
   KeyboardComponent keyboard;
   EnvelopeData ampEnvData;
   EnvelopeData pitchEnvData;
-  EnvelopeCurveEditor envelopeCurveEditor{ampEnvData, pitchEnvData};
+  EnvelopeData distEnvData;
+  EnvelopeData blendEnvData;
+  EnvelopeCurveEditor envelopeCurveEditor{ampEnvData, pitchEnvData, distEnvData, blendEnvData};
 
   // ── OOMPH展開パネル: LAF（oomphKnobs より先に宣言し、後に破棄されるようにする） ──
   ColouredSliderLAF oomphKnobLAF{UIConstants::Colours::oomphArc,

@@ -50,6 +50,8 @@ public:
     const ChannelState& channelState() const noexcept { return channelState_; }
     EnvelopeLutManager& envLut()             noexcept { return envLut_; }
     EnvelopeLutManager& pitchLut()            noexcept { return pitchLut_; }
+    EnvelopeLutManager& distLut()             noexcept { return distLut_; }
+    EnvelopeLutManager& blendLut()            noexcept { return blendLut_; }
     OomphOscillator&    oomphOscillator()     noexcept { return oomphOsc; }
 
 private:
@@ -63,6 +65,8 @@ private:
     ChannelState channelState_;
     EnvelopeLutManager envLut_;
     EnvelopeLutManager pitchLut_;
+    EnvelopeLutManager distLut_;
+    EnvelopeLutManager blendLut_;
 
     std::vector<float> oomphScratchBuffer;
     float noteTimeSamples{0.0f};

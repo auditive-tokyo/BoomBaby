@@ -122,11 +122,19 @@ BabySquatchは3つのモジュールで構成されています：
 
 ## TODO
 
+- **DIST / BLEND Envelope 実装**（完了）
+  - `EnvelopeData distEnvData` / `blendEnvData` を PluginEditor に追加
+  - `EnvelopeLutManager distLut_` / `blendLut_` を PluginProcessor に追加、`distLut()` / `blendLut()` アクセサ公開
+  - `EnvelopeCurveEditor` に DIST（オレンジ）/ BLEND（グリーン）タブを追加（4タブ構成）
+  - `renderOomph()` で distLut / blendLut を每サンプル読み出し、`setDist()` / `setBlend()` を呼び出し（LUT単一ツリー方式）
+  - DIST/BLEND ノブは `distEnvData.setDefaultValue()` + `bakeDistLut()` 経由で間接的にオシレータを制御
+  - DIST Y軸: 0.0（下）～1.0（上）線形、BLEND Y軸: -1.0（下）～0（中央）～+1.0（上）線形
+  - エンベロープポイントがある間、対応ノブを無効化（ツールチップ表示）
+
 - **Dist ノブ実装**（完了）
   - `OomphOscillator::setDist(float drive01)` API 追加。ノブレンジ 0〜100%（内部 drive: 1.0〜10.0）
   - `getNextSample()` 内で BLEND クロスフェード後に常時 `std::tanh()` を適用。DIST=0 でも軽いソフトクリップ（`drive=1.0`）がかかり、Kick Ninja DIST=0 相当の挙動を実現
-  - `oomphKnobs[3].onValueChange` で `processorRef.oomphOscillator().setDist(drive01)` を配線
-  - **今後の拡張**: Dist Envelope（DIST ノブが Decay エンベロープで変調する仕様）を実装する際は、AMP/PITCH Envelope 同様に `distEnvData` を追加して LUT ベイク＆毎サンプル読み出しする
+  - renderOomph() で distLut / blendLut を每サンプル読み出し、`setDist()` / `setBlend()` を呼び出し（LUT単一ツリー方式）
 
 - **CapsLock 中はキーボードフォーカスを常に鍵盤に固定**
   - 現状: 展開パネルを開くか鍵盤をクリックした場合のみ `KeyboardComponent` がフォーカスを持つ。ロータリーノブ操作後などはフォーカスが外れ、PCキーからのMIDI入力が効かなくなる

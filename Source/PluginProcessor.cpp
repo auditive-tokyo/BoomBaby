@@ -97,6 +97,10 @@ void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
   const float ampDurMs = envLut_.getDurationMs();
   const auto &pLut = pitchLut_.getActiveLut();
   const float pitchDurMs = pitchLut_.getDurationMs();
+  const auto &dLut = distLut_.getActiveLut();
+  const float distDurMs = distLut_.getDurationMs();
+  const auto &bLut = blendLut_.getActiveLut();
+  const float blendDurMs = blendLut_.getDurationMs();
   const auto sr = static_cast<float>(getSampleRate());
 
   for (int sample = 0; sample < numSamples; ++sample) {
@@ -112,6 +116,26 @@ void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
         std::min(static_cast<int>(pitchLutPos), EnvelopeLutManager::lutSize - 1);
     const float pitchHz = pLut[static_cast<size_t>(pitchLutIdx)];
     oomphOsc.setFrequencyHz(pitchHz);
+
+    // DIST LUT → drive01 (0.0～1.0)
+    const float distLutPos =
+        (distDurMs > 0.0f)
+            ? (noteTimeMs / distDurMs) *
+                  static_cast<float>(EnvelopeLutManager::lutSize - 1)
+            : 0.0f;
+    const auto distLutIdx =
+        std::min(static_cast<int>(distLutPos), EnvelopeLutManager::lutSize - 1);
+    oomphOsc.setDist(dLut[static_cast<size_t>(distLutIdx)]);
+
+    // BLEND LUT → blend (-1.0～+1.0)
+    const float blendLutPos =
+        (blendDurMs > 0.0f)
+            ? (noteTimeMs / blendDurMs) *
+                  static_cast<float>(EnvelopeLutManager::lutSize - 1)
+            : 0.0f;
+    const auto blendLutIdx =
+        std::min(static_cast<int>(blendLutPos), EnvelopeLutManager::lutSize - 1);
+    oomphOsc.setBlend(bLut[static_cast<size_t>(blendLutIdx)]);
 
     // AMP LUT → エンベロープゲイン
     const float lutPos =

@@ -14,12 +14,13 @@ class EnvelopeData;
 /// オーバーレイ: 編集中のエンベロープ（AMP or Pitch）のカーブ＋制御点
 class EnvelopeCurveEditor : public juce::Component {
 public:
-  EnvelopeCurveEditor(EnvelopeData &ampData, EnvelopeData &pitchData);
+  EnvelopeCurveEditor(EnvelopeData &ampData, EnvelopeData &pitchData,
+                      EnvelopeData &distData, EnvelopeData &blendData);
 
   void paint(juce::Graphics &g) override;
 
-  /// 編集対象のエンベロープを切り替え（AMP / Pitch）
-  enum class EditTarget { amp, pitch };
+  /// 編集対象のエンベロープを切り替え（AMP / PITCH / DIST / BLEND）
+  enum class EditTarget { amp, pitch, dist, blend };
   void setEditTarget(EditTarget target);
   EditTarget getEditTarget() const { return editTarget; }
 
@@ -71,10 +72,9 @@ private:
   void paintTimeline(juce::Graphics &g, float w, float h, float totalH) const;
   void paintTabs(juce::Graphics &g) const;
 
-  /// タブ矩形（右上の AMP / PITCH 切替ボタン）
-  juce::Rectangle<float> ampTabRect() const;
-  juce::Rectangle<float> pitchTabRect() const;
-  static constexpr float tabW = 44.0f;
+  /// タブ矩形（右上の AMP / PITCH / DIST / BLEND ボタン）
+  juce::Rectangle<float> tabRect(EditTarget target) const;
+  static constexpr float tabW = 38.0f;
   static constexpr float tabH = 18.0f;
   static constexpr float tabPad = 4.0f;
 
@@ -92,7 +92,9 @@ private:
 
   EnvelopeData &ampEnvData;
   EnvelopeData &pitchEnvData;
-  EnvelopeData *editEnvData; // 編集中のエンベロープ（amp or pitch）
+  EnvelopeData &distEnvData;
+  EnvelopeData &blendEnvData;
+  EnvelopeData *editEnvData; // 編集中のエンベロープ（amp / pitch / dist / blend）
   EditTarget editTarget = EditTarget::amp;
   float displayDurationMs = 300.0f;
   float displayCycles = 4.0f;
