@@ -9,11 +9,9 @@ EnvelopeCurveEditor::EnvelopeCurveEditor(EnvelopeData &ampData,
                                          EnvelopeData &pitchData,
                                          EnvelopeData &distData,
                                          EnvelopeData &blendData)
-    : ampEnvData(ampData), pitchEnvData(pitchData),
-      distEnvData(distData), blendEnvData(blendData),
-      editEnvData(&ampData) {
+    : ampEnvData(ampData), pitchEnvData(pitchData), distEnvData(distData),
+      blendEnvData(blendData), editEnvData(&ampData) {
   setOpaque(true);
-
 }
 
 void EnvelopeCurveEditor::paint(juce::Graphics &g) {
@@ -94,13 +92,25 @@ void EnvelopeCurveEditor::paintWaveform(juce::Graphics &g, float w, float h,
   fillPath.lineTo(w, centreY);
   fillPath.closeSubPath();
 
-  g.setColour(UIConstants::Colours::oomphArc.withAlpha(0.3f));
+  // グラジエント塗りつぶし: 波形外縁→中心ラインへ青→透明
+  const juce::Colour baseBlue{0xFF2080FF}; // 純粋なブルー（シアン寄り排除）
+  juce::ColourGradient fillGrad(baseBlue.withAlpha(0.40f), 0.0f, 0.0f,
+                                baseBlue.withAlpha(0.02f), 0.0f, centreY,
+                                false);
+  g.setGradientFill(fillGrad);
   g.fillPath(fillPath);
 
-  g.setColour(UIConstants::Colours::oomphArc);
-  g.strokePath(waveLine, juce::PathStrokeType(1.5f));
+  // グロー ストローク 3層（外→コア）
+  g.setColour(baseBlue.withAlpha(0.08f));
+  g.strokePath(waveLine, juce::PathStrokeType(9.0f));
 
-  g.setColour(juce::Colours::white.withAlpha(0.08f));
+  g.setColour(baseBlue.withAlpha(0.30f));
+  g.strokePath(waveLine, juce::PathStrokeType(3.5f));
+
+  g.setColour(baseBlue.withAlpha(0.95f));
+  g.strokePath(waveLine, juce::PathStrokeType(1.2f));
+
+  g.setColour(juce::Colours::white.withAlpha(0.06f));
   g.drawHorizontalLine(static_cast<int>(centreY), 0.0f, w);
 }
 
@@ -141,8 +151,8 @@ float EnvelopeCurveEditor::computePreviewWaveValue(float sinVal, float blend,
   float addVal = 0.0f;
   for (size_t n = 0; n < 4; ++n) {
     if (previewHarmonicGains[n] > 0.0f)
-      addVal += previewHarmonicGains[n] *
-                std::sin(phase * static_cast<float>(n + 1));
+      addVal +=
+          previewHarmonicGains[n] * std::sin(phase * static_cast<float>(n + 1));
   }
   return std::lerp(sinVal, addVal, blend);
 }
@@ -193,10 +203,18 @@ void EnvelopeCurveEditor::paintEnvelopeOverlay(juce::Graphics &g,
   using enum EditTarget;
   juce::Colour envColour;
   switch (editTarget) {
-    case amp:   envColour = UIConstants::Colours::oomphArc.brighter(0.4f); break;
-    case pitch: envColour = juce::Colours::cyan; break;
-    case dist:  envColour = juce::Colour(0xFFFF9500); break;  // オレンジ
-    case blend: envColour = juce::Colour(0xFF4CAF50); break;  // グリーン
+  case amp:
+    envColour = UIConstants::Colours::oomphArc.brighter(0.4f);
+    break;
+  case pitch:
+    envColour = juce::Colours::cyan;
+    break;
+  case dist:
+    envColour = juce::Colour(0xFFFF9500);
+    break; // オレンジ
+  case blend:
+    envColour = juce::Colour(0xFF4CAF50);
+    break; // グリーン
   }
   g.setColour(envColour);
   g.strokePath(envLine, juce::PathStrokeType(1.5f));
@@ -230,8 +248,8 @@ void EnvelopeCurveEditor::paintTimeline(juce::Graphics &g, float w, float h,
   {
     // 境界 ms 値（displayDurationMs にクランプ）
     const float bAttack = std::min(10.0f, displayDurationMs);
-    const float bBody   = std::min(40.0f, displayDurationMs);
-    const float bDecay  = std::min(140.0f, displayDurationMs);
+    const float bBody = std::min(40.0f, displayDurationMs);
+    const float bDecay = std::min(140.0f, displayDurationMs);
 
     // 境界線の配列（表示範囲内のもののみ描画）
     const std::array<float, 3> boundaries = {bAttack, bBody, bDecay};
@@ -246,25 +264,28 @@ void EnvelopeCurveEditor::paintTimeline(juce::Graphics &g, float w, float h,
 
     // セクションラベル（各区間の中央に描画）
     const float dur = displayDurationMs;
-    struct Section { float startMs; float endMs; const char* name; };
+    struct Section {
+      float startMs;
+      float endMs;
+      const char *name;
+    };
     const std::array<Section, 4> sections = {{
-      { 0.0f,    std::min(10.0f, dur),  "ATK"   },
-      { 10.0f,   std::min(40.0f, dur),  "BODY"  },
-      { 40.0f,   std::min(140.0f, dur), "DECAY" },
-      { 140.0f,  dur,                   "TAIL"  },
+        {0.0f, std::min(10.0f, dur), "ATK"},
+        {10.0f, std::min(40.0f, dur), "BODY"},
+        {40.0f, std::min(140.0f, dur), "DECAY"},
+        {140.0f, dur, "TAIL"},
     }};
 
     g.setFont(juce::Font(juce::FontOptions(8.0f)));
     g.setColour(juce::Colours::white.withAlpha(0.25f));
 
-    for (const auto& [startMs, endMs, name] : sections) {
+    for (const auto &[startMs, endMs, name] : sections) {
       if (startMs >= dur)
         break; // この区間以降は表示範囲外
       const float x0 = timeMsToX(startMs);
       const float x1 = timeMsToX(endMs);
       if (x1 - x0 > 20.0f) { // ラベルが収まる最小幅
-        g.drawText(name,
-                   juce::Rectangle<float>(x0, h - 12.0f, x1 - x0, 12.0f),
+        g.drawText(name, juce::Rectangle<float>(x0, h - 12.0f, x1 - x0, 12.0f),
                    juce::Justification::centred, false);
       }
     }
@@ -319,7 +340,6 @@ void EnvelopeCurveEditor::setOnChange(std::function<void()> cb) {
   onChange = std::move(cb);
 }
 
-
 // ── 座標変換ヘルパー ──
 
 float EnvelopeCurveEditor::timeMsToX(float timeMs) const {
@@ -333,17 +353,22 @@ float EnvelopeCurveEditor::plotHeight() const {
 
 float EnvelopeCurveEditor::editMinValue() const {
   using enum EditTarget;
-  if (editTarget == pitch) return 20.0f;
-  if (editTarget == blend) return -1.0f;
-  return 0.0f;  // amp: 0〜2, dist: 0〜1
+  if (editTarget == pitch)
+    return 20.0f;
+  if (editTarget == blend)
+    return -1.0f;
+  return 0.0f; // amp: 0〜2, dist: 0〜1
 }
 
 float EnvelopeCurveEditor::editMaxValue() const {
   using enum EditTarget;
-  if (editTarget == pitch) return 20000.0f;
-  if (editTarget == dist)  return 1.0f;
-  if (editTarget == blend) return 1.0f;
-  return 2.0f;  // amp
+  if (editTarget == pitch)
+    return 20000.0f;
+  if (editTarget == dist)
+    return 1.0f;
+  if (editTarget == blend)
+    return 1.0f;
+  return 2.0f; // amp
 }
 
 float EnvelopeCurveEditor::valueToY(float value) const {
@@ -466,10 +491,18 @@ void EnvelopeCurveEditor::setEditTarget(EditTarget target) {
   using enum EditTarget;
   editTarget = target;
   switch (target) {
-    case amp:   editEnvData = &ampEnvData;   break;
-    case pitch: editEnvData = &pitchEnvData; break;
-    case dist:  editEnvData = &distEnvData;  break;
-    case blend: editEnvData = &blendEnvData; break;
+  case amp:
+    editEnvData = &ampEnvData;
+    break;
+  case pitch:
+    editEnvData = &pitchEnvData;
+    break;
+  case dist:
+    editEnvData = &distEnvData;
+    break;
+  case blend:
+    editEnvData = &blendEnvData;
+    break;
   }
   dragPointIndex = -1;
   repaint();
@@ -487,22 +520,30 @@ juce::Rectangle<float> EnvelopeCurveEditor::tabRect(EditTarget target) const {
   using enum EditTarget;
   int slot = 0;
   switch (target) {
-    case blend: slot = 0; break;
-    case dist:  slot = 1; break;
-    case pitch: slot = 2; break;
-    case amp:   slot = 3; break;
+  case blend:
+    slot = 0;
+    break;
+  case dist:
+    slot = 1;
+    break;
+  case pitch:
+    slot = 2;
+    break;
+  case amp:
+    slot = 3;
+    break;
   }
-  const float x = static_cast<float>(getWidth())
-                  - tabPad - tabW * static_cast<float>(slot + 1)
-                  - static_cast<float>(slot) * 2.0f;
+  const float x = static_cast<float>(getWidth()) - tabPad -
+                  tabW * static_cast<float>(slot + 1) -
+                  static_cast<float>(slot) * 2.0f;
   return {x, tabPad, tabW, tabH};
 }
 
 void EnvelopeCurveEditor::paintTabs(juce::Graphics &g) const {
   using enum EditTarget;
-  const auto ampR   = tabRect(amp);
+  const auto ampR = tabRect(amp);
   const auto pitchR = tabRect(pitch);
-  const auto distR  = tabRect(dist);
+  const auto distR = tabRect(dist);
   const auto blendR = tabRect(blend);
 
   using enum EditTarget;
@@ -514,7 +555,8 @@ void EnvelopeCurveEditor::paintTabs(juce::Graphics &g) const {
     g.setColour(active ? UIConstants::Colours::oomphArc.withAlpha(0.8f)
                        : juce::Colours::white.withAlpha(0.12f));
     g.fillRoundedRectangle(ampR, 3.0f);
-    g.setColour(active ? juce::Colours::white : juce::Colours::white.withAlpha(0.5f));
+    g.setColour(active ? juce::Colours::white
+                       : juce::Colours::white.withAlpha(0.5f));
     g.drawText("AMP", ampR, juce::Justification::centred, false);
   }
   // PITCH タブ
@@ -523,7 +565,8 @@ void EnvelopeCurveEditor::paintTabs(juce::Graphics &g) const {
     g.setColour(active ? juce::Colours::cyan.withAlpha(0.8f)
                        : juce::Colours::white.withAlpha(0.12f));
     g.fillRoundedRectangle(pitchR, 3.0f);
-    g.setColour(active ? juce::Colours::white : juce::Colours::white.withAlpha(0.5f));
+    g.setColour(active ? juce::Colours::white
+                       : juce::Colours::white.withAlpha(0.5f));
     g.drawText("PITCH", pitchR, juce::Justification::centred, false);
   }
   // DIST タブ
@@ -532,7 +575,8 @@ void EnvelopeCurveEditor::paintTabs(juce::Graphics &g) const {
     g.setColour(active ? juce::Colour(0xFFFF9500).withAlpha(0.8f)
                        : juce::Colours::white.withAlpha(0.12f));
     g.fillRoundedRectangle(distR, 3.0f);
-    g.setColour(active ? juce::Colours::white : juce::Colours::white.withAlpha(0.5f));
+    g.setColour(active ? juce::Colours::white
+                       : juce::Colours::white.withAlpha(0.5f));
     g.drawText("DIST", distR, juce::Justification::centred, false);
   }
   // BLEND タブ
@@ -541,7 +585,8 @@ void EnvelopeCurveEditor::paintTabs(juce::Graphics &g) const {
     g.setColour(active ? juce::Colour(0xFF4CAF50).withAlpha(0.8f)
                        : juce::Colours::white.withAlpha(0.12f));
     g.fillRoundedRectangle(blendR, 3.0f);
-    g.setColour(active ? juce::Colours::white : juce::Colours::white.withAlpha(0.5f));
+    g.setColour(active ? juce::Colours::white
+                       : juce::Colours::white.withAlpha(0.5f));
     g.drawText("BLEND", blendR, juce::Justification::centred, false);
   }
 }
