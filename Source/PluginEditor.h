@@ -42,6 +42,7 @@ private:
   void deselectOtherWaveShapeButtons(size_t selectedIdx);
   void layoutOomphKnobsRow(juce::Rectangle<int> knobRow);
   void layoutWaveShapeButtonRow(juce::Rectangle<int> btnRow);
+  void setupLengthBox();
 
   PanelComponent oomphPanel{"OOMPH", UIConstants::Colours::oomphArc,
                             UIConstants::Colours::oomphThumb};
@@ -71,8 +72,11 @@ private:
   // ── OOMPH展開パネル: Oscノブ行（8本） ──
   std::array<juce::Slider, 8> oomphKnobs;
   std::array<juce::Label, 8> oomphKnobLabels;
-  // ── OOMPH展開パネル: 波形選択ボタン行（Tri / SQR / SAW） ──
+  // ── OOMPH展開パネル: 波形選択ボタン行（Tri / SQR / SAW）+ Length ボックス ──
   std::array<juce::TextButton, 3> waveShapeButtons;
+  juce::Label lengthPrefixLabel;
+  juce::TextEditor lengthEditor;
+  juce::Label lengthSuffixLabel;
   // ── ツールチップ（AMPノブの無効時などに使用） ──
   juce::TooltipWindow tooltipWindow{this, 500};
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BabySquatchAudioProcessorEditor)

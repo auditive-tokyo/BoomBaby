@@ -45,6 +45,9 @@ public:
     /// Oomph出力ゲイン（dB）— UIノブから書き込み、processBlockで適用
     void setOomphGainDb(float db) { oomphGainDb.store(db); }
 
+    /// One-shot 長さ（ms）— Length ボックスから書き込み、renderOomph で自動停止に使用
+    void setOomphLengthMs(float ms) { oomphLengthMs.store(ms); }
+
     // ── 委譲先ヘルパーへのアクセサ ──
     ChannelState&       channelState()       noexcept { return channelState_; }
     const ChannelState& channelState() const noexcept { return channelState_; }
@@ -70,6 +73,7 @@ private:
 
     std::vector<float> oomphScratchBuffer;
     float noteTimeSamples{0.0f};
+    std::atomic<float> oomphLengthMs{300.0f};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BabySquatchAudioProcessor)
 };

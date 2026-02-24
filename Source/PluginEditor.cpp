@@ -127,11 +127,55 @@ void BabySquatchAudioProcessorEditor::setupEnvelopeCurveEditor() {
                                      target == blend ? juce::Colour(0xFF4CAF50)
                                                      : kLabel);
       });
+
 }
 
 // ────────────────────────────────────────────────────
 // OOMPH Osc ノブ行（8本）初期化
 // ────────────────────────────────────────────────────
+void BabySquatchAudioProcessorEditor::setupLengthBox() {
+  const auto smallFont = juce::Font(juce::FontOptions(10.0f));
+
+  lengthPrefixLabel.setText("length:", juce::dontSendNotification);
+  lengthPrefixLabel.setFont(smallFont);
+  lengthPrefixLabel.setColour(juce::Label::textColourId,
+                              juce::Colours::white.withAlpha(0.6f));
+  lengthPrefixLabel.setJustificationType(juce::Justification::centredRight);
+  addAndMakeVisible(lengthPrefixLabel);
+
+  lengthEditor.setFont(smallFont);
+  lengthEditor.setText("300", false);
+  lengthEditor.setInputRestrictions(4, "0123456789");
+  lengthEditor.setJustification(juce::Justification::centred);
+  lengthEditor.setColour(juce::TextEditor::backgroundColourId,
+                         juce::Colours::black.withAlpha(0.45f));
+  lengthEditor.setColour(juce::TextEditor::textColourId, juce::Colours::white);
+  lengthEditor.setColour(juce::TextEditor::outlineColourId,
+                         juce::Colours::white.withAlpha(0.20f));
+  lengthEditor.setColour(juce::TextEditor::focusedOutlineColourId,
+                         juce::Colours::white.withAlpha(0.5f));
+  auto applyLength = [this]() {
+    const int v = juce::jlimit(10, 2000, lengthEditor.getText().getIntValue());
+    lengthEditor.setText(juce::String(v), false);
+    envelopeCurveEditor.setDisplayDurationMs(static_cast<float>(v));
+    processorRef.setOomphLengthMs(static_cast<float>(v));
+    bakeAmpLut();
+    bakePitchLut();
+    bakeDistLut();
+    bakeBlendLut();
+  };
+  lengthEditor.onReturnKey = applyLength;
+  lengthEditor.onFocusLost = applyLength;
+  addAndMakeVisible(lengthEditor);
+
+  lengthSuffixLabel.setText("ms", juce::dontSendNotification);
+  lengthSuffixLabel.setFont(smallFont);
+  lengthSuffixLabel.setColour(juce::Label::textColourId,
+                              juce::Colours::white.withAlpha(0.6f));
+  lengthSuffixLabel.setJustificationType(juce::Justification::centredLeft);
+  addAndMakeVisible(lengthSuffixLabel);
+}
+
 void BabySquatchAudioProcessorEditor::setupOomphKnobsRow() {
   static constexpr std::array<const char *, 8> kLabels = {
       "PITCH", "AMP", "BLEND", "DIST", "H1", "H2", "H3", "H4"};
@@ -308,14 +352,32 @@ void BabySquatchAudioProcessorEditor::layoutOomphKnobsRow(
 
 void BabySquatchAudioProcessorEditor::layoutWaveShapeButtonRow(
     juce::Rectangle<int> btnRow) {
-  constexpr int btnW = 64;
-  constexpr int gap = 6;
-  constexpr int totalW = btnW * 3 + gap * 2;
-  auto row = btnRow.withSizeKeepingCentre(totalW, 22);
+  constexpr int btnW   = 64;
+  constexpr int btnGap = 6;
+  constexpr int rowH   = 22;
+
+  // Length ボックスを左端に配置
+  constexpr int prefixW = 44;
+  constexpr int editorW = 34;
+  constexpr int suffixW = 18;
+  constexpr int innerGap = 2;
+  constexpr int lengthTotalW = prefixW + editorW + suffixW + innerGap * 2;
+  auto lengthArea = btnRow.removeFromLeft(lengthTotalW).withSizeKeepingCentre(lengthTotalW, rowH);
+  int lx = lengthArea.getX();
+  const int ly = lengthArea.getY();
+  lengthPrefixLabel.setBounds(lx, ly, prefixW, rowH);
+  lx += prefixW + innerGap;
+  lengthEditor.setBounds(lx, ly, editorW, rowH);
+  lx += editorW + innerGap;
+  lengthSuffixLabel.setBounds(lx, ly, suffixW, rowH);
+
+  // Tri/SQR/SAW ボタンを残り領域に中央揃えで配置
+  constexpr int totalW = btnW * 3 + btnGap * 2;
+  auto row = btnRow.withSizeKeepingCentre(totalW, rowH);
   for (size_t i = 0; i < 3; ++i) {
     waveShapeButtons[i].setBounds(row.removeFromLeft(btnW));
     if (i < 2)
-      row.removeFromLeft(gap);
+      row.removeFromLeft(btnGap);
   }
 }
 
@@ -346,6 +408,7 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
   setupEnvelopeCurveEditor();
   setupOomphKnobsRow();
   setupWaveShapeButtons();
+  setupLengthBox();
   setupPitchKnob();
   setupAmpKnob();
   setupBlendKnob();

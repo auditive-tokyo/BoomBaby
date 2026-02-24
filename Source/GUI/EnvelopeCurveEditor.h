@@ -46,6 +46,8 @@ public:
   /// 編集対象が切り替わった時のコールバック（外部UI同期用）
   void setOnEditTargetChanged(std::function<void(EditTarget)> cb);
 
+  /// Length ボックス変更時コールバック（全 LUT 再ベイク用）
+
   // ── マウス操作（Phase 2） ──
   void mouseDoubleClick(const juce::MouseEvent &e) override;
   void mouseDown(const juce::MouseEvent &e) override;
@@ -104,6 +106,7 @@ private:
   int dragPointIndex{-1};
   std::function<void()> onChange;
   std::function<void(EditTarget)> onEditTargetChanged;
+
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EnvelopeCurveEditor)
 };

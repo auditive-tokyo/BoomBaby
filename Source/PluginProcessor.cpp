@@ -78,9 +78,8 @@ void BabySquatchAudioProcessor::handleMidiEvents(juce::MidiBuffer &midiMessages,
     if (msg.isNoteOn()) {
       oomphOsc.triggerNote();
       noteTimeSamples = 0.0f; // エンベロープリセット
-    } else if (msg.isNoteOff()) {
-      oomphOsc.stopNote();
     }
+    // NoteOff は無視: One-shot 長さは oomphLengthMs で決定
   }
 }
 
@@ -103,8 +102,27 @@ void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
   const float blendDurMs = blendLut_.getDurationMs();
   const auto sr = static_cast<float>(getSampleRate());
 
+  const float lengthMs = oomphLengthMs.load();
+  constexpr float fadeOutMs = 5.0f;
+  const float fadeStartMs = std::max(0.0f, lengthMs - fadeOutMs);
+
   for (int sample = 0; sample < numSamples; ++sample) {
     const float noteTimeMs = noteTimeSamples * 1000.0f / sr;
+
+    // One-shot: Length 到達で自動停止
+    if (noteTimeMs >= lengthMs) {
+      oomphOsc.stopNote();
+      std::fill_n(oomphScratchBuffer.data() + sample,
+                  static_cast<size_t>(numSamples - sample), 0.0f);
+      break;
+    }
+
+    // 末尾 fadeout: half-cosine ゲイン (1.0 → 0.0)
+    float fadeGain = 1.0f;
+    if (noteTimeMs > fadeStartMs && fadeOutMs > 0.0f) {
+      const float t = (noteTimeMs - fadeStartMs) / fadeOutMs; // 0..1
+      fadeGain = 0.5f * (1.0f + std::cos(t * juce::MathConstants<float>::pi));
+    }
 
     // Pitch LUT → Hz
     const float pitchLutPos =
@@ -147,7 +165,7 @@ void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
         std::min(static_cast<int>(lutPos), EnvelopeLutManager::lutSize - 1);
     const float envGain = ampLut[static_cast<size_t>(lutIndex)];
 
-    const float oscSample = oomphOsc.getNextSample() * gain * envGain;
+    const float oscSample = oomphOsc.getNextSample() * gain * envGain * fadeGain;
     oomphScratchBuffer[static_cast<size_t>(sample)] = oscSample;
     if (oomphPass) {
       for (int ch = 0; ch < numChannels; ++ch)

@@ -13,6 +13,7 @@ EnvelopeCurveEditor::EnvelopeCurveEditor(EnvelopeData &ampData,
       distEnvData(distData), blendEnvData(blendData),
       editEnvData(&ampData) {
   setOpaque(true);
+
 }
 
 void EnvelopeCurveEditor::paint(juce::Graphics &g) {
@@ -48,6 +49,10 @@ void EnvelopeCurveEditor::paintWaveform(juce::Graphics &g, float w, float h,
   float phase = 0.0f;
   const float dtMs = displayDurationMs / w; // 1ピクセルあたりの時間(ms)
 
+  // 末尾 fadeout: DSP と同じ 5ms half-cosine
+  constexpr float fadeOutMs = 5.0f;
+  const float fadeStartMs = std::max(0.0f, displayDurationMs - fadeOutMs);
+
   for (int i = 0; i <= numPixels; ++i) {
     const auto x = static_cast<float>(i);
     const float timeMs = x * dtMs;
@@ -67,7 +72,15 @@ void EnvelopeCurveEditor::paintWaveform(juce::Graphics &g, float w, float h,
     // AMP: 振幅
     const float amplitude =
         hasAmpPoints ? ampEnvData.evaluate(timeMs) : ampEnvData.getValue();
-    const float scaledAmp = std::min(amplitude, 2.0f) * centreY;
+
+    // 末尾 fadeout ゲイン
+    float fadeGain = 1.0f;
+    if (timeMs > fadeStartMs && fadeOutMs > 0.0f) {
+      const float t = (timeMs - fadeStartMs) / fadeOutMs;
+      fadeGain = 0.5f * (1.0f + std::cos(t * juce::MathConstants<float>::pi));
+    }
+
+    const float scaledAmp = std::min(amplitude, 2.0f) * centreY * fadeGain;
     const float y = juce::jlimit(0.0f, h, centreY - waveVal * scaledAmp);
 
     fillPath.lineTo(x, y);
@@ -213,7 +226,51 @@ void EnvelopeCurveEditor::paintTimeline(juce::Graphics &g, float w, float h,
   g.setColour(juce::Colours::white.withAlpha(0.15f));
   g.drawHorizontalLine(static_cast<int>(h), 0.0f, w);
 
-  // ms 間隔を displayDurationMs に応じて自動選択
+  // ── セクション境界（Attack / Body / Decay / Tail） ──
+  {
+    // 境界 ms 値（displayDurationMs にクランプ）
+    const float bAttack = std::min(10.0f, displayDurationMs);
+    const float bBody   = std::min(40.0f, displayDurationMs);
+    const float bDecay  = std::min(140.0f, displayDurationMs);
+
+    // 境界線の配列（表示範囲内のもののみ描画）
+    const std::array<float, 3> boundaries = {bAttack, bBody, bDecay};
+    g.setColour(juce::Colours::white.withAlpha(0.10f));
+    for (const float ms : boundaries) {
+      if (ms < displayDurationMs) {
+        const float bx = timeMsToX(ms);
+        const auto ix = static_cast<int>(bx);
+        g.drawVerticalLine(ix, 0.0f, h);
+      }
+    }
+
+    // セクションラベル（各区間の中央に描画）
+    const float dur = displayDurationMs;
+    struct Section { float startMs; float endMs; const char* name; };
+    const std::array<Section, 4> sections = {{
+      { 0.0f,    std::min(10.0f, dur),  "ATK"   },
+      { 10.0f,   std::min(40.0f, dur),  "BODY"  },
+      { 40.0f,   std::min(140.0f, dur), "DECAY" },
+      { 140.0f,  dur,                   "TAIL"  },
+    }};
+
+    g.setFont(juce::Font(juce::FontOptions(8.0f)));
+    g.setColour(juce::Colours::white.withAlpha(0.25f));
+
+    for (const auto& [startMs, endMs, name] : sections) {
+      if (startMs >= dur)
+        break; // この区間以降は表示範囲外
+      const float x0 = timeMsToX(startMs);
+      const float x1 = timeMsToX(endMs);
+      if (x1 - x0 > 20.0f) { // ラベルが収まる最小幅
+        g.drawText(name,
+                   juce::Rectangle<float>(x0, h - 12.0f, x1 - x0, 12.0f),
+                   juce::Justification::centred, false);
+      }
+    }
+  }
+
+  // ── ms 目盛り ──
   constexpr std::array<float, 9> intervals = {10,  20,   50,   100, 200,
                                               500, 1000, 2000, 5000};
   float interval = intervals[0];
@@ -261,6 +318,7 @@ void EnvelopeCurveEditor::setDisplayDurationMs(float ms) {
 void EnvelopeCurveEditor::setOnChange(std::function<void()> cb) {
   onChange = std::move(cb);
 }
+
 
 // ── 座標変換ヘルパー ──
 

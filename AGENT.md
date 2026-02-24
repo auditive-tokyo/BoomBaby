@@ -77,6 +77,12 @@ BabySquatchは3つのモジュールで構成されています：
   - DIST（oomphKnobs[3]）: 0〜100%（drive 1.0〜10.0）。`tanh` 常時ソフトクリップ。DIST Envelope LUT から毎サンプル制御
   - H1〜H4（oomphKnobs[4-7]）: 0〜1.0、加算合成倍音ゲイン
   - 波形選択ボタン（Tri/SQR/SAW）は独立した TextButton パネル
+- **OOMPH One-shot 長さ制御 + セクション境界表示**（完了）
+  - Length ボックス（`length: NNNms`、10〜2000ms、初期値 300ms）を `EnvelopeCurveEditor` 上部に配置。入力値で `setDisplayDurationMs()` + LUT 焼き直しを実行
+  - `paintTimeline()` に Attack(0〜10ms) / Body(10〜40ms) / Decay(40〜140ms) / Tail(140ms〜) の縦線（alpha 0.10）+ ATK/BODY/DECAY/TAIL ラベル（8pt、alpha 0.25）を描画
+  - NoteOff を Oomph 側で無視し、Length 到達で自動停止（latest-note priority、新 NoteOn で即リセット）
+  - 末尾 5ms half-cosine フェードアウト窓を DSP（`renderOomph()`）+ GUI プレビュー（`paintWaveform()`）の両方に適用
+  - 連打時の旧ノート fade-out は「新ノートアタックがマスクするため不要」と判断し未実装
 
 ## 描画方針
 
@@ -123,7 +129,6 @@ BabySquatchは3つのモジュールで構成されています：
 
 ## TODO
 
-
 - **CapsLock 中はキーボードフォーカスを常に鍵盤に固定**
   - 現状: 展開パネルを開くか鍵盤をクリックした場合のみ `KeyboardComponent` がフォーカスを持つ。ロータリーノブ操作後などはフォーカスが外れ、PCキーからのMIDI入力が効かなくなる
   - 期待動作: CapsLockがONの間は、他のUI操作（ノブ・ボタン等）をしても常に `KeyboardComponent` がフォーカスを保持する
@@ -138,13 +143,6 @@ BabySquatchは3つのモジュールで構成されています：
     2. CapsLockがONなら即座に `keyboard.grabKeyboardFocus()` を呼び直す
     3. または `KeyboardComponent` 側で `juce::ComponentPeer` レベルのフォーカス監視を行い、自律的に再取得する
   - 関連ファイル: `Source/GUI/KeyboardComponent.cpp`, `Source/PluginEditor.cpp`
-
-- **エンベロープ横軸セクション境界表示**
-  - 現状: ms タイムラインは実装済み。セクション境界は未実装
-  - 追加: **Attack / Body / Decay / Tail** の4セクション境界線 + ラベル表示（Kick Ninja スタイル）
-  - 各セクション境界は `EnvelopeCurveEditor` 内で定義可能なメンバ変数（例: `attackEndMs`, `bodyEndMs`, `decayEndMs`）または `EnvelopeData` 側で保持
-  - `paint()` 内で縦線 + テキストラベル描画
-  - UI的に境界を調整可能にするか（ドラッグで移動）は要検討
 
 - **全ノブに `ColouredSliderLAF` を適用してUI統一**
   - ✅ Oomph チャンネルノブ（`PanelComponent`）: 適用済み
