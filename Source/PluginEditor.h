@@ -19,7 +19,7 @@ public:
 
 private:
   // 展開チャンネル（None = 閉じた状態）
-  enum class ExpandChannel { none, sub, click, dry };
+  enum class ExpandChannel { none, sub, click, direct };
 
   void requestExpand(ExpandChannel ch);
   void updateExpandIndicators();
@@ -50,8 +50,8 @@ private:
   PanelComponent clickPanel{"CLICK", UIConstants::Colours::clickArc,
                             UIConstants::Colours::clickThumb};
 
-  PanelComponent dryPanel{"DRY", UIConstants::Colours::dryArc,
-                          UIConstants::Colours::dryThumb};
+  PanelComponent directPanel{"DIRECT", UIConstants::Colours::directArc,
+                          UIConstants::Colours::directThumb};
 
   // ── 共有展開エリア（3パネル横断） ──
   juce::Component expandableArea;

@@ -70,15 +70,15 @@ void BabySquatchAudioProcessorEditor::setupPanelRouting(
       [&p](bool m) { p.channelState().setMute(click, m); });
   clickPanel.setOnSoloChanged(
       [&p](bool s) { p.channelState().setSolo(click, s); });
-  dryPanel.setOnMuteChanged([&p](bool m) { p.channelState().setMute(dry, m); });
-  dryPanel.setOnSoloChanged([&p](bool s) { p.channelState().setSolo(dry, s); });
+  directPanel.setOnMuteChanged([&p](bool m) { p.channelState().setMute(direct, m); });
+  directPanel.setOnSoloChanged([&p](bool s) { p.channelState().setSolo(direct, s); });
 
   subPanel.setLevelProvider(
       [&p]() { return p.channelState().getChannelLevelDb(sub); });
   clickPanel.setLevelProvider(
       [&p]() { return p.channelState().getChannelLevelDb(click); });
-  dryPanel.setLevelProvider(
-      [&p]() { return p.channelState().getChannelLevelDb(dry); });
+  directPanel.setLevelProvider(
+      [&p]() { return p.channelState().getChannelLevelDb(direct); });
 
   subPanel.getKnob().onValueChange = [this] {
     processorRef.setSubGainDb(
@@ -391,7 +391,7 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
       keyboard(p.getKeyboardState()) {
   addAndMakeVisible(subPanel);
   addAndMakeVisible(clickPanel);
-  addAndMakeVisible(dryPanel);
+  addAndMakeVisible(directPanel);
   addChildComponent(expandableArea);
   addChildComponent(keyboard);
   addChildComponent(envelopeCurveEditor);
@@ -401,7 +401,7 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
       [this] { requestExpand(ExpandChannel::sub); });
   clickPanel.setOnExpandRequested(
       [this] { requestExpand(ExpandChannel::click); });
-  dryPanel.setOnExpandRequested([this] { requestExpand(ExpandChannel::dry); });
+  directPanel.setOnExpandRequested([this] { requestExpand(ExpandChannel::direct); });
 
   pitchEnvData.setDefaultValue(200.0f);
 
@@ -474,7 +474,7 @@ void BabySquatchAudioProcessorEditor::resized() {
   clickPanel.setBounds(area.removeFromLeft(panelWidth));
   area.removeFromLeft(UIConstants::panelGap);
 
-  dryPanel.setBounds(area);
+  directPanel.setBounds(area);
 }
 
 void BabySquatchAudioProcessorEditor::requestExpand(ExpandChannel ch) {
@@ -509,7 +509,7 @@ void BabySquatchAudioProcessorEditor::updateExpandIndicators() {
   using enum ExpandChannel;
   subPanel.setExpandIndicator(activeChannel == sub);
   clickPanel.setExpandIndicator(activeChannel == click);
-  dryPanel.setExpandIndicator(activeChannel == dry);
+  directPanel.setExpandIndicator(activeChannel == direct);
 }
 
 void BabySquatchAudioProcessorEditor::updateEnvelopeEditorVisibility() {

@@ -46,9 +46,9 @@ inline const juce::Colour subThumb{0xFF00CCFF};
 inline const juce::Colour clickArc{0xFFCCAA00};
 inline const juce::Colour clickThumb{0xFFFFDD00};
 
-// Dry（ピンク/マゼンタ系）
-inline const juce::Colour dryArc{0xFFCC44CC};
-inline const juce::Colour dryThumb{0xFFFF66FF};
+// Direct（ピンク/マゼンタ系）
+inline const juce::Colour directArc{0xFFCC44CC};
+inline const juce::Colour directThumb{0xFFFF66FF};
 
 // 共通
 inline const juce::Colour knobBg{0xFF333333};

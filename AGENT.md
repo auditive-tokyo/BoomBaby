@@ -10,7 +10,7 @@ BabySquatchは3つのモジュールで構成されています：
 
 1. **Sub** - サブ周波数の生成
 2. **Click** - アタック部分の生成（Square, Triangle, Sawなどの短いノイズ）
-3. **Dry** - オリジナルのキック音（入力信号）
+3. **Direct** - オリジナルのキック音（入力信号）
 
 これらを組み合わせることで、より豊かで立体的なキックサウンドを実現します。
 
@@ -38,7 +38,7 @@ BabySquatchは3つのモジュールで構成されています：
 
 ## 実装済み機能
 
-- 3パネルUI（SUB / CLICK / DRY）、各カラー付きロータリーノブ、Mute（グレー/赤）/ Solo（グレー/黄）トグルボタン、展開ボタン（▼）を下部に配置
+- 3パネルUI（SUB / CLICK / DIRECT）、各カラー付きロータリーノブ、Mute（グレー/赤）/ Solo（グレー/黄）トグルボタン、展開ボタン（▼）を下部に配置
 - 各チャンネルノブ左に縦型レベルメーター（`LevelMeter` + `LevelDetector`）
   - DSP: `LevelDetector`（ヘッダオンリー）— `std::atomic<float>` ピーク計測、バリスティクス付き減衰
   - GUI: `LevelMeter`— `paint()` ベース、`juce::Timer` 30fps ポーリング、緑→黄→赤 グラデーション、-48dB～+6dB スケール、dBスケール目盛（0/-12/-24/-36/-48）
@@ -114,7 +114,7 @@ BabySquatchは3つのモジュールで構成されています：
 │   ├── KeyboardComponent.h    // 鍵盤UI宣言（モード/固定ノート制御API）
 │   ├── LevelMeter.cpp         // レベルメーター実装（paint・30fps Timer）
 │   ├── LevelMeter.h           // レベルメーター宣言
-│   ├── PanelComponent.cpp     // SUB/CLICK/DRY共通パネル実装
+│   ├── PanelComponent.cpp     // SUB/CLICK/DIRECT共通パネル実装
 │   ├── PanelComponent.h       // 共通パネル宣言（ノブ・展開ボタン）
 │   ├── UIConstants.h          // UI定数集約（色・レイアウト寸法）
 │   ├── WaveformDisplay.cpp    // OpenGL波形描画実装（将来用・現在未接続）
@@ -148,14 +148,14 @@ BabySquatchは3つのモジュールで構成されています：
   - ✅ Sub チャンネルノブ（`PanelComponent`）: 適用済み
   - ✅ Sub 展開ノブ（`subKnobs[0〜7]`）: `subKnobLAF`（subArc/subThumb）を適用済み。`setTextValueSuffix` で dB サフィックスも各ノブで個別制御
   - ⬜ Click 展開ノブ（Click モジュール実装時）→ `clickKnobLAF`（`clickArc` / `clickThumb`）を同様に追加
-  - ⬜ Dry 展開ノブ（Dry モジュール実装時）→ `dryKnobLAF`（`dryArc` / `dryThumb`）を同様に追加
+  - ⬜ Direct 展開ノブ（Direct モジュール実装時）→ `directKnobLAF`（`directArc` / `directThumb`）を同様に追加
   - 実装パターン: `PluginEditor.h` に LAF メンバー追加 → `setupXxxKnobsRow()` で `setLookAndFeel(&xxxKnobLAF)` を呼ぶだけ（LAF はスライダーより先に宣言してライフタイムを確保）
 
 - **Sub/Click 共通トリガー（トランジェント検出）**
   - 目的: 入力信号の単純な音量ではなく、立ち上がりの過渡成分を検出して Sub/Click を瞬時に発音する（VST/AU の Kick トラック挿入を想定）
   - **検証項目（TODO）**: Sasquatch の発火条件が「トランジェント検出」なのか「入力レベル or サイドチェイン閾値」なのかを確認する
   - 実装候補: 短時間エネルギー差分 or ハイパス後のエンベロープ検出でトリガー、ヒステリシス付きゲートで多重発火を防ぐ
-  - Dry は入力そのものを通す設計のため、基本はトリガー不要（必要ならゲートやトランジェント連動はオプション扱い）
+  - Direct は入力そのものを通す設計のため、基本はトリガー不要（必要ならゲートやトランジェント連動はオプション扱い）
 
 - **Click モジュール実装**
   Sasquatch v1の画面分析から、Clickセクションは Square と Saw をミックスした波形合成であることが判明。以下3方向性で実装を検討する。
@@ -180,5 +180,5 @@ BabySquatchは3つのモジュールで構成されています：
 
   **推奨実装順序**: 方向性1（既存流用で即戦力）→ 方向性2（メイン機能）→ 方向性3（v2以降の差別化）
 
-- Click/Dry パネルの展開エリアに同様のエディタを配置
+- Click/Direct パネルの展開エリアに同様のエディタを配置
 - エンベロープの保存／復元（`getStateInformation` / `setStateInformation`）

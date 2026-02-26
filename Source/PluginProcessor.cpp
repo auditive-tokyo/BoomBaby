@@ -181,18 +181,18 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
 
   const auto passes = channelState_.computePasses();
 
-  // Dry ミュート: 入力信号ごと消去（Sub はこの後加算するので影響なし）
-  if (!passes.dry)
+  // Direct ミュート: 入力信号ごと消去（Sub はこの後加算するので影響なし）
+  if (!passes.direct)
     buffer.clear();
 
   const int numSamples = buffer.getNumSamples();
 
-  // Dry レベル計測（レンダリング前の純粋入力信号）
+  // Direct レベル計測（レンダリング前の純粋入力信号）
   using enum ChannelState::Channel;
-  if (passes.dry)
-    channelState_.detector(dry).process(buffer.getReadPointer(0), numSamples);
+  if (passes.direct)
+    channelState_.detector(direct).process(buffer.getReadPointer(0), numSamples);
   else
-    channelState_.detector(dry).process(nullptr, numSamples);
+    channelState_.detector(direct).process(nullptr, numSamples);
 
   handleMidiEvents(midiMessages, numSamples);
   renderSub(buffer, numSamples, passes.sub);
