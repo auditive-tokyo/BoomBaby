@@ -214,7 +214,7 @@ void EnvelopeCurveEditor::paintEnvelopeOverlay(juce::Graphics &g,
   juce::Colour envColour;
   switch (editTarget) {
   case amp:
-    envColour = UIConstants::Colours::oomphArc.brighter(0.4f);
+    envColour = UIConstants::Colours::subArc.brighter(0.4f);
     break;
   case pitch:
     envColour = juce::Colours::cyan;
@@ -562,7 +562,7 @@ void EnvelopeCurveEditor::paintTabs(juce::Graphics &g) const {
   // AMP タブ
   {
     const bool active = (editTarget == amp);
-    g.setColour(active ? UIConstants::Colours::oomphArc.withAlpha(0.8f)
+    g.setColour(active ? UIConstants::Colours::subArc.withAlpha(0.8f)
                        : juce::Colours::white.withAlpha(0.12f));
     g.fillRoundedRectangle(ampR, 3.0f);
     g.setColour(active ? juce::Colours::white

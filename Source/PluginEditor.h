@@ -19,7 +19,7 @@ public:
 
 private:
   // 展開チャンネル（None = 閉じた状態）
-  enum class ExpandChannel { none, oomph, click, dry };
+  enum class ExpandChannel { none, sub, click, dry };
 
   void requestExpand(ExpandChannel ch);
   void updateExpandIndicators();
@@ -32,7 +32,7 @@ private:
   void bakeBlendLut();
   void setupPanelRouting(BabySquatchAudioProcessor &p);
   void setupEnvelopeCurveEditor();
-  void setupOomphKnobsRow();
+  void setupSubKnobsRow();
   void setupWaveShapeButtons();
   void setupPitchKnob();
   void setupAmpKnob();
@@ -40,12 +40,12 @@ private:
   void setupDistKnob();
   void setupHarmonicKnobs();
   void deselectOtherWaveShapeButtons(size_t selectedIdx);
-  void layoutOomphKnobsRow(juce::Rectangle<int> knobRow);
+  void layoutSubKnobsRow(juce::Rectangle<int> knobRow);
   void layoutWaveShapeButtonRow(juce::Rectangle<int> btnRow);
   void setupLengthBox();
 
-  PanelComponent oomphPanel{"OOMPH", UIConstants::Colours::oomphArc,
-                            UIConstants::Colours::oomphThumb};
+  PanelComponent subPanel{"SUB", UIConstants::Colours::subArc,
+                            UIConstants::Colours::subThumb};
 
   PanelComponent clickPanel{"CLICK", UIConstants::Colours::clickArc,
                             UIConstants::Colours::clickThumb};
@@ -66,13 +66,13 @@ private:
   EnvelopeData blendEnvData;
   EnvelopeCurveEditor envelopeCurveEditor{ampEnvData, pitchEnvData, distEnvData, blendEnvData};
 
-  // ── OOMPH展開パネル: LAF（oomphKnobs より先に宣言し、後に破棄されるようにする） ──
-  ColouredSliderLAF oomphKnobLAF{UIConstants::Colours::oomphArc,
-                                  UIConstants::Colours::oomphThumb};
-  // ── OOMPH展開パネル: Oscノブ行（8本） ──
-  std::array<juce::Slider, 8> oomphKnobs;
-  std::array<juce::Label, 8> oomphKnobLabels;
-  // ── OOMPH展開パネル: 波形選択ボタン行（Tri / SQR / SAW）+ Length ボックス ──
+  // ── SUB展開パネル: LAF（subKnobs より先に宣言し、後に破棄されるようにする） ──
+  ColouredSliderLAF subKnobLAF{UIConstants::Colours::subArc,
+                                  UIConstants::Colours::subThumb};
+  // ── SUB展開パネル: Oscノブ行（8本） ──
+  std::array<juce::Slider, 8> subKnobs;
+  std::array<juce::Label, 8> subKnobLabels;
+  // ── SUB展開パネル: 波形選択ボタン行（Tri / SQR / SAW）+ Length ボックス ──
   std::array<juce::TextButton, 3> waveShapeButtons;
   juce::Label lengthPrefixLabel;
   juce::TextEditor lengthEditor;

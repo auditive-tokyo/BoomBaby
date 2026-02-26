@@ -47,8 +47,8 @@ target_sources(BabySquatch
         Source/DSP/EnvelopeData.h
         Source/DSP/EnvelopeLutManager.h
         Source/DSP/LevelDetector.h
-        Source/DSP/OomphOscillator.h
-        Source/DSP/OomphOscillator.cpp
+        Source/DSP/SubOscillator.h
+        Source/DSP/SubOscillator.cpp
 )
 
 target_compile_definitions(BabySquatch
@@ -56,6 +56,11 @@ target_compile_definitions(BabySquatch
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
+)
+
+target_include_directories(BabySquatch
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/Source
 )
 
 target_link_libraries(BabySquatch

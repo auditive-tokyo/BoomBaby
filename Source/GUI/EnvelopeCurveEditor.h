@@ -4,7 +4,7 @@
 #include <functional>
 #include <juce_gui_basics/juce_gui_basics.h>
 
-#include "../DSP/OomphOscillator.h" // WaveShape enum
+#include "../DSP/SubOscillator.h" // WaveShape enum
 
 class EnvelopeData;
 

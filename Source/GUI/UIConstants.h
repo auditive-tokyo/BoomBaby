@@ -21,9 +21,9 @@ constexpr int valueHeight = 20;
 
 // ── 展開パネル ──
 constexpr int expandButtonHeight = 20;
-constexpr int oomphKnobRowHeight = 88;
+constexpr int subKnobRowHeight = 88;
 constexpr int waveShapeButtonRowHeight = 28;
-constexpr int expandedAreaHeight = 476;  // 360 + oomphKnobRowHeight(88) + waveShapeButtonRowHeight(28)
+constexpr int expandedAreaHeight = 476;  // 360 + subKnobRowHeight(88) + waveShapeButtonRowHeight(28)
 constexpr int waveformDisplayHeight = 80;
 
 // ── レベルメーター ──
@@ -38,9 +38,9 @@ namespace Colours {
 inline const juce::Colour background{0xFF1A1A1A};
 inline const juce::Colour panelBg{0xFF2A2A2A};
 
-// Oomph（青系）
-inline const juce::Colour oomphArc{0xFF00AAFF};
-inline const juce::Colour oomphThumb{0xFF00CCFF};
+// Sub（青系）
+inline const juce::Colour subArc{0xFF00AAFF};
+inline const juce::Colour subThumb{0xFF00CCFF};
 
 // Click（黄系）
 inline const juce::Colour clickArc{0xFFCCAA00};

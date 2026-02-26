@@ -7,14 +7,14 @@
 /// 波形選択 enum（Sine / Tri / Square / Saw）
 enum class WaveShape { Sine = 0, Tri = 1, Square = 2, Saw = 3 };
 
-/// Oomph用 Band-limited Wavetable オシレーター（オーディオスレッドで使用）
+/// Sub用 Band-limited Wavetable オシレーター（オーディオスレッドで使用）
 /// 4波形 × 10帯域のテーブルを prepareToPlay で事前生成し、
 /// 再生周波数に応じてバンドを自動選択、線形補間で読み出す。
 /// triggerNote() で発音開始、setFrequencyHz() で毎サンプル周波数更新
-class OomphOscillator {
+class SubOscillator {
 public:
-  OomphOscillator() = default;
-  ~OomphOscillator() = default;
+  SubOscillator() = default;
+  ~SubOscillator() = default;
 
   /// processBlock 前に呼び出し（サンプルレート設定 + 全テーブル構築）
   void prepareToPlay(double sampleRate);

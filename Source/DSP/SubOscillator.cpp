@@ -1,18 +1,18 @@
-#include "OomphOscillator.h"
+#include "SubOscillator.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <juce_core/juce_core.h>
 
 // ── 帯域境界（Hz）: 20, 40, 80, … , 10240, 20480 ──
-static constexpr std::array<float, OomphOscillator::numBands + 1> bandEdges = {
+static constexpr std::array<float, SubOscillator::numBands + 1> bandEdges = {
     20.0f,   40.0f,   80.0f,   160.0f,   320.0f,  640.0f,
     1280.0f, 2560.0f, 5120.0f, 10240.0f, 20480.0f};
 
 // ────────────────────────────────────────────────────
 // prepareToPlay
 // ────────────────────────────────────────────────────
-void OomphOscillator::prepareToPlay(double newSampleRate) {
+void SubOscillator::prepareToPlay(double newSampleRate) {
   sampleRate = newSampleRate;
   currentIndex = 0.0f;
   buildAllTables();
@@ -55,8 +55,8 @@ static double computeSawSample(double phase, int maxHarmonic) {
 static void buildShapeBandTable(std::vector<float> &tbl, WaveShape ws,
                                 int maxHarmonic) {
   constexpr auto twoPi = juce::MathConstants<double>::twoPi;
-  for (int i = 0; i < OomphOscillator::tableSize; ++i) {
-    const double phase = twoPi * i / OomphOscillator::tableSize;
+  for (int i = 0; i < SubOscillator::tableSize; ++i) {
+    const double phase = twoPi * i / SubOscillator::tableSize;
     double sample = 0.0;
     switch (ws) {
     using enum WaveShape;
@@ -67,13 +67,13 @@ static void buildShapeBandTable(std::vector<float> &tbl, WaveShape ws,
     }
     tbl[static_cast<size_t>(i)] = static_cast<float>(sample);
   }
-  tbl[static_cast<size_t>(OomphOscillator::tableSize)] = tbl[0]; // wrap用
+  tbl[static_cast<size_t>(SubOscillator::tableSize)] = tbl[0]; // wrap用
 }
 
 // ────────────────────────────────────────────────────
 // buildAllTables — 4波形 × 10帯域を事前計算
 // ────────────────────────────────────────────────────
-void OomphOscillator::buildAllTables() {
+void SubOscillator::buildAllTables() {
   const auto nyquist = static_cast<float>(sampleRate * 0.5);
 
   for (int shape = 0; shape < numShapes; ++shape) {
@@ -94,7 +94,7 @@ void OomphOscillator::buildAllTables() {
 // ────────────────────────────────────────────────────
 // bandIndexForFreq — 周波数 → 帯域インデックス (0〜9)
 // ────────────────────────────────────────────────────
-int OomphOscillator::bandIndexForFreq(float hz) {
+int SubOscillator::bandIndexForFreq(float hz) {
   // 帯域は対数スケール（倍々）: 20,40,80,...,10240,20480
   // log2(hz/20) でオクターブ番号を得て clamp
   if (hz <= bandEdges[0])
@@ -106,7 +106,7 @@ int OomphOscillator::bandIndexForFreq(float hz) {
 // ────────────────────────────────────────────────────
 // triggerNote / stopNote
 // ────────────────────────────────────────────────────
-void OomphOscillator::triggerNote() {
+void SubOscillator::triggerNote() {
   active = true;
   currentIndex = 0.0f;
   // H1〜H4 位相リセット
@@ -114,7 +114,7 @@ void OomphOscillator::triggerNote() {
     h.phase = 0.0f;
 }
 
-void OomphOscillator::stopNote() {
+void SubOscillator::stopNote() {
   active = false;
   tableDelta = 0.0f;
   currentIndex = 0.0f;
@@ -123,7 +123,7 @@ void OomphOscillator::stopNote() {
 // ────────────────────────────────────────────────────
 // setFrequencyHz — tableDelta 更新 + 帯域選択
 // ────────────────────────────────────────────────────
-void OomphOscillator::setFrequencyHz(float hz) {
+void SubOscillator::setFrequencyHz(float hz) {
   tableDelta = static_cast<float>(hz * tableSize / sampleRate);
 
   const int band = bandIndexForFreq(hz);
@@ -140,32 +140,32 @@ void OomphOscillator::setFrequencyHz(float hz) {
 // ────────────────────────────────────────────────────
 // setWaveShape / getWaveShape
 // ────────────────────────────────────────────────────
-void OomphOscillator::setWaveShape(WaveShape shape) {
+void SubOscillator::setWaveShape(WaveShape shape) {
   currentShape.store(static_cast<int>(shape));
 }
 
-WaveShape OomphOscillator::getWaveShape() const {
+WaveShape SubOscillator::getWaveShape() const {
   return static_cast<WaveShape>(currentShape.load());
 }
 
 // ────────────────────────────────────────────────────
 // setBlend — BLEND 値設定（-1.0〜+1.0）
 // ────────────────────────────────────────────────────
-void OomphOscillator::setBlend(float blend) {
+void SubOscillator::setBlend(float blend) {
   blend_.store(std::clamp(blend, -1.0f, 1.0f));
 }
 
 // ────────────────────────────────────────────────────
 // setDist — Distortion drive 量設定（0.0〜1.0）
 // ────────────────────────────────────────────────────
-void OomphOscillator::setDist(float drive01) {
+void SubOscillator::setDist(float drive01) {
   dist_.store(std::clamp(drive01, 0.0f, 1.0f));
 }
 
 // ────────────────────────────────────────────────────
 // setHarmonicGain — H1〜H4 倍音ゲイン設定
 // ────────────────────────────────────────────────────
-void OomphOscillator::setHarmonicGain(int n, float gain) {
+void SubOscillator::setHarmonicGain(int n, float gain) {
   if (n >= 1 && n <= numHarmonics)
     harmonicGains[static_cast<size_t>(n - 1)].store(gain);
 }
@@ -173,7 +173,7 @@ void OomphOscillator::setHarmonicGain(int n, float gain) {
 // ────────────────────────────────────────────────────
 // readTable — テーブルから線形補間で1サンプル
 // ────────────────────────────────────────────────────
-float OomphOscillator::readTable(const float *table) const {
+float SubOscillator::readTable(const float *table) const {
   const auto index0 = static_cast<size_t>(currentIndex);
   const auto index1 = index0 + 1;
   const float frac = currentIndex - static_cast<float>(index0);
@@ -185,7 +185,7 @@ float OomphOscillator::readTable(const float *table) const {
 //   b ≤ 0: lerp(sine, wavetable, -b)
 //   b > 0: lerp(sine, additive,   b)
 // ────────────────────────────────────────────────────
-float OomphOscillator::getNextSample() {
+float SubOscillator::getNextSample() {
   if (!active)
     return 0.0f;
 

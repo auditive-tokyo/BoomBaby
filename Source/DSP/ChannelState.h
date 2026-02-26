@@ -8,11 +8,11 @@
 /// BabySquatchAudioProcessor から分離し、メソッド数を削減する。
 class ChannelState {
 public:
-    enum class Channel { oomph = 0, click = 1, dry = 2 };
+    enum class Channel { sub = 0, click = 1, dry = 2 };
 
     /// Mute / Solo 状態に基づく各チャンネルの通過判定。
     struct Passes {
-        bool oomph;
+        bool sub;
         bool dry;
     };
 
@@ -37,13 +37,13 @@ public:
     /// 現在の mute/solo 状態から各チャンネルの通過判定を算出。
     [[nodiscard]] Passes computePasses() const {
         using enum Channel;
-        const bool anySolo = solo_[static_cast<size_t>(oomph)].load()
+        const bool anySolo = solo_[static_cast<size_t>(sub)].load()
                           || solo_[static_cast<size_t>(click)].load()
                           || solo_[static_cast<size_t>(dry)].load();
         const auto isMuted  = [&](Channel ch) { return mute_[static_cast<size_t>(ch)].load(); };
         const auto isSoloed = [&](Channel ch) { return solo_[static_cast<size_t>(ch)].load(); };
         return {
-            !isMuted(oomph) && (!anySolo || isSoloed(oomph)),
+            !isMuted(sub) && (!anySolo || isSoloed(sub)),
             !isMuted(dry)   && (!anySolo || isSoloed(dry))
         };
     }

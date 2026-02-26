@@ -99,11 +99,11 @@ void WaveformDisplay::renderOpenGL() {
   // シェーダ適用
   shader->use();
 
-  // 波形色（oomphArc から取得）
+  // 波形色（subArc から取得）
   if (const auto colourLocation =
           juce::gl::glGetUniformLocation(shader->getProgramID(), "waveColour");
       colourLocation >= 0) {
-    const auto c = UIConstants::Colours::oomphArc;
+    const auto c = UIConstants::Colours::subArc;
     juce::gl::glUniform4f(colourLocation,
                           c.getFloatRed(), c.getFloatGreen(),
                           c.getFloatBlue(), 1.0f);

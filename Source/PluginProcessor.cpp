@@ -43,8 +43,8 @@ void BabySquatchAudioProcessor::changeProgramName(int index,
 
 void BabySquatchAudioProcessor::prepareToPlay(double sampleRate,
                                               int samplesPerBlock) {
-  oomphOsc.prepareToPlay(sampleRate);
-  oomphScratchBuffer.resize(static_cast<size_t>(samplesPerBlock));
+  subOsc.prepareToPlay(sampleRate);
+  subScratchBuffer.resize(static_cast<size_t>(samplesPerBlock));
   noteTimeSamples = 0.0f;
 
   envLut_.reset();
@@ -72,25 +72,25 @@ void BabySquatchAudioProcessor::handleMidiEvents(juce::MidiBuffer &midiMessages,
   // GUI鍵盤のMIDIイベントをバッファにマージ
   keyboardState.processNextMidiBuffer(midiMessages, 0, numSamples, true);
 
-  // MIDIバッファを走査 → OomphOscillator に通知
+  // MIDIバッファを走査 → SubOscillator に通知
   for (const auto metadata : midiMessages) {
     const auto msg = metadata.getMessage();
     if (msg.isNoteOn()) {
-      oomphOsc.triggerNote();
+      subOsc.triggerNote();
       noteTimeSamples = 0.0f; // エンベロープリセット
     }
-    // NoteOff は無視: One-shot 長さは oomphLengthMs で決定
+    // NoteOff は無視: One-shot 長さは subLengthMs で決定
   }
 }
 
-void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
-                                            int numSamples, bool oomphPass) {
-  if (!oomphOsc.isActive()) {
-    std::fill_n(oomphScratchBuffer.data(), numSamples, 0.0f);
+void BabySquatchAudioProcessor::renderSub(juce::AudioBuffer<float> &buffer,
+                                            int numSamples, bool subPass) {
+  if (!subOsc.isActive()) {
+    std::fill_n(subScratchBuffer.data(), numSamples, 0.0f);
     return;
   }
 
-  const float gain = juce::Decibels::decibelsToGain(oomphGainDb.load());
+  const float gain = juce::Decibels::decibelsToGain(subGainDb.load());
   const int numChannels = buffer.getNumChannels();
   const auto &ampLut = envLut_.getActiveLut();
   const float ampDurMs = envLut_.getDurationMs();
@@ -102,7 +102,7 @@ void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
   const float blendDurMs = blendLut_.getDurationMs();
   const auto sr = static_cast<float>(getSampleRate());
 
-  const float lengthMs = oomphLengthMs.load();
+  const float lengthMs = subLengthMs.load();
   constexpr float fadeOutMs = 5.0f;
   const float fadeStartMs = std::max(0.0f, lengthMs - fadeOutMs);
 
@@ -111,8 +111,8 @@ void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
 
     // One-shot: Length 到達で自動停止
     if (noteTimeMs >= lengthMs) {
-      oomphOsc.stopNote();
-      std::fill_n(oomphScratchBuffer.data() + sample,
+      subOsc.stopNote();
+      std::fill_n(subScratchBuffer.data() + sample,
                   static_cast<size_t>(numSamples - sample), 0.0f);
       break;
     }
@@ -133,7 +133,7 @@ void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
     const auto pitchLutIdx =
         std::min(static_cast<int>(pitchLutPos), EnvelopeLutManager::lutSize - 1);
     const float pitchHz = pLut[static_cast<size_t>(pitchLutIdx)];
-    oomphOsc.setFrequencyHz(pitchHz);
+    subOsc.setFrequencyHz(pitchHz);
 
     // DIST LUT → drive01 (0.0～1.0)
     const float distLutPos =
@@ -143,7 +143,7 @@ void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
             : 0.0f;
     const auto distLutIdx =
         std::min(static_cast<int>(distLutPos), EnvelopeLutManager::lutSize - 1);
-    oomphOsc.setDist(dLut[static_cast<size_t>(distLutIdx)]);
+    subOsc.setDist(dLut[static_cast<size_t>(distLutIdx)]);
 
     // BLEND LUT → blend (-1.0～+1.0)
     const float blendLutPos =
@@ -153,7 +153,7 @@ void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
             : 0.0f;
     const auto blendLutIdx =
         std::min(static_cast<int>(blendLutPos), EnvelopeLutManager::lutSize - 1);
-    oomphOsc.setBlend(bLut[static_cast<size_t>(blendLutIdx)]);
+    subOsc.setBlend(bLut[static_cast<size_t>(blendLutIdx)]);
 
     // AMP LUT → エンベロープゲイン
     const float lutPos =
@@ -165,9 +165,9 @@ void BabySquatchAudioProcessor::renderOomph(juce::AudioBuffer<float> &buffer,
         std::min(static_cast<int>(lutPos), EnvelopeLutManager::lutSize - 1);
     const float envGain = ampLut[static_cast<size_t>(lutIndex)];
 
-    const float oscSample = oomphOsc.getNextSample() * gain * envGain * fadeGain;
-    oomphScratchBuffer[static_cast<size_t>(sample)] = oscSample;
-    if (oomphPass) {
+    const float oscSample = subOsc.getNextSample() * gain * envGain * fadeGain;
+    subScratchBuffer[static_cast<size_t>(sample)] = oscSample;
+    if (subPass) {
       for (int ch = 0; ch < numChannels; ++ch)
         buffer.addSample(ch, sample, oscSample);
     }
@@ -181,7 +181,7 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
 
   const auto passes = channelState_.computePasses();
 
-  // Dry ミュート: 入力信号ごと消去（Oomph はこの後加算するので影響なし）
+  // Dry ミュート: 入力信号ごと消去（Sub はこの後加算するので影響なし）
   if (!passes.dry)
     buffer.clear();
 
@@ -195,14 +195,14 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
     channelState_.detector(dry).process(nullptr, numSamples);
 
   handleMidiEvents(midiMessages, numSamples);
-  renderOomph(buffer, numSamples, passes.oomph);
+  renderSub(buffer, numSamples, passes.sub);
 
-  // Oomph レベル計測（renderOomph が書いた scratchBuffer から）
-  if (passes.oomph)
-    channelState_.detector(oomph).process(oomphScratchBuffer.data(),
+  // Sub レベル計測（renderSub が書いた scratchBuffer から）
+  if (passes.sub)
+    channelState_.detector(sub).process(subScratchBuffer.data(),
                                           numSamples);
   else
-    channelState_.detector(oomph).process(nullptr, numSamples);
+    channelState_.detector(sub).process(nullptr, numSamples);
 
   // Click: 未実装（無音）
   channelState_.detector(click).process(nullptr, numSamples);
