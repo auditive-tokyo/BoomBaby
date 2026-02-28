@@ -14,6 +14,7 @@ public:
     struct Passes {
         bool sub;
         bool direct;
+        bool click;
     };
 
     // ── UI スレッドから呼び出す setter ──
@@ -43,8 +44,9 @@ public:
         const auto isMuted  = [&](Channel ch) { return mute_[static_cast<size_t>(ch)].load(); };
         const auto isSoloed = [&](Channel ch) { return solo_[static_cast<size_t>(ch)].load(); };
         return {
-            !isMuted(sub) && (!anySolo || isSoloed(sub)),
-            !isMuted(direct)   && (!anySolo || isSoloed(direct))
+            !isMuted(sub)    && (!anySolo || isSoloed(sub)),
+            !isMuted(direct) && (!anySolo || isSoloed(direct)),
+            !isMuted(click)  && (!anySolo || isSoloed(click))
         };
     }
 

@@ -13,8 +13,8 @@ void BabySquatchAudioProcessorEditor::bakeAmpLut() {
         static_cast<float>(i) / static_cast<float>(lutSize - 1) * durationMs;
     lut[static_cast<size_t>(i)] = ampEnvData.evaluate(t);
   }
-  processorRef.envLut().setDurationMs(durationMs);
-  processorRef.envLut().bake(lut.data(), lutSize);
+  processorRef.subEngine().envLut().setDurationMs(durationMs);
+  processorRef.subEngine().envLut().bake(lut.data(), lutSize);
 }
 
 void BabySquatchAudioProcessorEditor::bakePitchLut() {
@@ -26,8 +26,8 @@ void BabySquatchAudioProcessorEditor::bakePitchLut() {
         static_cast<float>(i) / static_cast<float>(lutSize - 1) * durationMs;
     lut[static_cast<size_t>(i)] = pitchEnvData.evaluate(t);
   }
-  processorRef.pitchLut().setDurationMs(durationMs);
-  processorRef.pitchLut().bake(lut.data(), lutSize);
+  processorRef.subEngine().pitchLut().setDurationMs(durationMs);
+  processorRef.subEngine().pitchLut().bake(lut.data(), lutSize);
 }
 
 void BabySquatchAudioProcessorEditor::bakeDistLut() {
@@ -39,8 +39,8 @@ void BabySquatchAudioProcessorEditor::bakeDistLut() {
         static_cast<float>(i) / static_cast<float>(lutSize - 1) * durationMs;
     lut[static_cast<size_t>(i)] = distEnvData.evaluate(t);
   }
-  processorRef.distLut().setDurationMs(durationMs);
-  processorRef.distLut().bake(lut.data(), lutSize);
+  processorRef.subEngine().distLut().setDurationMs(durationMs);
+  processorRef.subEngine().distLut().bake(lut.data(), lutSize);
 }
 
 void BabySquatchAudioProcessorEditor::bakeBlendLut() {
@@ -52,8 +52,8 @@ void BabySquatchAudioProcessorEditor::bakeBlendLut() {
         static_cast<float>(i) / static_cast<float>(lutSize - 1) * durationMs;
     lut[static_cast<size_t>(i)] = blendEnvData.evaluate(t);
   }
-  processorRef.blendLut().setDurationMs(durationMs);
-  processorRef.blendLut().bake(lut.data(), lutSize);
+  processorRef.subEngine().blendLut().setDurationMs(durationMs);
+  processorRef.subEngine().blendLut().bake(lut.data(), lutSize);
 }
 
 // ────────────────────────────────────────────────────
@@ -82,10 +82,15 @@ void BabySquatchAudioProcessorEditor::setupPanelRouting(
 
   // Sub フェーダー → ゲインコントロール
   subPanel.getFader().onValueChange = [this] {
-    processorRef.setSubGainDb(
+    processorRef.subEngine().setGainDb(
         static_cast<float>(subPanel.getFader().getValue()));
   };
-  // TODO: click/direct の gain setter 実装後に配線追加
+  // Click フェーダー → ゲインコントロール
+  clickPanel.getFader().onValueChange = [this] {
+    processorRef.clickEngine().setGainDb(
+        static_cast<float>(clickPanel.getFader().getValue()));
+  };
+  // TODO: direct の gain setter 実装後に配線追加
 }
 
 // ────────────────────────────────────────────────────

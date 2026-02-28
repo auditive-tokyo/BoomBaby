@@ -37,7 +37,7 @@ void BabySquatchAudioProcessorEditor::setupLengthBox() {
         juce::jlimit(10, 2000, lengthBox.editor.getText().getIntValue());
     lengthBox.editor.setText(juce::String(v), false);
     envelopeCurveEditor.setDisplayDurationMs(static_cast<float>(v));
-    processorRef.setSubLengthMs(static_cast<float>(v));
+    processorRef.subEngine().setLengthMs(static_cast<float>(v));
     bakeAmpLut();
     bakePitchLut();
     bakeDistLut();
@@ -113,7 +113,7 @@ void BabySquatchAudioProcessorEditor::setupWaveShapeCombo() {
       shape = Tri;
       break;
     }
-    processorRef.subOscillator().setWaveShape(shape);
+    processorRef.subEngine().oscillator().setWaveShape(shape);
     envelopeCurveEditor.setWaveShape(shape);
   };
   addAndMakeVisible(subWave.combo);
@@ -236,7 +236,7 @@ void BabySquatchAudioProcessorEditor::setupHarmonicKnobs() {
     const int harmonicNum = i + 1;
     subKnobs[idx].onValueChange = [this, idx, harmonicNum] {
       const auto gain = static_cast<float>(subKnobs[idx].getValue()) / 100.0f;
-      processorRef.subOscillator().setHarmonicGain(harmonicNum, gain);
+      processorRef.subEngine().oscillator().setHarmonicGain(harmonicNum, gain);
       envelopeCurveEditor.setPreviewHarmonicGain(harmonicNum, gain);
     };
   }

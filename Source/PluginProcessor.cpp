@@ -43,11 +43,8 @@ void BabySquatchAudioProcessor::changeProgramName(int index,
 
 void BabySquatchAudioProcessor::prepareToPlay(double sampleRate,
                                               int samplesPerBlock) {
-  subOsc.prepareToPlay(sampleRate);
-  subScratchBuffer.resize(static_cast<size_t>(samplesPerBlock));
-  noteTimeSamples = 0.0f;
-
-  envLut_.reset();
+  subEngine_.prepareToPlay(sampleRate, samplesPerBlock);
+  clickEngine_.prepareToPlay(sampleRate, samplesPerBlock);
   channelState_.resetDetectors();
 }
 
@@ -72,106 +69,13 @@ void BabySquatchAudioProcessor::handleMidiEvents(juce::MidiBuffer &midiMessages,
   // GUI鍵盤のMIDIイベントをバッファにマージ
   keyboardState.processNextMidiBuffer(midiMessages, 0, numSamples, true);
 
-  // MIDIバッファを走査 → SubOscillator に通知
   for (const auto metadata : midiMessages) {
     const auto msg = metadata.getMessage();
     if (msg.isNoteOn()) {
-      subOsc.triggerNote();
-      noteTimeSamples = 0.0f; // エンベロープリセット
+      subEngine_.triggerNote();
+      clickEngine_.triggerNote();
     }
     // NoteOff は無視: One-shot 長さは subLengthMs で決定
-  }
-}
-
-void BabySquatchAudioProcessor::renderSub(juce::AudioBuffer<float> &buffer,
-                                            int numSamples, bool subPass) {
-  if (!subOsc.isActive()) {
-    std::fill_n(subScratchBuffer.data(), numSamples, 0.0f);
-    return;
-  }
-
-  const float gain = juce::Decibels::decibelsToGain(subGainDb.load());
-  const int numChannels = buffer.getNumChannels();
-  const auto &ampLut = envLut_.getActiveLut();
-  const float ampDurMs = envLut_.getDurationMs();
-  const auto &pLut = pitchLut_.getActiveLut();
-  const float pitchDurMs = pitchLut_.getDurationMs();
-  const auto &dLut = distLut_.getActiveLut();
-  const float distDurMs = distLut_.getDurationMs();
-  const auto &bLut = blendLut_.getActiveLut();
-  const float blendDurMs = blendLut_.getDurationMs();
-  const auto sr = static_cast<float>(getSampleRate());
-
-  const float lengthMs = subLengthMs.load();
-  constexpr float fadeOutMs = 5.0f;
-  const float fadeStartMs = std::max(0.0f, lengthMs - fadeOutMs);
-
-  for (int sample = 0; sample < numSamples; ++sample) {
-    const float noteTimeMs = noteTimeSamples * 1000.0f / sr;
-
-    // One-shot: Length 到達で自動停止
-    if (noteTimeMs >= lengthMs) {
-      subOsc.stopNote();
-      std::fill_n(subScratchBuffer.data() + sample,
-                  static_cast<size_t>(numSamples - sample), 0.0f);
-      break;
-    }
-
-    // 末尾 fadeout: half-cosine ゲイン (1.0 → 0.0)
-    float fadeGain = 1.0f;
-    if (noteTimeMs > fadeStartMs && fadeOutMs > 0.0f) {
-      const float t = (noteTimeMs - fadeStartMs) / fadeOutMs; // 0..1
-      fadeGain = 0.5f * (1.0f + std::cos(t * juce::MathConstants<float>::pi));
-    }
-
-    // Freq LUT → Hz
-    const float pitchLutPos =
-        (pitchDurMs > 0.0f)
-            ? (noteTimeMs / pitchDurMs) *
-                  static_cast<float>(EnvelopeLutManager::lutSize - 1)
-            : 0.0f;
-    const auto pitchLutIdx =
-        std::min(static_cast<int>(pitchLutPos), EnvelopeLutManager::lutSize - 1);
-    const float pitchHz = pLut[static_cast<size_t>(pitchLutIdx)];
-    subOsc.setFrequencyHz(pitchHz);
-
-    // Saturate LUT → drive01 (0.0～1.0)
-    const float distLutPos =
-        (distDurMs > 0.0f)
-            ? (noteTimeMs / distDurMs) *
-                  static_cast<float>(EnvelopeLutManager::lutSize - 1)
-            : 0.0f;
-    const auto distLutIdx =
-        std::min(static_cast<int>(distLutPos), EnvelopeLutManager::lutSize - 1);
-    subOsc.setDist(dLut[static_cast<size_t>(distLutIdx)]);
-
-    // Mix LUT → blend (-1.0～+1.0)
-    const float blendLutPos =
-        (blendDurMs > 0.0f)
-            ? (noteTimeMs / blendDurMs) *
-                  static_cast<float>(EnvelopeLutManager::lutSize - 1)
-            : 0.0f;
-    const auto blendLutIdx =
-        std::min(static_cast<int>(blendLutPos), EnvelopeLutManager::lutSize - 1);
-    subOsc.setBlend(bLut[static_cast<size_t>(blendLutIdx)]);
-
-    // Gain LUT → エンベロープゲイン
-    const float lutPos =
-        (ampDurMs > 0.0f)
-            ? (noteTimeMs / ampDurMs) *
-                  static_cast<float>(EnvelopeLutManager::lutSize - 1)
-            : 0.0f;
-    const auto lutIndex =
-        std::min(static_cast<int>(lutPos), EnvelopeLutManager::lutSize - 1);
-    const float envGain = ampLut[static_cast<size_t>(lutIndex)];
-
-    const float oscSample = subOsc.getNextSample() * gain * envGain * fadeGain;
-    subScratchBuffer[static_cast<size_t>(sample)] = oscSample;
-    if (subPass) {
-      for (int ch = 0; ch < numChannels; ++ch)
-        buffer.addSample(ch, sample, oscSample);
-    }
-    noteTimeSamples += 1.0f;
   }
 }
 
@@ -186,6 +90,7 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
     buffer.clear();
 
   const int numSamples = buffer.getNumSamples();
+  const double sr = getSampleRate();
 
   // Direct レベル計測（レンダリング前の純粋入力信号）
   using enum ChannelState::Channel;
@@ -195,17 +100,20 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
     channelState_.detector(direct).process(nullptr, numSamples);
 
   handleMidiEvents(midiMessages, numSamples);
-  renderSub(buffer, numSamples, passes.sub);
+  subEngine_.render(buffer, numSamples, passes.sub, sr);
+  clickEngine_.render(buffer, numSamples, passes.click, sr);
 
-  // Sub レベル計測（renderSub が書いた scratchBuffer から）
+  // Sub レベル計測
   if (passes.sub)
-    channelState_.detector(sub).process(subScratchBuffer.data(),
-                                          numSamples);
+    channelState_.detector(sub).process(subEngine_.scratchData(), numSamples);
   else
     channelState_.detector(sub).process(nullptr, numSamples);
 
-  // Click: 未実装（無音）
-  channelState_.detector(click).process(nullptr, numSamples);
+  // Click レベル計測
+  if (passes.click)
+    channelState_.detector(click).process(clickEngine_.scratchData(), numSamples);
+  else
+    channelState_.detector(click).process(nullptr, numSamples);
 }
 
 bool BabySquatchAudioProcessor::hasEditor() const { return true; }

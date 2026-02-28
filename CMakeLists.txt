@@ -47,9 +47,13 @@ target_sources(BabySquatch
         Source/GUI/LevelMeter.h
         Source/GUI/LevelMeter.cpp
         Source/DSP/ChannelState.h
+        Source/DSP/ClickEngine.h
+        Source/DSP/ClickEngine.cpp
         Source/DSP/EnvelopeData.h
         Source/DSP/EnvelopeLutManager.h
         Source/DSP/LevelDetector.h
+        Source/DSP/SubEngine.h
+        Source/DSP/SubEngine.cpp
         Source/DSP/SubOscillator.h
         Source/DSP/SubOscillator.cpp
 )

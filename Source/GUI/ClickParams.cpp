@@ -28,10 +28,19 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.modeCombo);
 
   // ── XY Pad ──
-  clickUI.xyPad.setOnChanged([](float /*blend*/, float /*decay*/) {
-    // TODO: DSP write (blend -> SQR<->SAW, decay -> Decay ms)
+  // blend: 0=SQR, 1=SAW → clickToneOsc の波形選択
+  // decay: 0=LONG, 1=SHORT → 指数減衰の時定数 (200ms〜5ms)
+  clickUI.xyPad.setOnChanged([this](float blend, float decay) {
+    processorRef.clickEngine().setBlend(blend);
+    const float decayMs = juce::jmap(decay, 0.0f, 1.0f, 200.0f, 5.0f);
+    processorRef.clickEngine().setDecayMs(decayMs);
   });
   addAndMakeVisible(clickUI.xyPad);
+
+  // 起動時の初期値を DSP へ反映（コールバックは dragg 時のみ呼ばれるため）
+  processorRef.clickEngine().setBlend(clickUI.xyPad.getBlend());
+  processorRef.clickEngine().setDecayMs(
+      juce::jmap(clickUI.xyPad.getDecay(), 0.0f, 1.0f, 200.0f, 5.0f));
 }
 
 void BabySquatchAudioProcessorEditor::layoutClickParams(
