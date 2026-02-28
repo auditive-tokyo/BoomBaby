@@ -10,7 +10,8 @@
 // Length ボックス
 // ────────────────────────────────────────────────────
 void BabySquatchAudioProcessorEditor::setupLengthBox() {
-  const auto smallFont = juce::Font(juce::FontOptions(UIConstants::fontSizeMedium));
+  const auto smallFont =
+      juce::Font(juce::FontOptions(UIConstants::fontSizeMedium));
 
   lengthBox.prefix.setText("length:", juce::dontSendNotification);
   lengthBox.prefix.setFont(smallFont);
@@ -32,7 +33,8 @@ void BabySquatchAudioProcessorEditor::setupLengthBox() {
   lengthBox.editor.setColour(juce::TextEditor::focusedOutlineColourId,
                              juce::Colours::white.withAlpha(0.5f));
   auto applyLength = [this]() {
-    const int v = juce::jlimit(10, 2000, lengthBox.editor.getText().getIntValue());
+    const int v =
+        juce::jlimit(10, 2000, lengthBox.editor.getText().getIntValue());
     lengthBox.editor.setText(juce::String(v), false);
     envelopeCurveEditor.setDisplayDurationMs(static_cast<float>(v));
     processorRef.setSubLengthMs(static_cast<float>(v));
@@ -77,23 +79,34 @@ void BabySquatchAudioProcessorEditor::setupSubKnobsRow() {
 }
 
 // ────────────────────────────────────────────────────
-// 波形選択コンボボックス（Sine / Tri / SQR / SAW）
+// 波形選択コンボボックス（Tri / SQR / SAW）
 // ────────────────────────────────────────────────────
 void BabySquatchAudioProcessorEditor::setupWaveShapeCombo() {
-  waveShapeCombo.addItem("Sine", 1);
-  waveShapeCombo.addItem("Tri", 2);
-  waveShapeCombo.addItem("SQR", 3);
-  waveShapeCombo.addItem("SAW", 4);
+  const auto smallFont = juce::Font(juce::FontOptions(UIConstants::fontSizeMedium));
+  waveLabel.setText("wave:", juce::dontSendNotification);
+  waveLabel.setFont(smallFont);
+  waveLabel.setColour(juce::Label::textColourId, UIConstants::Colours::labelText);
+  waveLabel.setJustificationType(juce::Justification::centredRight);
+  addAndMakeVisible(waveLabel);
+
+  waveShapeCombo.addItem("Tri", 1);
+  waveShapeCombo.addItem("SQR", 2);
+  waveShapeCombo.addItem("SAW", 3);
   waveShapeCombo.setSelectedId(1, juce::dontSendNotification);
   waveShapeCombo.setLookAndFeel(&darkComboLAF);
   waveShapeCombo.onChange = [this] {
     using enum WaveShape;
     WaveShape shape;
     switch (waveShapeCombo.getSelectedId()) {
-    case 2: shape = Tri;    break;
-    case 3: shape = Square; break;
-    case 4: shape = Saw;    break;
-    default: shape = Sine;  break;
+    case 2:
+      shape = Square;
+      break;
+    case 3:
+      shape = Saw;
+      break;
+    default:
+      shape = Tri;
+      break;
     }
     processorRef.subOscillator().setWaveShape(shape);
     envelopeCurveEditor.setWaveShape(shape);
@@ -200,12 +213,12 @@ void BabySquatchAudioProcessorEditor::setupDistKnob() {
 void BabySquatchAudioProcessorEditor::setupHarmonicKnobs() {
   for (int i = 0; i < 4; ++i) {
     const auto idx = static_cast<size_t>(i + 4);
-    subKnobs[idx].setRange(0.0, 1.0, 0.01);
+    subKnobs[idx].setRange(0.0, 100.0, 0.1);
     subKnobs[idx].setValue(0.0, juce::dontSendNotification);
     subKnobs[idx].setDoubleClickReturnValue(true, 0.0);
     const int harmonicNum = i + 1;
     subKnobs[idx].onValueChange = [this, idx, harmonicNum] {
-      const auto gain = static_cast<float>(subKnobs[idx].getValue());
+      const auto gain = static_cast<float>(subKnobs[idx].getValue()) / 100.0f;
       processorRef.subOscillator().setHarmonicGain(harmonicNum, gain);
       envelopeCurveEditor.setPreviewHarmonicGain(harmonicNum, gain);
     };

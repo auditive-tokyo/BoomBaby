@@ -88,6 +88,7 @@ private:
   };
   DarkComboLAF darkComboLAF;
   // ── SUB展開パネル: 波形選択（プルダウン） ──
+  juce::Label waveLabel;
   juce::ComboBox waveShapeCombo;
   // ── SUB展開パネル: Length ボックス ──
   struct LengthBox {

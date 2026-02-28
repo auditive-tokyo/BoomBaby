@@ -266,6 +266,8 @@ void BabySquatchAudioProcessorEditor::resized() {
     contentArea.removeFromBottom(4);                   // ギャップ
     constexpr int lengthTotalW = 44 + 34 + 18 + 2 * 2; // 100px
     layoutLengthBox(bottomRow.removeFromLeft(lengthTotalW));
+    constexpr int waveLabelW = 38;
+    waveLabel.setBounds(bottomRow.removeFromLeft(waveLabelW));
     waveShapeCombo.setBounds(bottomRow);
     layoutSubKnobsRow(contentArea);
   }
