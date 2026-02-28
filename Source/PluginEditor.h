@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DSP/EnvelopeData.h"
-#include "GUI/ClickShapeEditor.h"
+#include "GUI/ClickXYPad.h"
 #include "GUI/CustomSliderLAF.h"
 #include "GUI/EnvelopeCurveEditor.h"
 #include "GUI/KeyboardComponent.h"
@@ -111,13 +111,7 @@ private:
 
   // ── CLICK展開パネル ──
   struct ClickUI {
-    juce::GroupComponent shapeGroup;
-    ClickShapeEditor shapeEditor;
-    juce::GroupComponent typeLengthGroup;
-    juce::ComboBox typeCombo;
-    juce::Label lengthPrefix;
-    juce::TextEditor lengthEditor;
-    juce::Label lengthSuffix;
+    ClickXYPad xyPad;
   };
   ClickUI clickUI;
 

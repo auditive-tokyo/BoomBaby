@@ -106,8 +106,8 @@ BabySquatchは3つのモジュールで構成されています：
 │   └── SubOscillator.h      // Sub用Wavetable OSC宣言（公開API）
 ├── GUI
 │   ├── ClickParams.cpp        // Click パネル内 UI セットアップ / レイアウト
-│   ├── ClickShapeEditor.cpp   // Click トランジェント形状エディタ実装
-│   ├── ClickShapeEditor.h     // Click トランジェント形状エディタ宣言
+│   ├── ClickXYPad.cpp         // Click XY パッド実装（BLEND/Decay 2D 制御）
+│   ├── ClickXYPad.h           // Click XY パッド宣言
 │   ├── CustomSliderLAF.h      // ノブ描画LookAndFeel（グラデーション/値表示）
 │   ├── EnvelopeCurveEditor.cpp // エンベロープカーブエディタ実装（paint/マウス操作）
 │   ├── EnvelopeCurveEditor.h  // エンベロープカーブエディタ宣言
@@ -180,12 +180,12 @@ BabySquatchは3つのモジュールで構成されています：
 
   **推奨実装順序**: 方向性1（既存流用で即戦力）→ 方向性2（メイン機能）→ 方向性3（v2以降の差別化）
 
-- **Click UI（パネル内常時表示）**（枠組みのみ GUI として実装済み・デザイン未確定・DSP未接続）
-  - `ClickShapeEditor`: トランジェント形状（Attack/Decay比）を三角形エンベロープで視覚編集。ピーク点をドラッグで移動、ダブルクリックでリセット
-  - `ClickParams.cpp`: SHAPE グループ（`ClickShapeEditor`）+ TYPE/LENGTH グループ（波形タイプ ComboBox + 長さ入力）を Click パネル内に常時配置
+- **Click UI（パネル内常時表示）**（枠組みのみ GUI として実装済み・DSP未接続）
+  - `ClickXYPad`: X 軸=BLEND（SQR↔SAW）/ Y 軸=Decay（SHORT↔LONG）の 2D XY パッド。ドラッグで制御点を移動、パッド外クリックでジャンプ、ダブルクリックでリセット。クロスヘア表示・グリッド・軸ラベル付き
+  - `ClickParams.cpp`: `ClickXYPad` を Click パネル内に常時配置するセットアップ・レイアウト
   - DSP接続・保存/復元は未実装（TODO）
 
-- **Click DSP 接続**（`ClickShapeEditor` の `onPeakChanged` / TYPE / LENGTH → Click モジュール実装後に配線）
+- **Click DSP 接続**（`ClickXYPad` の `onChanged` → blend=SQR↔SAW モーフィング比率 / decay=Decay ms → Click モジュール実装後に配線）
 
 - **Sub の展開エリア（▼ で開く下部領域）と同様のエンベロープエディタを Click の展開エリアにも追加**（現状は Click 展開時に何も表示されない）
 
