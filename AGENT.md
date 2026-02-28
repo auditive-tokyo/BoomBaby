@@ -87,9 +87,7 @@ BabySquatchは3つのモジュールで構成されています：
 ## 描画方針
 
 - **現在**: CPU描画（`paint()` ベース）が主体
-  - `EnvelopeCurveEditor`, `CustomSliderLAF`, `LevelMeter`（予定）等
-- **`WaveformDisplay`**: 生OpenGLシェーダー使用（将来用・**現在未使用**・未接続）
-  - 高密度リアルタイム波形描画（数千〜数万ポイント）が必要な場合向け
+  - `EnvelopeCurveEditor`, `CustomSliderLAF`, `LevelMeter` 等
 - **GPU化の切り替え**: `openGLContext.attachTo(*this)` を `PluginEditor` コンストラクタに1行追加するだけで、全ての `paint()` コードがそのままGPU加速される（JUCEの `Graphics` APIがバックエンドを抽象化）
 - **結論**: 今は `paint()` で実装し続けて問題なし。将来パフォーマンス要求が上がった場合でも、既存コードの変更なく GPU化可能
 
@@ -115,16 +113,14 @@ BabySquatchは3つのモジュールで構成されています：
 │   ├── LevelMeter.cpp         // レベルメーター実装（paint・30fps Timer）
 │   ├── LevelMeter.h           // レベルメーター宣言
 │   ├── PanelComponent.cpp     // SUB/CLICK/DIRECT共通パネル実装
-│   ├── PanelComponent.h       // 共通パネル宣言（ノブ・展開ボタン）
-│   ├── UIConstants.h          // UI定数集約（色・レイアウト寸法）
-│   ├── WaveformDisplay.cpp    // OpenGL波形描画実装（将来用・現在未接続）
-│   └── WaveformDisplay.h      // OpenGL波形描画宣言（将来用・現在未接続）
+   ├── PanelComponent.h       // 共通パネル宣言（フェーダー・展開ボタン）
+   └── UIConstants.h          // UI定数集約（色・レイアウト寸法）
 ├── PluginEditor.cpp           // Editor実装（レイアウト/UIイベント/LUTベイク配線）
 ├── PluginEditor.h             // Editor宣言（UI構成とメンバー）
 ├── PluginProcessor.cpp        // Processor実装（MIDI処理・DSP・ChannelState/EnvelopeLutManagerへ委譲）
 └── PluginProcessor.h          // Processor宣言（AudioProcessorIF・channelState()/envLut()アクセサ）
 
-3 directories, 20 files
+3 directories, 18 files
 ```
 
 ## TODO

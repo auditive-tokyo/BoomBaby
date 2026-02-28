@@ -37,8 +37,6 @@ target_sources(BabySquatch
         Source/GUI/PanelComponent.cpp
         Source/GUI/KeyboardComponent.h
         Source/GUI/KeyboardComponent.cpp
-        Source/GUI/WaveformDisplay.h
-        Source/GUI/WaveformDisplay.cpp
         Source/GUI/EnvelopeCurveEditor.h
         Source/GUI/EnvelopeCurveEditor.cpp
         Source/GUI/LevelMeter.h
