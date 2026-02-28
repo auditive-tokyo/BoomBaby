@@ -69,6 +69,9 @@ private:
   /// ピクセル空間でのヒット判定（-1: なし）
   int findPointAtPixel(float px, float py) const;
 
+  /// Shift+クリック用: クリック位置に最も近いセグメントを返す（-1: なし）
+  int findSegmentAtPixel(float px, float py) const;
+
   // ── paint() 分割ヘルパー ──
   void paintWaveform(juce::Graphics &g, float w, float h, float centreY) const;
   void paintEnvelopeOverlay(juce::Graphics &g, float w) const;
@@ -99,6 +102,9 @@ private:
   float previewBlend = 0.0f; // Mix 値 -1.0〜+1.0
   std::array<float, 4> previewHarmonicGains = {0.0f, 0.0f, 0.0f, 0.0f};
   int dragPointIndex{-1};
+  int dragCurveSegment{-1};   // Shift+ドラッグ中のセグメント（-1: なし）
+  float dragCurveStartY{0.0f}; // ドラッグ開始 Y 座標
+  float dragCurveStartVal{0.0f}; // ドラッグ開始時の curve 値
   std::function<void()> onChange;
   std::function<void(EditTarget)> onEditTargetChanged;
 

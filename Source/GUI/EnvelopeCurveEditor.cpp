@@ -250,6 +250,28 @@ void EnvelopeCurveEditor::paintEnvelopeOverlay(juce::Graphics &g,
       g.drawEllipse(px - r, py - r, r * 2.0f, r * 2.0f, 1.0f);
     }
   }
+
+  // カーブハンドル（セグメント中点に菱形◇を描画）
+  for (int i = 0; i < static_cast<int>(pts.size()) - 1; ++i) {
+    const auto si = static_cast<size_t>(i);
+    if (std::abs(pts[si].curve) < 1e-4f)
+      continue; // curve=0 のセグメントは表示しない
+    // セグメント中点の時刻
+    const float midMs = (pts[si].timeMs + pts[si + 1].timeMs) * 0.5f;
+    const float midX = timeMsToX(midMs);
+    const float midY = valueToY(editEnvData->evaluate(midMs));
+    constexpr float d = 4.0f; // 菱形の半径
+    juce::Path diamond;
+    diamond.startNewSubPath(midX, midY - d);
+    diamond.lineTo(midX + d, midY);
+    diamond.lineTo(midX, midY + d);
+    diamond.lineTo(midX - d, midY);
+    diamond.closeSubPath();
+    const bool active = (i == dragCurveSegment);
+    g.setColour(active ? juce::Colours::white
+                       : envColour.withAlpha(0.6f));
+    g.fillPath(diamond);
+  }
 }
 
 void EnvelopeCurveEditor::paintTimeline(juce::Graphics &g, float w, float h,
@@ -444,11 +466,50 @@ int EnvelopeCurveEditor::findPointAtPixel(float px, float py) const {
   return -1;
 }
 
+int EnvelopeCurveEditor::findSegmentAtPixel(float px, float py) const {
+  const auto &pts = editEnvData->getPoints();
+  const auto n = static_cast<int>(pts.size());
+  if (n < 2)
+    return -1;
+
+  constexpr float maxDist = 12.0f; // ヒット判定の最大距離(px)
+  int bestSeg = -1;
+  float bestDist = maxDist;
+
+  for (int i = 0; i < n - 1; ++i) {
+    const auto si = static_cast<size_t>(i);
+    const float x0 = timeMsToX(pts[si].timeMs);
+    if (const float x1 = timeMsToX(pts[si + 1].timeMs); px < x0 || px > x1)
+      continue;
+    // セグメント上の Y を evaluate で求める
+    const float timeMs = xToTimeMs(px);
+    const float ey = valueToY(editEnvData->evaluate(timeMs));
+    const float dist = std::abs(py - ey);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestSeg = i;
+    }
+  }
+  return bestSeg;
+}
+
 // ── マウス操作 ──
 
 void EnvelopeCurveEditor::mouseDoubleClick(const juce::MouseEvent &e) {
   const auto px = static_cast<float>(e.x);
   const auto py = static_cast<float>(e.y);
+
+  // Shift+ダブルクリック: セグメントのカーブをリセット
+  if (e.mods.isShiftDown()) {
+    if (const int seg = findSegmentAtPixel(px, py); seg >= 0) {
+      editEnvData->setSegmentCurve(seg, 0.0f);
+      if (onChange)
+        onChange();
+      repaint();
+    }
+    return;
+  }
+
   if (const int hit = findPointAtPixel(px, py); hit >= 0) {
     // 最低 1 点は常に維持する
     if (editEnvData->getPoints().size() > 1)
@@ -466,11 +527,39 @@ void EnvelopeCurveEditor::mouseDoubleClick(const juce::MouseEvent &e) {
 }
 
 void EnvelopeCurveEditor::mouseDown(const juce::MouseEvent &e) {
-  dragPointIndex =
-      findPointAtPixel(static_cast<float>(e.x), static_cast<float>(e.y));
+  const auto px = static_cast<float>(e.x);
+  const auto py = static_cast<float>(e.y);
+
+  if (e.mods.isShiftDown()) {
+    // Shift+クリック: セグメントのカーブ編集
+    dragCurveSegment = findSegmentAtPixel(px, py);
+    if (dragCurveSegment >= 0) {
+      dragCurveStartY = py;
+      const auto &pts = editEnvData->getPoints();
+      dragCurveStartVal = pts[static_cast<size_t>(dragCurveSegment)].curve;
+    }
+    dragPointIndex = -1;
+  } else {
+    dragCurveSegment = -1;
+    dragPointIndex = findPointAtPixel(px, py);
+  }
 }
 
 void EnvelopeCurveEditor::mouseDrag(const juce::MouseEvent &e) {
+  if (dragCurveSegment >= 0) {
+    // Shift+ドラッグ: 上方向でカーブ増、下方向でカーブ減
+    const float dy = static_cast<float>(e.y) - dragCurveStartY;
+    constexpr float sensitivity = 200.0f; // px あたりの curve 変化量
+    const float newCurve = std::clamp(
+        dragCurveStartVal + dy / sensitivity, -1.0f, 1.0f);
+    editEnvData->setSegmentCurve(dragCurveSegment, newCurve);
+
+    if (onChange)
+      onChange();
+    repaint();
+    return;
+  }
+
   if (dragPointIndex < 0)
     return;
 
@@ -487,6 +576,7 @@ void EnvelopeCurveEditor::mouseDrag(const juce::MouseEvent &e) {
 
 void EnvelopeCurveEditor::mouseUp(const juce::MouseEvent & /*e*/) {
   dragPointIndex = -1;
+  dragCurveSegment = -1;
 }
 
 void EnvelopeCurveEditor::setEditTarget(EditTarget target) {

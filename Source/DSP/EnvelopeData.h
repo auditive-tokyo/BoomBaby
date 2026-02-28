@@ -1,13 +1,15 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <vector>
 
-/// エンベロープ制御点（Phase 2）
+/// エンベロープ制御点
 struct EnvelopePoint {
     float timeMs{0.0f};  ///< 0〜displayDurationMs
     float value{1.0f};   ///< 線形ゲイン 0.0〜2.0
+    float curve{0.0f};   ///< このポイント→次のポイントへのカーブ（-1〜+1, 0=直線）
 };
 
 /// Amplitude Envelope データモデル
@@ -15,8 +17,7 @@ struct EnvelopePoint {
 /// - defaultValue: 線形ゲイン 0.0〜2.0（ポイントなし時に使用）
 /// - points が空 → defaultValue（フラット）
 /// - points が 1 → 定数
-/// - points が 2 → 線形補間
-/// - points が 3+ → Catmull-Rom スプライン補間
+/// - points が 2+ → lerp + curve 補間
 class EnvelopeData {
 public:
     // ── デフォルト値（ポイントなし時のフラット値） ──
@@ -37,6 +38,13 @@ public:
     void setPointValue(int index, float value) {
         if (index >= 0 && index < static_cast<int>(points.size()))
             points[static_cast<size_t>(index)].value = value;
+    }
+
+    /// セグメント（index 番目のポイント→次のポイント）のカーブ値を設定
+    void setSegmentCurve(int index, float curve) {
+        if (index >= 0 && index < static_cast<int>(points.size()))
+            points[static_cast<size_t>(index)].curve =
+                std::clamp(curve, -1.0f, 1.0f);
     }
 
     /// timeMs 昇順に挿入
@@ -103,31 +111,25 @@ public:
         const float t1 = points[static_cast<size_t>(seg + 1)].timeMs;
         const float t = (t1 > t0) ? (timeMs - t0) / (t1 - t0) : 0.0f;
 
-        if (n == 2) {
-            // 線形補間
-            return points[0].value + t * (points[1].value - points[0].value);
-        }
+        const float v0 = points[static_cast<size_t>(seg)].value;
+        const float v1 = points[static_cast<size_t>(seg + 1)].value;
+        const float c  = points[static_cast<size_t>(seg)].curve;
 
-        // Catmull-Rom スプライン補間（端点はファントムポイント複製）
-        const float p0 = points[static_cast<size_t>(std::max(seg - 1, 0))].value;
-        const float p1 = points[static_cast<size_t>(seg)].value;
-        const float p2 = points[static_cast<size_t>(seg + 1)].value;
-        const float p3 = points[static_cast<size_t>(std::min(seg + 2, n - 1))].value;
-
-        return catmullRom(p0, p1, p2, p3, t);
+        return curveLerp(v0, v1, t, c);
     }
 
 private:
     float defaultValue{1.0f};
     std::vector<EnvelopePoint> points;
 
-    /// Catmull-Rom 補間（t ∈ [0,1]）
-    static float catmullRom(float p0, float p1, float p2, float p3, float t) {
-        const float t2 = t * t;
-        const float t3 = t2 * t;
-        return 0.5f * ((2.0f * p1)
-            + (-p0 + p2) * t
-            + (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2
-            + (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3);
+    /// curve 付き線形補間（t ∈ [0,1], curve ∈ [-1,+1]）
+    /// curve=0 → 直線, >0 → 上に凸, <0 → 下に凸
+    /// 方式: t' = t^(2^(-curve*3)) で対数的にカーブ感度を拡大
+    static float curveLerp(float v0, float v1, float t, float curve) {
+        if (std::abs(curve) < 1e-4f)
+            return std::lerp(v0, v1, t);
+        // 指数マッピング: curve ±1 で十分な曲率を得る
+        const float ct = std::pow(t, std::pow(2.0f, -curve * 3.0f));
+        return std::lerp(v0, v1, ct);
     }
 };
