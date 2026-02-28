@@ -36,10 +36,11 @@ void EnvelopeCurveEditor::paint(juce::Graphics &g) {
 void EnvelopeCurveEditor::paintWaveform(juce::Graphics &g, float w, float h,
                                         float centreY) const {
   const auto numPixels = static_cast<int>(w);
-  const bool hasAmpPoints   = ampEnvData.hasPoints();
-  const bool hasPitchPoints = pitchEnvData.hasPoints();
-  const bool hasBlendPoints = blendEnvData.hasPoints();
-  const bool hasDistPoints  = distEnvData.hasPoints();
+  // 2点以上のみエンベロープ制御とみなす。1点はノブ制御（フラット）。
+  const bool hasAmpPoints   = ampEnvData.isEnvelopeControlled();
+  const bool hasPitchPoints = pitchEnvData.isEnvelopeControlled();
+  const bool hasBlendPoints = blendEnvData.isEnvelopeControlled();
+  const bool hasDistPoints  = distEnvData.isEnvelopeControlled();
 
   juce::Path fillPath;
   juce::Path waveLine;
@@ -447,7 +448,9 @@ void EnvelopeCurveEditor::mouseDoubleClick(const juce::MouseEvent &e) {
   const auto px = static_cast<float>(e.x);
   const auto py = static_cast<float>(e.y);
   if (const int hit = findPointAtPixel(px, py); hit >= 0) {
-    editEnvData->removePoint(hit);
+    // 最低 1 点は常に維持する
+    if (editEnvData->getPoints().size() > 1)
+      editEnvData->removePoint(hit);
   } else {
     const float timeMs = std::clamp(xToTimeMs(px), 0.0f, displayDurationMs);
     const float value =

@@ -28,7 +28,16 @@ public:
     // ── ポイント操作 ──
 
     bool hasPoints() const { return !points.empty(); }
+    /// ポイントが 2 個以上 → エンベロープで制御
+    /// ポイントが 1 個    → ノブで制御（点の value == knob value）
+    bool isEnvelopeControlled() const { return points.size() > 1; }
     const std::vector<EnvelopePoint>& getPoints() const { return points; }
+
+    /// 指定インデックスのポイント値のみを変更（時刻は保持）
+    void setPointValue(int index, float value) {
+        if (index >= 0 && index < static_cast<int>(points.size()))
+            points[static_cast<size_t>(index)].value = value;
+    }
 
     /// timeMs 昇順に挿入
     void addPoint(float timeMs, float value) {

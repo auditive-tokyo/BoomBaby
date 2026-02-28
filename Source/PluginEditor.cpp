@@ -97,19 +97,50 @@ void BabySquatchAudioProcessorEditor::setupEnvelopeCurveEditor() {
     bakePitchLut();
     bakeDistLut();
     bakeBlendLut();
-    // AMP / PITCH / DIST / BLEND ノブの有効無効 (envelope 有無に連動)
-    subKnobs[1].setEnabled(!ampEnvData.hasPoints());
-    subKnobs[1].setTooltip(
-        ampEnvData.hasPoints() ? "Value is controlled by envelope" : "");
-    subKnobs[0].setEnabled(!pitchEnvData.hasPoints());
-    subKnobs[0].setTooltip(
-        pitchEnvData.hasPoints() ? "Value is controlled by envelope" : "");
-    subKnobs[3].setEnabled(!distEnvData.hasPoints());
-    subKnobs[3].setTooltip(
-        distEnvData.hasPoints() ? "Value is controlled by envelope" : "");
-    subKnobs[2].setEnabled(!blendEnvData.hasPoints());
-    subKnobs[2].setTooltip(
-        blendEnvData.hasPoints() ? "Value is controlled by envelope" : "");
+    // 1点=ノブ制御（有効化＋ポイント値をノブに反映）、2点以上=エンベロープ制御（無効化）
+
+    // AMP
+    const bool ampCtrl = ampEnvData.isEnvelopeControlled();
+    subKnobs[1].setEnabled(!ampCtrl);
+    subKnobs[1].setTooltip(ampCtrl ? "Value is controlled by envelope" : "");
+    if (!ampCtrl && ampEnvData.hasPoints()) {
+      const float v = ampEnvData.getPoints()[0].value;
+      ampEnvData.setDefaultValue(v);
+      subKnobs[1].setValue(v * 100.0, juce::dontSendNotification);
+    }
+
+    // PITCH
+    const bool pitchCtrl = pitchEnvData.isEnvelopeControlled();
+    subKnobs[0].setEnabled(!pitchCtrl);
+    subKnobs[0].setTooltip(pitchCtrl ? "Value is controlled by envelope" : "");
+    if (!pitchCtrl && pitchEnvData.hasPoints()) {
+      const float hz = pitchEnvData.getPoints()[0].value;
+      pitchEnvData.setDefaultValue(hz);
+      subKnobs[0].setValue(hz, juce::dontSendNotification);
+      envelopeCurveEditor.setDisplayCycles(
+          hz * envelopeCurveEditor.getDisplayDurationMs() / 1000.0f);
+    }
+
+    // DIST
+    const bool distCtrl = distEnvData.isEnvelopeControlled();
+    subKnobs[3].setEnabled(!distCtrl);
+    subKnobs[3].setTooltip(distCtrl ? "Value is controlled by envelope" : "");
+    if (!distCtrl && distEnvData.hasPoints()) {
+      const float v = distEnvData.getPoints()[0].value;
+      distEnvData.setDefaultValue(v);
+      subKnobs[3].setValue(v * 100.0, juce::dontSendNotification);
+    }
+
+    // BLEND
+    const bool blendCtrl = blendEnvData.isEnvelopeControlled();
+    subKnobs[2].setEnabled(!blendCtrl);
+    subKnobs[2].setTooltip(blendCtrl ? "Value is controlled by envelope" : "");
+    if (!blendCtrl && blendEnvData.hasPoints()) {
+      const float v = blendEnvData.getPoints()[0].value;
+      blendEnvData.setDefaultValue(v);
+      subKnobs[2].setValue(v * 100.0, juce::dontSendNotification);
+      envelopeCurveEditor.setPreviewBlend(v);
+    }
   });
 
   envelopeCurveEditor.setOnEditTargetChanged(
