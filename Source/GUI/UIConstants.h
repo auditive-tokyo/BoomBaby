@@ -5,7 +5,7 @@
 namespace UIConstants {
 // ── ウィンドウ ──
 constexpr int windowWidth = 1100;
-constexpr int windowHeight = 260;
+constexpr int windowHeight = 294; // 260 + waveShapeButtonRowHeight(28) + panelGap(6)
 
 // ── パネル ──
 constexpr int panelPadding = 8;
@@ -24,7 +24,7 @@ constexpr int expandButtonHeight = 20;
 constexpr int subKnobRowHeight = 88; // パネル内配置に変更済み（expand area では未使用）
 constexpr int waveShapeButtonRowHeight = 28;
 constexpr int expandedAreaHeight =
-    388; // 360 + waveShapeButtonRowHeight(28)（ノブ行はパネル内に移動）
+    360; // 290(curve) + 70(keyboard)（length/wave行はパネル内に移動）
 constexpr int waveformDisplayHeight = 80;
 
 // ── レベルメーター ──
@@ -32,6 +32,10 @@ constexpr int meterWidth = 28;
 
 // ── 鍵盤 ──
 constexpr int keyboardHeight = 70;
+
+// ── フォント ──
+constexpr float fontSizeSmall  = 10.0f;  // ノブラベル、エンベロープ等
+constexpr float fontSizeMedium = 12.0f;  // ComboBox、Length ボックス等
 
 // ── カラーパレット ──
 namespace Colours {

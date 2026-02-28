@@ -10,29 +10,30 @@
 // Length ボックス
 // ────────────────────────────────────────────────────
 void BabySquatchAudioProcessorEditor::setupLengthBox() {
-  const auto smallFont = juce::Font(juce::FontOptions(10.0f));
+  const auto smallFont = juce::Font(juce::FontOptions(UIConstants::fontSizeMedium));
 
-  lengthPrefixLabel.setText("length:", juce::dontSendNotification);
-  lengthPrefixLabel.setFont(smallFont);
-  lengthPrefixLabel.setColour(juce::Label::textColourId,
-                              juce::Colours::white.withAlpha(0.6f));
-  lengthPrefixLabel.setJustificationType(juce::Justification::centredRight);
-  addAndMakeVisible(lengthPrefixLabel);
+  lengthBox.prefix.setText("length:", juce::dontSendNotification);
+  lengthBox.prefix.setFont(smallFont);
+  lengthBox.prefix.setColour(juce::Label::textColourId,
+                             UIConstants::Colours::labelText);
+  lengthBox.prefix.setJustificationType(juce::Justification::centredRight);
+  addAndMakeVisible(lengthBox.prefix);
 
-  lengthEditor.setFont(smallFont);
-  lengthEditor.setText("300", false);
-  lengthEditor.setInputRestrictions(4, "0123456789");
-  lengthEditor.setJustification(juce::Justification::centred);
-  lengthEditor.setColour(juce::TextEditor::backgroundColourId,
-                         juce::Colours::black.withAlpha(0.45f));
-  lengthEditor.setColour(juce::TextEditor::textColourId, juce::Colours::white);
-  lengthEditor.setColour(juce::TextEditor::outlineColourId,
-                         juce::Colours::white.withAlpha(0.20f));
-  lengthEditor.setColour(juce::TextEditor::focusedOutlineColourId,
-                         juce::Colours::white.withAlpha(0.5f));
+  lengthBox.editor.setFont(smallFont);
+  lengthBox.editor.setText("300", false);
+  lengthBox.editor.setInputRestrictions(4, "0123456789");
+  lengthBox.editor.setJustification(juce::Justification::centred);
+  lengthBox.editor.setColour(juce::TextEditor::backgroundColourId,
+                             UIConstants::Colours::knobBg);
+  lengthBox.editor.setColour(juce::TextEditor::textColourId,
+                             UIConstants::Colours::text);
+  lengthBox.editor.setColour(juce::TextEditor::outlineColourId,
+                             juce::Colours::white.withAlpha(0.20f));
+  lengthBox.editor.setColour(juce::TextEditor::focusedOutlineColourId,
+                             juce::Colours::white.withAlpha(0.5f));
   auto applyLength = [this]() {
-    const int v = juce::jlimit(10, 2000, lengthEditor.getText().getIntValue());
-    lengthEditor.setText(juce::String(v), false);
+    const int v = juce::jlimit(10, 2000, lengthBox.editor.getText().getIntValue());
+    lengthBox.editor.setText(juce::String(v), false);
     envelopeCurveEditor.setDisplayDurationMs(static_cast<float>(v));
     processorRef.setSubLengthMs(static_cast<float>(v));
     bakeAmpLut();
@@ -40,16 +41,16 @@ void BabySquatchAudioProcessorEditor::setupLengthBox() {
     bakeDistLut();
     bakeBlendLut();
   };
-  lengthEditor.onReturnKey = applyLength;
-  lengthEditor.onFocusLost = applyLength;
-  addAndMakeVisible(lengthEditor);
+  lengthBox.editor.onReturnKey = applyLength;
+  lengthBox.editor.onFocusLost = applyLength;
+  addAndMakeVisible(lengthBox.editor);
 
-  lengthSuffixLabel.setText("ms", juce::dontSendNotification);
-  lengthSuffixLabel.setFont(smallFont);
-  lengthSuffixLabel.setColour(juce::Label::textColourId,
-                              juce::Colours::white.withAlpha(0.6f));
-  lengthSuffixLabel.setJustificationType(juce::Justification::centredLeft);
-  addAndMakeVisible(lengthSuffixLabel);
+  lengthBox.suffix.setText("ms", juce::dontSendNotification);
+  lengthBox.suffix.setFont(smallFont);
+  lengthBox.suffix.setColour(juce::Label::textColourId,
+                             UIConstants::Colours::labelText);
+  lengthBox.suffix.setJustificationType(juce::Justification::centredLeft);
+  addAndMakeVisible(lengthBox.suffix);
 }
 
 // ────────────────────────────────────────────────────
@@ -68,7 +69,7 @@ void BabySquatchAudioProcessorEditor::setupSubKnobsRow() {
 
     auto &label = subKnobLabels[i];
     label.setText(kLabels[i], juce::dontSendNotification);
-    label.setFont(juce::Font(juce::FontOptions(10.0f)));
+    label.setFont(juce::Font(juce::FontOptions(UIConstants::fontSizeSmall)));
     label.setJustificationType(juce::Justification::centred);
     label.setColour(juce::Label::textColourId, UIConstants::Colours::labelText);
     addAndMakeVisible(label);
@@ -76,46 +77,28 @@ void BabySquatchAudioProcessorEditor::setupSubKnobsRow() {
 }
 
 // ────────────────────────────────────────────────────
-// 波形選択ボタン（Tri / SQR / SAW）
+// 波形選択コンボボックス（Sine / Tri / SQR / SAW）
 // ────────────────────────────────────────────────────
-void BabySquatchAudioProcessorEditor::deselectOtherWaveShapeButtons(
-    size_t selectedIdx) {
-  for (size_t j = 0; j < 3; ++j) {
-    if (j == selectedIdx)
-      continue;
-    waveShapeButtons[j].setToggleState(false, juce::dontSendNotification);
-  }
-}
-
-void BabySquatchAudioProcessorEditor::setupWaveShapeButtons() {
-  static constexpr std::array<const char *, 3> kWaveLabels = {"Tri", "SQR",
-                                                              "SAW"};
-  static constexpr std::array<WaveShape, 3> kShapes = {
-      WaveShape::Tri, WaveShape::Square, WaveShape::Saw};
-  for (size_t i = 0; i < 3; ++i) {
-    auto &btn = waveShapeButtons[i];
-    btn.setButtonText(kWaveLabels[i]);
-    btn.setClickingTogglesState(true);
-    btn.setColour(juce::TextButton::buttonColourId,
-                  UIConstants::Colours::knobBg);
-    btn.setColour(juce::TextButton::buttonOnColourId,
-                  UIConstants::Colours::subArc);
-    btn.setColour(juce::TextButton::textColourOffId,
-                  UIConstants::Colours::text);
-    btn.setColour(juce::TextButton::textColourOnId, juce::Colours::black);
-    const WaveShape shape = kShapes[i];
-    btn.onClick = [this, i, shape] {
-      if (waveShapeButtons[i].getToggleState()) {
-        deselectOtherWaveShapeButtons(i);
-        processorRef.subOscillator().setWaveShape(shape);
-        envelopeCurveEditor.setWaveShape(shape);
-      } else {
-        processorRef.subOscillator().setWaveShape(WaveShape::Sine);
-        envelopeCurveEditor.setWaveShape(WaveShape::Sine);
-      }
-    };
-    addChildComponent(btn);
-  }
+void BabySquatchAudioProcessorEditor::setupWaveShapeCombo() {
+  waveShapeCombo.addItem("Sine", 1);
+  waveShapeCombo.addItem("Tri", 2);
+  waveShapeCombo.addItem("SQR", 3);
+  waveShapeCombo.addItem("SAW", 4);
+  waveShapeCombo.setSelectedId(1, juce::dontSendNotification);
+  waveShapeCombo.setLookAndFeel(&darkComboLAF);
+  waveShapeCombo.onChange = [this] {
+    using enum WaveShape;
+    WaveShape shape;
+    switch (waveShapeCombo.getSelectedId()) {
+    case 2: shape = Tri;    break;
+    case 3: shape = Square; break;
+    case 4: shape = Saw;    break;
+    default: shape = Sine;  break;
+    }
+    processorRef.subOscillator().setWaveShape(shape);
+    envelopeCurveEditor.setWaveShape(shape);
+  };
+  addAndMakeVisible(waveShapeCombo);
 }
 
 // ────────────────────────────────────────────────────
@@ -249,34 +232,21 @@ void BabySquatchAudioProcessorEditor::layoutSubKnobsRow(
   }
 }
 
-void BabySquatchAudioProcessorEditor::layoutWaveShapeButtonRow(
+void BabySquatchAudioProcessorEditor::layoutLengthBox(
     juce::Rectangle<int> btnRow) {
-  constexpr int btnW = 64;
-  constexpr int btnGap = 6;
   constexpr int rowH = 22;
   constexpr int prefixW = 44;
   constexpr int editorW = 34;
   constexpr int suffixW = 18;
   constexpr int innerGap = 2;
-  constexpr int lengthTotalW = prefixW + editorW + suffixW + innerGap * 2;
+  constexpr int totalW = prefixW + editorW + suffixW + innerGap * 2;
 
-  // Length ボックスを左端に配置
-  auto lengthArea = btnRow.removeFromLeft(lengthTotalW)
-                        .withSizeKeepingCentre(lengthTotalW, rowH);
-  int lx = lengthArea.getX();
-  const int ly = lengthArea.getY();
-  lengthPrefixLabel.setBounds(lx, ly, prefixW, rowH);
+  auto la = btnRow.removeFromLeft(totalW).withSizeKeepingCentre(totalW, rowH);
+  int lx = la.getX();
+  const int ly = la.getY();
+  lengthBox.prefix.setBounds(lx, ly, prefixW, rowH);
   lx += prefixW + innerGap;
-  lengthEditor.setBounds(lx, ly, editorW, rowH);
+  lengthBox.editor.setBounds(lx, ly, editorW, rowH);
   lx += editorW + innerGap;
-  lengthSuffixLabel.setBounds(lx, ly, suffixW, rowH);
-
-  // Tri/SQR/SAW ボタンを残り領域に中央揃えで配置
-  constexpr int totalW = btnW * 3 + btnGap * 2;
-  auto row = btnRow.withSizeKeepingCentre(totalW, rowH);
-  for (size_t i = 0; i < 3; ++i) {
-    waveShapeButtons[i].setBounds(row.removeFromLeft(btnW));
-    if (i < 2)
-      row.removeFromLeft(btnGap);
-  }
+  lengthBox.suffix.setBounds(lx, ly, suffixW, rowH);
 }

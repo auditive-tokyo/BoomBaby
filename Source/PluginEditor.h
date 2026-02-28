@@ -24,6 +24,7 @@ private:
   void requestExpand(ExpandChannel ch);
   void updateExpandIndicators();
   void updateEnvelopeEditorVisibility();
+  void onEnvelopeChanged();
 
   // ── コンストラクター分割ヘルパー ──
   void bakeAmpLut();
@@ -33,15 +34,14 @@ private:
   void setupPanelRouting(BabySquatchAudioProcessor &p);
   void setupEnvelopeCurveEditor();
   void setupSubKnobsRow();
-  void setupWaveShapeButtons();
+  void setupWaveShapeCombo();
   void setupPitchKnob();
   void setupAmpKnob();
   void setupBlendKnob();
   void setupDistKnob();
   void setupHarmonicKnobs();
-  void deselectOtherWaveShapeButtons(size_t selectedIdx);
   void layoutSubKnobsRow(juce::Rectangle<int> knobRow);
-  void layoutWaveShapeButtonRow(juce::Rectangle<int> btnRow);
+  void layoutLengthBox(juce::Rectangle<int> btnRow);
   void setupLengthBox();
 
   PanelComponent subPanel{"SUB",    UIConstants::Colours::subArc};
@@ -67,11 +67,35 @@ private:
   // ── SUB展開パネル: Oscノブ行（8本） ──
   std::array<juce::Slider, 8> subKnobs;
   std::array<juce::Label, 8> subKnobLabels;
-  // ── SUB展開パネル: 波形選択ボタン行（Tri / SQR / SAW）+ Length ボックス ──
-  std::array<juce::TextButton, 3> waveShapeButtons;
-  juce::Label lengthPrefixLabel;
-  juce::TextEditor lengthEditor;
-  juce::Label lengthSuffixLabel;
+  // ── SUB展開パネル: 波形選択（プルダウン）用 LAF ──
+  struct DarkComboLAF : public juce::LookAndFeel_V4 {
+    DarkComboLAF() {
+      setColour(juce::ComboBox::backgroundColourId,   juce::Colour(0xFF333333));
+      setColour(juce::ComboBox::textColourId,         juce::Colour(0xFFDDDDDD));
+      setColour(juce::ComboBox::outlineColourId,      juce::Colours::white.withAlpha(0.20f));
+      setColour(juce::ComboBox::arrowColourId,        juce::Colour(0xFFBBBBBB));
+      setColour(juce::PopupMenu::backgroundColourId,  juce::Colour(0xFF2A2A2A));
+      setColour(juce::PopupMenu::textColourId,        juce::Colour(0xFFDDDDDD));
+      setColour(juce::PopupMenu::highlightedBackgroundColourId, juce::Colour(0xFF00AAFF).withAlpha(0.6f));
+      setColour(juce::PopupMenu::highlightedTextColourId,       juce::Colours::white);
+    }
+    juce::Font getComboBoxFont(juce::ComboBox&) override {
+      return juce::Font(juce::FontOptions(UIConstants::fontSizeMedium));
+    }
+    juce::Font getPopupMenuFont() override {
+      return juce::Font(juce::FontOptions(UIConstants::fontSizeMedium));
+    }
+  };
+  DarkComboLAF darkComboLAF;
+  // ── SUB展開パネル: 波形選択（プルダウン） ──
+  juce::ComboBox waveShapeCombo;
+  // ── SUB展開パネル: Length ボックス ──
+  struct LengthBox {
+    juce::Label prefix;
+    juce::TextEditor editor;
+    juce::Label suffix;
+  };
+  LengthBox lengthBox;
   // ── ツールチップ（AMPノブの無効時などに使用） ──
   juce::TooltipWindow tooltipWindow{this, 500};
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BabySquatchAudioProcessorEditor)

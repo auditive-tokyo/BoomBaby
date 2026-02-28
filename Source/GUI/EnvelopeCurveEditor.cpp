@@ -560,7 +560,7 @@ void EnvelopeCurveEditor::paintTabs(juce::Graphics &g) const {
   const auto blendR = tabRect(blend);
 
   using enum EditTarget;
-  g.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
+  g.setFont(juce::Font(juce::FontOptions(UIConstants::fontSizeSmall, juce::Font::bold)));
 
   // AMP タブ
   {
