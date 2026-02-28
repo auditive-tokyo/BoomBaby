@@ -44,14 +44,9 @@ private:
   void layoutWaveShapeButtonRow(juce::Rectangle<int> btnRow);
   void setupLengthBox();
 
-  PanelComponent subPanel{"SUB", UIConstants::Colours::subArc,
-                            UIConstants::Colours::subThumb};
-
-  PanelComponent clickPanel{"CLICK", UIConstants::Colours::clickArc,
-                            UIConstants::Colours::clickThumb};
-
-  PanelComponent directPanel{"DIRECT", UIConstants::Colours::directArc,
-                          UIConstants::Colours::directThumb};
+  PanelComponent subPanel{"SUB",    UIConstants::Colours::subArc};
+  PanelComponent clickPanel{"CLICK",  UIConstants::Colours::clickArc};
+  PanelComponent directPanel{"DIRECT", UIConstants::Colours::directArc};
 
   // ── 共有展開エリア（3パネル横断） ──
   juce::Component expandableArea;

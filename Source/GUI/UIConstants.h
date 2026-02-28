@@ -4,7 +4,7 @@
 
 namespace UIConstants {
 // ── ウィンドウ ──
-constexpr int windowWidth = 800;
+constexpr int windowWidth = 1100;
 constexpr int windowHeight = 260;
 
 // ── パネル ──
@@ -23,7 +23,8 @@ constexpr int valueHeight = 20;
 constexpr int expandButtonHeight = 20;
 constexpr int subKnobRowHeight = 88;
 constexpr int waveShapeButtonRowHeight = 28;
-constexpr int expandedAreaHeight = 476;  // 360 + subKnobRowHeight(88) + waveShapeButtonRowHeight(28)
+constexpr int expandedAreaHeight =
+    476; // 360 + subKnobRowHeight(88) + waveShapeButtonRowHeight(28)
 constexpr int waveformDisplayHeight = 80;
 
 // ── レベルメーター ──

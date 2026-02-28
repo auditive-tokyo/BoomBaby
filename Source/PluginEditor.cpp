@@ -80,10 +80,12 @@ void BabySquatchAudioProcessorEditor::setupPanelRouting(
   directPanel.setLevelProvider(
       [&p]() { return p.channelState().getChannelLevelDb(direct); });
 
-  subPanel.getKnob().onValueChange = [this] {
+  // Sub フェーダー → ゲインコントロール
+  subPanel.getFader().onValueChange = [this] {
     processorRef.setSubGainDb(
-        static_cast<float>(subPanel.getKnob().getValue()));
+        static_cast<float>(subPanel.getFader().getValue()));
   };
+  // TODO: click/direct の gain setter 実装後に配線追加
 }
 
 // ────────────────────────────────────────────────────

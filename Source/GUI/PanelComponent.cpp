@@ -4,57 +4,27 @@
 // ────────────────────────────────────────────────────
 // コンストラクタ
 // ────────────────────────────────────────────────────
-PanelComponent::PanelComponent(const juce::String &name, juce::Colour arcColour,
-                               juce::Colour thumbColour)
-    : laf(arcColour, thumbColour) {
-  // ── レベルメーター ──
+PanelComponent::PanelComponent(const juce::String &name,
+                               juce::Colour accentColour)
+    : faderLAF(accentColour) {
+  // ── レベルメーター（背景として先に追加） ──
   addAndMakeVisible(levelMeter);
+
+  // ── フェーダー（レベルメーターの上に重ねる） ──
+  fader.setSliderStyle(juce::Slider::LinearVertical);
+  fader.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+  fader.setRange(-48.0, 6.0, 0.1);
+  fader.setValue(0.0, juce::dontSendNotification);
+  fader.setDoubleClickReturnValue(true, 0.0);
+  fader.setTextValueSuffix(" dB");
+  fader.setLookAndFeel(&faderLAF);
+  addAndMakeVisible(fader);
 
   // ── タイトルラベル ──
   titleLabel.setText(name, juce::dontSendNotification);
   titleLabel.setJustificationType(juce::Justification::centred);
   titleLabel.setColour(juce::Label::textColourId, UIConstants::Colours::text);
   addAndMakeVisible(titleLabel);
-
-  // ── ノブ ──
-  knob.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-  knob.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
-  knob.setRange(-24.0, 24.0, 0.1);
-  knob.setValue(0.0);
-  knob.setTextValueSuffix(" dB");
-
-  // ダブルクリックで 0.0 dB にリセット（JUCE の組み込み機能）
-  knob.setDoubleClickReturnValue(true, 0.0);
-
-  knob.setLookAndFeel(&laf);
-  addAndMakeVisible(knob);
-
-  // ── 値クリックエリア（透明、ノブ中央の数値上でクリック検出） ──
-  clickArea.onClick = [this] { showValueEditor(); };
-  addAndMakeVisible(clickArea);
-
-  // ── 値入力 TextEditor（初期非表示） ──
-  valueEditor.setJustification(juce::Justification::centred);
-  valueEditor.setColour(juce::TextEditor::backgroundColourId,
-                        UIConstants::Colours::knobBg);
-  valueEditor.setColour(juce::TextEditor::textColourId,
-                        UIConstants::Colours::text);
-  valueEditor.setColour(juce::TextEditor::outlineColourId,
-                        juce::Colours::white.withAlpha(0.3f));
-  valueEditor.setColour(juce::TextEditor::focusedOutlineColourId,
-                        juce::Colours::white.withAlpha(0.5f));
-  valueEditor.setInputRestrictions(7, "-+.0123456789");
-  valueEditor.addListener(this);
-  addChildComponent(valueEditor); // 非表示で追加
-
-  // ── グローバルクリック監視（BOX外クリックで閉じる） ──
-  globalClickListener.onMouseDown = [this](const juce::MouseEvent &e) {
-    if (const auto *src = e.eventComponent; src != &valueEditor &&
-                                            !valueEditor.isParentOf(src) &&
-                                            src != &clickArea) {
-      hideValueEditor(false);
-    }
-  };
 
   // ── 展開ボタン ──
   expandButton.setButtonText(juce::String::charToString(0x25BC)); // ▼
@@ -102,10 +72,7 @@ PanelComponent::PanelComponent(const juce::String &name, juce::Colour arcColour,
 // ────────────────────────────────────────────────────
 // デストラクタ
 // ────────────────────────────────────────────────────
-PanelComponent::~PanelComponent() {
-  juce::Desktop::getInstance().removeGlobalMouseListener(&globalClickListener);
-  knob.setLookAndFeel(nullptr);
-}
+PanelComponent::~PanelComponent() { fader.setLookAndFeel(nullptr); }
 
 // ────────────────────────────────────────────────────
 // paint / resized
@@ -127,93 +94,50 @@ void PanelComponent::resized() {
   soloButton.setBounds(bottomRow.removeFromLeft(btnW));
   expandButton.setBounds(bottomRow);
 
-  // ノブ左にレベルメーターを配置
+  // レベルメーター（左列）+ フェーダーハンドル（その右に隣接）
+  constexpr int faderHandleWidth = 12;
   levelMeter.setBounds(area.removeFromLeft(UIConstants::meterWidth));
-
-  knob.setBounds(area);
-
-  // ノブ中央の値テキスト領域を算出（CustomSliderLAF と同じ計算）
-  const auto knobBounds = knob.getBounds();
-  const auto kw = static_cast<float>(knobBounds.getWidth());
-  const auto kh = static_cast<float>(knobBounds.getHeight());
-  const float radius = juce::jmin(kw, kh) * 0.40f;
-  const auto cx = static_cast<float>(knobBounds.getCentreX());
-  const auto cy = static_cast<float>(knobBounds.getCentreY());
-  const float fontSize = radius * 0.38f;
-
-  auto valueBounds =
-      juce::Rectangle<float>(cx - radius * 0.7f, cy - fontSize * 0.5f,
-                             radius * 1.4f, fontSize)
-          .toNearestInt();
-
-  clickArea.setBounds(valueBounds.expanded(4));
-  valueEditor.setBounds(valueBounds.expanded(2, 4));
-  valueEditor.setFont(juce::Font(juce::FontOptions(fontSize)));
+  fader.setBounds(area.removeFromLeft(faderHandleWidth));
 }
 
-// ────────────────────────────────────────────────────
-// getKnob
-// ────────────────────────────────────────────────────
-juce::Slider &PanelComponent::getKnob() { return knob; }
+// ────────────────────────────────────────────────
+// getFader
+// ────────────────────────────────────────────────
+juce::Slider &PanelComponent::getFader() { return fader; }
 
-// ────────────────────────────────────────────────────
-// ValueClickArea
-// ────────────────────────────────────────────────────
-void PanelComponent::ValueClickArea::mouseDown(
-    const juce::MouseEvent & /*event*/) {
-  if (onClick)
-    onClick();
-}
+// ────────────────────────────────────────────────
+// FaderLAF::drawLinearSlider
+// トラック: 透明（LevelMeter が背景役）
+// サム:     アクセントカラーの水平バー + 右端の ◁
+// ────────────────────────────────────────────────
+void PanelComponent::FaderLAF::drawLinearSlider(
+    juce::Graphics &g, int x, int trackY, int width, int height,
+    float sliderPos, float /*minPos*/, float /*maxPos*/,
+    juce::Slider::SliderStyle, juce::Slider &slider) {
 
-// ────────────────────────────────────────────────────
-// GlobalClickListener
-// ────────────────────────────────────────────────────
-void PanelComponent::GlobalClickListener::mouseDown(
-    const juce::MouseEvent &event) {
-  if (onMouseDown)
-    onMouseDown(event);
-}
+  // 0 dB 基準ライン（薄いグレー）
+  const auto minVal = slider.getMinimum();
+  const auto maxVal = slider.getMaximum();
+  const auto zeroNorm = static_cast<float>((0.0 - minVal) / (maxVal - minVal));
+  const float zeroY =
+      static_cast<float>(trackY) +
+      (1.0f - zeroNorm) * static_cast<float>(height);
+  g.setColour(juce::Colours::white.withAlpha(0.22f));
+  g.drawHorizontalLine(static_cast<int>(zeroY), static_cast<float>(x),
+                       static_cast<float>(x + width));
 
-// ────────────────────────────────────────────────────
-// showValueEditor / hideValueEditor
-// ────────────────────────────────────────────────────
-void PanelComponent::showValueEditor() {
-  valueEditor.setVisible(true);
-  valueEditor.setText(juce::String(knob.getValue(), 1), false);
-  valueEditor.selectAll();
-  valueEditor.grabKeyboardFocus();
-  juce::Desktop::getInstance().addGlobalMouseListener(&globalClickListener);
-}
-
-void PanelComponent::hideValueEditor(bool applyValue) {
-  if (!valueEditor.isVisible())
-    return;
-
-  if (applyValue) {
-    const auto text = valueEditor.getText().trim();
-    if (text.containsOnly("-+.0123456789") && text.isNotEmpty()) {
-      const auto newVal = juce::jlimit(-24.0, 24.0, text.getDoubleValue());
-      knob.setValue(newVal, juce::sendNotificationAsync);
-    }
-  }
-
-  juce::Desktop::getInstance().removeGlobalMouseListener(&globalClickListener);
-  valueEditor.setVisible(false);
-}
-
-// ────────────────────────────────────────────────────
-// TextEditor::Listener
-// ────────────────────────────────────────────────────
-void PanelComponent::textEditorReturnKeyPressed(juce::TextEditor & /*editor*/) {
-  hideValueEditor(true);
-}
-
-void PanelComponent::textEditorEscapeKeyPressed(juce::TextEditor & /*editor*/) {
-  hideValueEditor(false);
-}
-
-void PanelComponent::textEditorFocusLost(juce::TextEditor & /*editor*/) {
-  hideValueEditor(false);
+  // ◁ 三角形のみ（左向き、先端が左）
+  constexpr float triW = 10.0f;
+  constexpr float triH = 14.0f;
+  g.setColour(accent_.withAlpha(0.92f));
+  juce::Path tri;
+  tri.addTriangle(
+      static_cast<float>(x),          sliderPos,               // 先端（左）
+      static_cast<float>(x + width),  sliderPos - triH * 0.5f, // 右上
+      static_cast<float>(x + width),  sliderPos + triH * 0.5f  // 右下
+  );
+  g.fillPath(tri);
+  (void)triW;
 }
 
 // ────────────────────────────────────────────────

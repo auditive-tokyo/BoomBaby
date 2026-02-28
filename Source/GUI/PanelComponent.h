@@ -1,24 +1,23 @@
 #pragma once
 
-#include "CustomSliderLAF.h"
 #include "LevelMeter.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
 // ────────────────────────────────────────────────────
-// 1 つのパネル = ラベル + 色付きノブ + dB 表示
-// ノブ中央の数値をクリックするとキーボード入力可能
+// 1 つのパネル = タイトル + フェーダー兼レベルメーター + M/S/▼ ボタン
+// LevelMeter を背景に、LinearVertical フェーダーを重ねた
+// Ableton スタイルのチャンネルストリップ
 // ────────────────────────────────────────────────────
-class PanelComponent : public juce::Component,
-                       private juce::TextEditor::Listener {
+class PanelComponent : public juce::Component {
 public:
-  PanelComponent(const juce::String &name, juce::Colour arcColour,
-                 juce::Colour thumbColour);
+  PanelComponent(const juce::String &name, juce::Colour accentColour);
   ~PanelComponent() override;
 
   void paint(juce::Graphics &g) override;
   void resized() override;
 
-  juce::Slider &getKnob();
+  // フェーダースライダーへの参照（PluginEditor から配線）
+  juce::Slider &getFader();
 
   // 展開ボタンが押された時のコールバックを設定
   void setOnExpandRequested(std::function<void()> callback);
@@ -38,33 +37,25 @@ public:
   void setLevelProvider(std::function<float()> provider);
 
 private:
-  // ── 透明クリック領域（ノブ中央の値テキスト上に配置） ──
-  class ValueClickArea : public juce::Component {
+  // ── フェーダーサム LookAndFeel ──
+  // トラックは透明（LevelMeter が背景）、◁ 付き水平バーでサムを描画
+  class FaderLAF : public juce::LookAndFeel_V4 {
   public:
-    std::function<void()> onClick;
-    void mouseDown(const juce::MouseEvent &event) override;
+    explicit FaderLAF(juce::Colour accent) : accent_(accent) {}
+    void drawLinearSlider(juce::Graphics &, int x, int y, int width, int height,
+                          float sliderPos, float minSliderPos,
+                          float maxSliderPos, juce::Slider::SliderStyle,
+                          juce::Slider &) override;
+    int getSliderThumbRadius(juce::Slider &) override { return 0; }
+
+  private:
+    juce::Colour accent_;
   };
 
-  // ── グローバルクリックリスナー（BOX外クリック検出用） ──
-  struct GlobalClickListener : public juce::MouseListener {
-    std::function<void(const juce::MouseEvent &)> onMouseDown;
-    void mouseDown(const juce::MouseEvent &event) override;
-  };
-
-  void showValueEditor();
-  void hideValueEditor(bool applyValue);
-
-  void textEditorReturnKeyPressed(juce::TextEditor &editor) override;
-  void textEditorEscapeKeyPressed(juce::TextEditor &editor) override;
-  void textEditorFocusLost(juce::TextEditor &editor) override;
-
-  ColouredSliderLAF laf;
-  juce::Slider knob;
+  FaderLAF faderLAF;
+  juce::Slider fader;
   juce::Label titleLabel;
   LevelMeter levelMeter;
-  ValueClickArea clickArea;
-  juce::TextEditor valueEditor;
-  GlobalClickListener globalClickListener;
   juce::TextButton muteButton{"M"};
   juce::TextButton soloButton{"S"};
   juce::TextButton expandButton;
