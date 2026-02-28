@@ -191,6 +191,7 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
 
   setupPanelRouting(p);
   setupEnvelopeCurveEditor();
+  setupClickParams();
   setupSubKnobsRow();
   setupWaveShapeCombo();
   setupLengthBox();
@@ -204,7 +205,7 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
 }
 
 BabySquatchAudioProcessorEditor::~BabySquatchAudioProcessorEditor() {
-  waveShapeCombo.setLookAndFeel(nullptr);
+  subWave.combo.setLookAndFeel(nullptr);
 }
 
 void BabySquatchAudioProcessorEditor::paint(juce::Graphics &g) {
@@ -230,8 +231,9 @@ void BabySquatchAudioProcessorEditor::resized() {
     keyboard.setBounds(
         expandArea.removeFromBottom(UIConstants::keyboardHeight));
 
-    // 2. エンベロープカーブエディタ → 残り全域
-    envelopeCurveEditor.setBounds(expandArea);
+    // 2. チャンネル別 UI を残り全域に配置
+    if (activeChannel == sub)
+      envelopeCurveEditor.setBounds(expandArea);
     area.removeFromBottom(UIConstants::panelGap);
   }
 
@@ -260,15 +262,32 @@ void BabySquatchAudioProcessorEditor::resized() {
                                 b.getWidth() - contentLeft -
                                     UIConstants::panelPadding,
                                 b.getHeight() - contentTop - contentBot};
-    // 底行: [Length ボックス | waveShapeCombo]
+    // 底行: [Length ボックス | subWave.combo]
     auto bottomRow = contentArea.removeFromBottom(22);
     contentArea.removeFromBottom(4);                   // ギャップ
     constexpr int lengthTotalW = 44 + 34 + 18 + 2 * 2; // 100px
     layoutLengthBox(bottomRow.removeFromLeft(lengthTotalW));
     constexpr int waveLabelW = 38;
-    waveLabel.setBounds(bottomRow.removeFromLeft(waveLabelW));
-    waveShapeCombo.setBounds(bottomRow);
+    subWave.label.setBounds(bottomRow.removeFromLeft(waveLabelW));
+    subWave.combo.setBounds(bottomRow);
     layoutSubKnobsRow(contentArea);
+  }
+
+  // CLICK コンテンツをパネル内に常時配置
+  {
+    const auto b = clickPanel.getBounds();
+    constexpr int faderHandleWidth = 12;
+    constexpr int contentLeft =
+        UIConstants::panelPadding + UIConstants::meterWidth + faderHandleWidth;
+    constexpr int contentTop =
+        UIConstants::panelPadding + UIConstants::labelHeight;
+    constexpr int contentBot =
+        UIConstants::panelPadding + UIConstants::expandButtonHeight;
+    juce::Rectangle contentArea{b.getX() + contentLeft, b.getY() + contentTop,
+                                b.getWidth() - contentLeft -
+                                    UIConstants::panelPadding,
+                                b.getHeight() - contentTop - contentBot};
+    layoutClickParams(contentArea);
   }
 }
 
@@ -309,6 +328,5 @@ void BabySquatchAudioProcessorEditor::updateExpandIndicators() {
 
 void BabySquatchAudioProcessorEditor::updateEnvelopeEditorVisibility() {
   using enum ExpandChannel;
-  const bool isOpen = (activeChannel != none);
-  envelopeCurveEditor.setVisible(isOpen);
+  envelopeCurveEditor.setVisible(activeChannel == sub);
 }

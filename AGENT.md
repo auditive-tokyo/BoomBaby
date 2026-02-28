@@ -105,6 +105,9 @@ BabySquatchは3つのモジュールで構成されています：
 │   ├── SubOscillator.cpp    // Sub用Wavetable OSC実装（波形生成・補間）
 │   └── SubOscillator.h      // Sub用Wavetable OSC宣言（公開API）
 ├── GUI
+│   ├── ClickParams.cpp        // Click パネル内 UI セットアップ / レイアウト
+│   ├── ClickShapeEditor.cpp   // Click トランジェント形状エディタ実装
+│   ├── ClickShapeEditor.h     // Click トランジェント形状エディタ宣言
 │   ├── CustomSliderLAF.h      // ノブ描画LookAndFeel（グラデーション/値表示）
 │   ├── EnvelopeCurveEditor.cpp // エンベロープカーブエディタ実装（paint/マウス操作）
 │   ├── EnvelopeCurveEditor.h  // エンベロープカーブエディタ宣言
@@ -113,14 +116,15 @@ BabySquatchは3つのモジュールで構成されています：
 │   ├── LevelMeter.cpp         // レベルメーター実装（paint・30fps Timer）
 │   ├── LevelMeter.h           // レベルメーター宣言
 │   ├── PanelComponent.cpp     // SUB/CLICK/DIRECT共通パネル実装
-   ├── PanelComponent.h       // 共通パネル宣言（フェーダー・展開ボタン）
-   └── UIConstants.h          // UI定数集約（色・レイアウト寸法）
+│   ├── PanelComponent.h       // 共通パネル宣言（フェーダー・展開ボタン）
+│   ├── SubParams.cpp          // Sub パネル内 UI セットアップ / レイアウト
+│   └── UIConstants.h          // UI定数集約（色・レイアウト寸法）
 ├── PluginEditor.cpp           // Editor実装（レイアウト/UIイベント/LUTベイク配線）
 ├── PluginEditor.h             // Editor宣言（UI構成とメンバー）
 ├── PluginProcessor.cpp        // Processor実装（MIDI処理・DSP・ChannelState/EnvelopeLutManagerへ委譲）
 └── PluginProcessor.h          // Processor宣言（AudioProcessorIF・channelState()/envLut()アクセサ）
 
-3 directories, 18 files
+3 directories, 24 files
 ```
 
 ## TODO
@@ -176,5 +180,13 @@ BabySquatchは3つのモジュールで構成されています：
 
   **推奨実装順序**: 方向性1（既存流用で即戦力）→ 方向性2（メイン機能）→ 方向性3（v2以降の差別化）
 
-- Click/Direct パネルの展開エリアに同様のエディタを配置
+- **Click UI（パネル内常時表示）**（枠組みのみ GUI として実装済み・デザイン未確定・DSP未接続）
+  - `ClickShapeEditor`: トランジェント形状（Attack/Decay比）を三角形エンベロープで視覚編集。ピーク点をドラッグで移動、ダブルクリックでリセット
+  - `ClickParams.cpp`: SHAPE グループ（`ClickShapeEditor`）+ TYPE/LENGTH グループ（波形タイプ ComboBox + 長さ入力）を Click パネル内に常時配置
+  - DSP接続・保存/復元は未実装（TODO）
+
+- **Click DSP 接続**（`ClickShapeEditor` の `onPeakChanged` / TYPE / LENGTH → Click モジュール実装後に配線）
+
+- **Sub の展開エリア（▼ で開く下部領域）と同様のエンベロープエディタを Click の展開エリアにも追加**（現状は Click 展開時に何も表示されない）
+
 - エンベロープの保存／復元（`getStateInformation` / `setStateInformation`）

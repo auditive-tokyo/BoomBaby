@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DSP/EnvelopeData.h"
+#include "GUI/ClickShapeEditor.h"
 #include "GUI/CustomSliderLAF.h"
 #include "GUI/EnvelopeCurveEditor.h"
 #include "GUI/KeyboardComponent.h"
@@ -34,7 +35,10 @@ private:
   void setupPanelRouting(BabySquatchAudioProcessor &p);
   void setupEnvelopeCurveEditor();
   void switchEditTarget(EnvelopeCurveEditor::EditTarget t);
-  void setupSubKnobsRow();
+  void setupClickParams();
+  void layoutClickParams(juce::Rectangle<int> area);
+  void layoutLengthBox(juce::Rectangle<int> btnRow);
+  void setupLengthBox();
   void setupWaveShapeCombo();
   void setupPitchKnob();
   void setupAmpKnob();
@@ -42,8 +46,7 @@ private:
   void setupDistKnob();
   void setupHarmonicKnobs();
   void layoutSubKnobsRow(juce::Rectangle<int> knobRow);
-  void layoutLengthBox(juce::Rectangle<int> btnRow);
-  void setupLengthBox();
+  void setupSubKnobsRow();
 
   PanelComponent subPanel{"SUB", UIConstants::Colours::subArc};
   PanelComponent clickPanel{"CLICK", UIConstants::Colours::clickArc};
@@ -93,8 +96,11 @@ private:
   };
   DarkComboLAF darkComboLAF;
   // ── SUB展開パネル: 波形選択（プルダウン） ──
-  juce::Label waveLabel;
-  juce::ComboBox waveShapeCombo;
+  struct SubWaveUI {
+    juce::Label label;
+    juce::ComboBox combo;
+  };
+  SubWaveUI subWave;
   // ── SUB展開パネル: Length ボックス ──
   struct LengthBox {
     juce::Label prefix;
@@ -102,6 +108,19 @@ private:
     juce::Label suffix;
   };
   LengthBox lengthBox;
+
+  // ── CLICK展開パネル ──
+  struct ClickUI {
+    juce::GroupComponent shapeGroup;
+    ClickShapeEditor shapeEditor;
+    juce::GroupComponent typeLengthGroup;
+    juce::ComboBox typeCombo;
+    juce::Label lengthPrefix;
+    juce::TextEditor lengthEditor;
+    juce::Label lengthSuffix;
+  };
+  ClickUI clickUI;
+
   // ── ツールチップ（Gainノブの無効時などに使用） ──
   juce::TooltipWindow tooltipWindow{this, 500};
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BabySquatchAudioProcessorEditor)

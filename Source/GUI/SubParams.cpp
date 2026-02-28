@@ -84,22 +84,22 @@ void BabySquatchAudioProcessorEditor::setupSubKnobsRow() {
 void BabySquatchAudioProcessorEditor::setupWaveShapeCombo() {
   const auto smallFont =
       juce::Font(juce::FontOptions(UIConstants::fontSizeMedium));
-  waveLabel.setText("wave:", juce::dontSendNotification);
-  waveLabel.setFont(smallFont);
-  waveLabel.setColour(juce::Label::textColourId,
+  subWave.label.setText("wave:", juce::dontSendNotification);
+  subWave.label.setFont(smallFont);
+  subWave.label.setColour(juce::Label::textColourId,
                       UIConstants::Colours::labelText);
-  waveLabel.setJustificationType(juce::Justification::centredRight);
-  addAndMakeVisible(waveLabel);
+  subWave.label.setJustificationType(juce::Justification::centredRight);
+  addAndMakeVisible(subWave.label);
 
-  waveShapeCombo.addItem("Tri", 1);
-  waveShapeCombo.addItem("SQR", 2);
-  waveShapeCombo.addItem("SAW", 3);
-  waveShapeCombo.setSelectedId(1, juce::dontSendNotification);
-  waveShapeCombo.setLookAndFeel(&darkComboLAF);
-  waveShapeCombo.onChange = [this] {
+  subWave.combo.addItem("Tri", 1);
+  subWave.combo.addItem("SQR", 2);
+  subWave.combo.addItem("SAW", 3);
+  subWave.combo.setSelectedId(1, juce::dontSendNotification);
+  subWave.combo.setLookAndFeel(&darkComboLAF);
+  subWave.combo.onChange = [this] {
     using enum WaveShape;
     WaveShape shape;
-    switch (waveShapeCombo.getSelectedId()) {
+    switch (subWave.combo.getSelectedId()) {
     case 2:
       shape = Square;
       break;
@@ -113,7 +113,7 @@ void BabySquatchAudioProcessorEditor::setupWaveShapeCombo() {
     processorRef.subOscillator().setWaveShape(shape);
     envelopeCurveEditor.setWaveShape(shape);
   };
-  addAndMakeVisible(waveShapeCombo);
+  addAndMakeVisible(subWave.combo);
 }
 
 // ────────────────────────────────────────────────────
