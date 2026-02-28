@@ -17,6 +17,7 @@ public:
 
   void paint(juce::Graphics &) override;
   void resized() override;
+  void mouseDown(const juce::MouseEvent &e) override;
 
 private:
   void onEnvelopeChanged();

@@ -151,6 +151,19 @@ void BabySquatchAudioProcessorEditor::setupEnvelopeCurveEditor() {
   switchEditTarget(EnvelopeCurveEditor::EditTarget::gain);
 }
 
+void BabySquatchAudioProcessorEditor::mouseDown(
+    const juce::MouseEvent &e) {
+  using enum EnvelopeCurveEditor::EditTarget;
+  if (e.eventComponent == &subKnobLabels[0])
+    switchEditTarget(gain);
+  else if (e.eventComponent == &subKnobLabels[1])
+    switchEditTarget(freq);
+  else if (e.eventComponent == &subKnobLabels[2])
+    switchEditTarget(mix);
+  else if (e.eventComponent == &subKnobLabels[3])
+    switchEditTarget(saturate);
+}
+
 void BabySquatchAudioProcessorEditor::switchEditTarget(
     EnvelopeCurveEditor::EditTarget t) {
   envelopeCurveEditor.setEditTarget(t);

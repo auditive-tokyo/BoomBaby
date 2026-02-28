@@ -75,6 +75,9 @@ void BabySquatchAudioProcessorEditor::setupSubKnobsRow() {
     label.setJustificationType(juce::Justification::centred);
     label.setColour(juce::Label::textColourId, UIConstants::Colours::labelText);
     addAndMakeVisible(label);
+    // エンベロープ制御中でもラベルクリックで editTarget を切り替えられるよう登録
+    if (i < 4)
+      label.addMouseListener(this, false);
   }
 }
 
