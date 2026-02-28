@@ -19,12 +19,6 @@ public:
   void resized() override;
 
 private:
-  // 展開チャンネル（None = 閉じた状態）
-  enum class ExpandChannel { none, sub, click, direct };
-
-  void requestExpand(ExpandChannel ch);
-  void updateExpandIndicators();
-  void updateEnvelopeEditorVisibility();
   void onEnvelopeChanged();
 
   // ── コンストラクター分割ヘルパー ──
@@ -52,11 +46,7 @@ private:
   PanelComponent clickPanel{"CLICK", UIConstants::Colours::clickArc};
   PanelComponent directPanel{"DIRECT", UIConstants::Colours::directArc};
 
-  // ── 共有展開エリア（3パネル横断） ──
-  juce::Component expandableArea;
-  ExpandChannel activeChannel = ExpandChannel::none;
-
-  // ── MIDI 鍵盤（展開パネル下部・全チャンネル共通） ──
+  // ── 共有展開エリア（常時表示） ──
   BabySquatchAudioProcessor &processorRef;
   KeyboardComponent keyboard;
   EnvelopeData ampEnvData;

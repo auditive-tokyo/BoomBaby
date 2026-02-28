@@ -26,18 +26,6 @@ PanelComponent::PanelComponent(const juce::String &name,
   titleLabel.setColour(juce::Label::textColourId, UIConstants::Colours::text);
   addAndMakeVisible(titleLabel);
 
-  // ── 展開ボタン ──
-  expandButton.setButtonText(juce::String::charToString(0x25BC)); // ▼
-  expandButton.setColour(juce::TextButton::buttonColourId,
-                         juce::Colours::transparentBlack);
-  expandButton.setColour(juce::TextButton::textColourOffId,
-                         UIConstants::Colours::labelText);
-  expandButton.onClick = [this] {
-    if (onExpandRequested)
-      onExpandRequested();
-  };
-  addAndMakeVisible(expandButton);
-
   // ── Mute ボタン ──
   muteButton.setClickingTogglesState(true);
   muteButton.setColour(juce::TextButton::buttonColourId,
@@ -87,12 +75,11 @@ void PanelComponent::resized() {
 
   titleLabel.setBounds(area.removeFromTop(UIConstants::labelHeight));
 
-  // 下部ボタン行: M | S | ▼
+  // 下部ボタン行: M | S
   auto bottomRow = area.removeFromBottom(UIConstants::expandButtonHeight);
-  const int btnW = bottomRow.getWidth() / 3;
+  const int btnW = bottomRow.getWidth() / 2;
   muteButton.setBounds(bottomRow.removeFromLeft(btnW));
-  soloButton.setBounds(bottomRow.removeFromLeft(btnW));
-  expandButton.setBounds(bottomRow);
+  soloButton.setBounds(bottomRow);
 
   // レベルメーター（左列）+ フェーダーハンドル（その右に隣接）
   constexpr int faderHandleWidth = 12;
@@ -138,21 +125,6 @@ void PanelComponent::FaderLAF::drawLinearSlider(
   );
   g.fillPath(tri);
   (void)triW;
-}
-
-// ────────────────────────────────────────────────
-// setOnExpandRequested
-// ────────────────────────────────────────────────
-void PanelComponent::setOnExpandRequested(std::function<void()> callback) {
-  onExpandRequested = std::move(callback);
-}
-
-// ────────────────────────────────────────────────
-// setExpandIndicator
-// ────────────────────────────────────────────────
-void PanelComponent::setExpandIndicator(bool isThisPanelExpanded) {
-  expandButton.setButtonText(
-      juce::String::charToString(isThisPanelExpanded ? 0x25B2 : 0x25BC));
 }
 
 // ────────────────────────────────────────────────

@@ -176,16 +176,8 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
   addAndMakeVisible(subPanel);
   addAndMakeVisible(clickPanel);
   addAndMakeVisible(directPanel);
-  addChildComponent(expandableArea);
-  addChildComponent(keyboard);
-  addChildComponent(envelopeCurveEditor);
-
-  // 展開ボタン → 親に通知
-  subPanel.setOnExpandRequested([this] { requestExpand(ExpandChannel::sub); });
-  clickPanel.setOnExpandRequested(
-      [this] { requestExpand(ExpandChannel::click); });
-  directPanel.setOnExpandRequested(
-      [this] { requestExpand(ExpandChannel::direct); });
+  addAndMakeVisible(keyboard);
+  addAndMakeVisible(envelopeCurveEditor);
 
   pitchEnvData.setDefaultValue(200.0f);
 
@@ -201,7 +193,9 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
   setupDistKnob();
   setupHarmonicKnobs();
 
-  setSize(UIConstants::windowWidth, UIConstants::windowHeight);
+  setSize(UIConstants::windowWidth, UIConstants::windowHeight +
+                                        UIConstants::expandedAreaHeight +
+                                        UIConstants::panelGap);
 }
 
 BabySquatchAudioProcessorEditor::~BabySquatchAudioProcessorEditor() {
@@ -209,31 +203,22 @@ BabySquatchAudioProcessorEditor::~BabySquatchAudioProcessorEditor() {
 }
 
 void BabySquatchAudioProcessorEditor::paint(juce::Graphics &g) {
-  using enum ExpandChannel;
   g.fillAll(UIConstants::Colours::background);
 
   // 展開エリアの背景
-  if (activeChannel != none) {
-    g.setColour(UIConstants::Colours::panelBg);
-    g.fillRoundedRectangle(expandableArea.getBounds().toFloat(), 6.0f);
-  }
+  g.setColour(UIConstants::Colours::panelBg);
+  g.fillRoundedRectangle(envelopeCurveEditor.getBounds().toFloat(), 6.0f);
 }
 
 void BabySquatchAudioProcessorEditor::resized() {
-  using enum ExpandChannel;
   auto area = getLocalBounds().reduced(UIConstants::panelPadding);
 
-  // 展開エリアを下から確保
-  if (activeChannel != none) {
+  // 常時表示の展開エリア（下部）
+  {
     auto expandArea = area.removeFromBottom(UIConstants::expandedAreaHeight);
-
-    // 1. 鍵盤を展開エリア下部に配置
     keyboard.setBounds(
         expandArea.removeFromBottom(UIConstants::keyboardHeight));
-
-    // 2. チャンネル別 UI を残り全域に配置
-    if (activeChannel == sub)
-      envelopeCurveEditor.setBounds(expandArea);
+    envelopeCurveEditor.setBounds(expandArea);
     area.removeFromBottom(UIConstants::panelGap);
   }
 
@@ -289,44 +274,4 @@ void BabySquatchAudioProcessorEditor::resized() {
                                 b.getHeight() - contentTop - contentBot};
     layoutClickParams(contentArea);
   }
-}
-
-void BabySquatchAudioProcessorEditor::requestExpand(ExpandChannel ch) {
-  using enum ExpandChannel;
-  // 同じチャンネルをもう一度押したら閉じる
-  if (activeChannel == ch) {
-    activeChannel = none;
-  } else {
-    activeChannel = ch;
-  }
-
-  const bool isOpen = (activeChannel != none);
-  expandableArea.setVisible(isOpen);
-  keyboard.setVisible(isOpen);
-  updateEnvelopeEditorVisibility();
-
-  if (isOpen)
-    keyboard.grabFocus();
-
-  const int extra =
-      isOpen ? UIConstants::expandedAreaHeight + UIConstants::panelGap : 0;
-  setSize(UIConstants::windowWidth, UIConstants::windowHeight + extra);
-
-  // setSize でサイズが変わらない場合（チャンネル切替）は resized() が
-  // 自動呼出しされないため、明示的にレイアウトを更新
-  resized();
-
-  updateExpandIndicators();
-}
-
-void BabySquatchAudioProcessorEditor::updateExpandIndicators() {
-  using enum ExpandChannel;
-  subPanel.setExpandIndicator(activeChannel == sub);
-  clickPanel.setExpandIndicator(activeChannel == click);
-  directPanel.setExpandIndicator(activeChannel == direct);
-}
-
-void BabySquatchAudioProcessorEditor::updateEnvelopeEditorVisibility() {
-  using enum ExpandChannel;
-  envelopeCurveEditor.setVisible(activeChannel == sub);
 }

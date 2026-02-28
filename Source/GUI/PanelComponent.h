@@ -4,7 +4,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 // ────────────────────────────────────────────────────
-// 1 つのパネル = タイトル + フェーダー兼レベルメーター + M/S/▼ ボタン
+// 1 つのパネル = タイトル + フェーダー兼レベルメーター + M/S ボタン
 // LevelMeter を背景に、LinearVertical フェーダーを重ねた
 // Ableton スタイルのチャンネルストリップ
 // ────────────────────────────────────────────────────
@@ -18,12 +18,6 @@ public:
 
   // フェーダースライダーへの参照（PluginEditor から配線）
   juce::Slider &getFader();
-
-  // 展開ボタンが押された時のコールバックを設定
-  void setOnExpandRequested(std::function<void()> callback);
-
-  // 展開インジケータ更新（親から呼ばれる）
-  void setExpandIndicator(bool isThisPanelExpanded);
 
   // Mute / Solo コールバック設定
   void setOnMuteChanged(std::function<void(bool)> cb);
@@ -58,8 +52,6 @@ private:
   LevelMeter levelMeter;
   juce::TextButton muteButton{"M"};
   juce::TextButton soloButton{"S"};
-  juce::TextButton expandButton;
-  std::function<void()> onExpandRequested;
   std::function<void(bool)> onMuteChanged;
   std::function<void(bool)> onSoloChanged;
 
