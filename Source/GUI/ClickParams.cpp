@@ -26,6 +26,18 @@ void styleFilterLabel(juce::Label &label, const juce::String &text,
   label.setColour(juce::Label::textColourId, UIConstants::Colours::labelText);
   label.setJustificationType(juce::Justification::centredRight);
 }
+void styleKnobLabel(juce::Label &label, const juce::String &text,
+                    const juce::Font &font) {
+  label.setText(text, juce::dontSendNotification);
+  label.setFont(font);
+  label.setColour(juce::Label::textColourId, UIConstants::Colours::labelText);
+  label.setJustificationType(juce::Justification::centred);
+}
+void styleClickKnob(juce::Slider &s, ColouredSliderLAF &laf) {
+  s.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+  s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+  s.setLookAndFeel(&laf);
+}
 } // namespace
 
 void BabySquatchAudioProcessorEditor::setupClickParams() {
@@ -53,14 +65,14 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   const auto tinyFont =
       juce::Font(juce::FontOptions(UIConstants::fontSizeSmall));
   styleFilterLabel(clickUI.decayLabel, "Decay:", tinyFont);
-  styleFilterLabel(clickUI.freq1Label, "Freq:", tinyFont);
-  styleFilterLabel(clickUI.focus1Label, "Focus:", tinyFont);
-  styleFilterLabel(clickUI.freq2Label, "Air:", tinyFont);
-  styleFilterLabel(clickUI.focus2Label, "Focus:", tinyFont);
-  styleFilterLabel(clickUI.hpfLabel, "HPF:", tinyFont);
-  styleFilterLabel(clickUI.hpfQLabel, "Reso:", tinyFont);
-  styleFilterLabel(clickUI.lpfLabel, "LPF:", tinyFont);
-  styleFilterLabel(clickUI.lpfQLabel, "Reso:", tinyFont);
+  styleKnobLabel(clickUI.freq1Label, "Freq", tinyFont);
+  styleKnobLabel(clickUI.focus1Label, "Focus", tinyFont);
+  styleKnobLabel(clickUI.freq2Label, "Air", tinyFont);
+  styleKnobLabel(clickUI.focus2Label, "Focus", tinyFont);
+  styleKnobLabel(clickUI.hpfLabel, "HPF", tinyFont);
+  styleKnobLabel(clickUI.hpfQLabel, "Reso", tinyFont);
+  styleKnobLabel(clickUI.lpfLabel, "LPF", tinyFont);
+  styleKnobLabel(clickUI.lpfQLabel, "Reso", tinyFont);
   addAndMakeVisible(clickUI.decayLabel);
   addAndMakeVisible(clickUI.freq1Label);
   addAndMakeVisible(clickUI.focus1Label);
@@ -85,11 +97,12 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.decaySlider);
 
   // Note (BPF1 freq)  20–20000 Hz  log
-  styleFilterSlider(clickUI.freq1Slider);
+  styleClickKnob(clickUI.freq1Slider, clickKnobLAF);
   clickUI.freq1Slider.setRange(20.0, 20000.0, 1.0);
   clickUI.freq1Slider.setSkewFactorFromMidPoint(1000.0);
   clickUI.freq1Slider.setTextValueSuffix(" Hz");
   clickUI.freq1Slider.setValue(5000.0, juce::dontSendNotification);
+  clickUI.freq1Slider.setDoubleClickReturnValue(true, 5000.0);
   clickUI.freq1Slider.onValueChange = [this] {
     processorRef.clickEngine().setFreq1(
         static_cast<float>(clickUI.freq1Slider.getValue()));
@@ -98,9 +111,10 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.freq1Slider);
 
   // Focus (BPF1 Q)  0–12
-  styleFilterSlider(clickUI.focus1Slider);
+  styleClickKnob(clickUI.focus1Slider, clickKnobLAF);
   clickUI.focus1Slider.setRange(0.0, 12.0, 0.01);
   clickUI.focus1Slider.setValue(0.71, juce::dontSendNotification);
+  clickUI.focus1Slider.setDoubleClickReturnValue(true, 0.71);
   clickUI.focus1Slider.onValueChange = [this] {
     processorRef.clickEngine().setFocus1(
         static_cast<float>(clickUI.focus1Slider.getValue()));
@@ -108,11 +122,12 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.focus1Slider);
 
   // Air (BPF2 freq)  20–20000 Hz  log
-  styleFilterSlider(clickUI.freq2Slider);
+  styleClickKnob(clickUI.freq2Slider, clickKnobLAF);
   clickUI.freq2Slider.setRange(20.0, 20000.0, 1.0);
   clickUI.freq2Slider.setSkewFactorFromMidPoint(1000.0);
   clickUI.freq2Slider.setTextValueSuffix(" Hz");
   clickUI.freq2Slider.setValue(10000.0, juce::dontSendNotification);
+  clickUI.freq2Slider.setDoubleClickReturnValue(true, 10000.0);
   clickUI.freq2Slider.onValueChange = [this] {
     processorRef.clickEngine().setFreq2(
         static_cast<float>(clickUI.freq2Slider.getValue()));
@@ -120,9 +135,10 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.freq2Slider);
 
   // Focus (BPF2 Q)  0–12
-  styleFilterSlider(clickUI.focus2Slider);
+  styleClickKnob(clickUI.focus2Slider, clickKnobLAF);
   clickUI.focus2Slider.setRange(0.0, 12.0, 0.01);
   clickUI.focus2Slider.setValue(0.0, juce::dontSendNotification);
+  clickUI.focus2Slider.setDoubleClickReturnValue(true, 0.0);
   clickUI.focus2Slider.onValueChange = [this] {
     processorRef.clickEngine().setFocus2(
         static_cast<float>(clickUI.focus2Slider.getValue()));
@@ -130,11 +146,12 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.focus2Slider);
 
   // HPF freq  20–20000 Hz  log
-  styleFilterSlider(clickUI.hpfSlider);
+  styleClickKnob(clickUI.hpfSlider, clickKnobLAF);
   clickUI.hpfSlider.setRange(20.0, 20000.0, 1.0);
   clickUI.hpfSlider.setSkewFactorFromMidPoint(1000.0);
   clickUI.hpfSlider.setTextValueSuffix(" Hz");
   clickUI.hpfSlider.setValue(200.0, juce::dontSendNotification);
+  clickUI.hpfSlider.setDoubleClickReturnValue(true, 200.0);
   clickUI.hpfSlider.onValueChange = [this] {
     processorRef.clickEngine().setHpfFreq(
         static_cast<float>(clickUI.hpfSlider.getValue()));
@@ -142,9 +159,10 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.hpfSlider);
 
   // HPF Reso  0–12
-  styleFilterSlider(clickUI.hpfQSlider);
+  styleClickKnob(clickUI.hpfQSlider, clickKnobLAF);
   clickUI.hpfQSlider.setRange(0.0, 12.0, 0.01);
   clickUI.hpfQSlider.setValue(0.0, juce::dontSendNotification);
+  clickUI.hpfQSlider.setDoubleClickReturnValue(true, 0.0);
   clickUI.hpfQSlider.onValueChange = [this] {
     processorRef.clickEngine().setHpfQ(
         static_cast<float>(clickUI.hpfQSlider.getValue()));
@@ -152,11 +170,12 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.hpfQSlider);
 
   // LPF freq  20–20000 Hz  log
-  styleFilterSlider(clickUI.lpfSlider);
+  styleClickKnob(clickUI.lpfSlider, clickKnobLAF);
   clickUI.lpfSlider.setRange(20.0, 20000.0, 1.0);
   clickUI.lpfSlider.setSkewFactorFromMidPoint(1000.0);
   clickUI.lpfSlider.setTextValueSuffix(" Hz");
   clickUI.lpfSlider.setValue(8000.0, juce::dontSendNotification);
+  clickUI.lpfSlider.setDoubleClickReturnValue(true, 8000.0);
   clickUI.lpfSlider.onValueChange = [this] {
     processorRef.clickEngine().setLpfFreq(
         static_cast<float>(clickUI.lpfSlider.getValue()));
@@ -164,9 +183,10 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.lpfSlider);
 
   // LPF Reso  0–12
-  styleFilterSlider(clickUI.lpfQSlider);
+  styleClickKnob(clickUI.lpfQSlider, clickKnobLAF);
   clickUI.lpfQSlider.setRange(0.0, 12.0, 0.01);
   clickUI.lpfQSlider.setValue(0.0, juce::dontSendNotification);
+  clickUI.lpfQSlider.setDoubleClickReturnValue(true, 0.0);
   clickUI.lpfQSlider.onValueChange = [this] {
     processorRef.clickEngine().setLpfQ(
         static_cast<float>(clickUI.lpfQSlider.getValue()));
@@ -223,9 +243,8 @@ void BabySquatchAudioProcessorEditor::layoutClickParams(
 
   constexpr int modeLabelW = 38;
   constexpr int modeComboW = 72;
-  constexpr int rowGap = 3;
-  constexpr int labelW = 36;
   constexpr int colGap = 6;
+  constexpr int labelW = 36;
 
   clickUI.modeLabel.setBounds(topRow.removeFromLeft(modeLabelW));
   clickUI.modeCombo.setBounds(topRow.removeFromLeft(modeComboW));
@@ -233,25 +252,36 @@ void BabySquatchAudioProcessorEditor::layoutClickParams(
   clickUI.decayLabel.setBounds(topRow.removeFromLeft(labelW));
   clickUI.decaySlider.setBounds(topRow);
 
-  // 残りエリア: 8 行（freq1〜lpfQ）
-  auto &filterPanel = area;
-
-  constexpr int numRows = 8;
-  const int rowH = (filterPanel.getHeight() - rowGap * (numRows - 1)) / numRows;
-  const std::array<std::pair<juce::Label *, juce::Slider *>, numRows> rows = {{
-      {&clickUI.freq1Label, &clickUI.freq1Slider},
-      {&clickUI.focus1Label, &clickUI.focus1Slider},
-      {&clickUI.freq2Label, &clickUI.freq2Slider},
-      {&clickUI.focus2Label, &clickUI.focus2Slider},
-      {&clickUI.hpfLabel, &clickUI.hpfSlider},
-      {&clickUI.hpfQLabel, &clickUI.hpfQSlider},
-      {&clickUI.lpfLabel, &clickUI.lpfSlider},
-      {&clickUI.lpfQLabel, &clickUI.lpfQSlider},
+  // 残りエリア: 8 ノブを 2×4 グリッドで配置
+  const std::array<juce::Slider *, 8> knobs = {{
+      &clickUI.freq1Slider,
+      &clickUI.focus1Slider,
+      &clickUI.freq2Slider,
+      &clickUI.focus2Slider,
+      &clickUI.hpfSlider,
+      &clickUI.hpfQSlider,
+      &clickUI.lpfSlider,
+      &clickUI.lpfQSlider,
   }};
-  for (auto [label, slider] : rows) {
-    auto row = filterPanel.removeFromTop(rowH);
-    filterPanel.removeFromTop(rowGap);
-    label->setBounds(row.removeFromLeft(labelW));
-    slider->setBounds(row);
+  const std::array<juce::Label *, 8> labels = {{
+      &clickUI.freq1Label,
+      &clickUI.focus1Label,
+      &clickUI.freq2Label,
+      &clickUI.focus2Label,
+      &clickUI.hpfLabel,
+      &clickUI.hpfQLabel,
+      &clickUI.lpfLabel,
+      &clickUI.lpfQLabel,
+  }};
+  const int slotW = area.getWidth() / 4;
+  const int rowH = area.getHeight() / 2;
+  for (int row = 0; row < 2; ++row) {
+    for (int col = 0; col < 4; ++col) {
+      const auto idx = static_cast<size_t>(row * 4 + col);
+      juce::Rectangle slot(area.getX() + col * slotW,
+                           area.getY() + row * rowH, slotW, rowH);
+      labels[idx]->setBounds(slot.removeFromBottom(14));
+      knobs[idx]->setBounds(slot);
+    }
   }
 }

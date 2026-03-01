@@ -98,6 +98,9 @@ private:
   };
   LengthBox lengthBox;
 
+  // ── CLICK展開パネル: LAF（clickUI のスライダーより先に宣言） ──
+  ColouredSliderLAF clickKnobLAF{UIConstants::Colours::clickArc,
+                                UIConstants::Colours::clickThumb};
   // ── CLICK展開パネル ──
   struct ClickUI {
     enum class Mode { Tone = 1, Noise, Sample };
