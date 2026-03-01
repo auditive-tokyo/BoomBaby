@@ -78,7 +78,8 @@ void ClickEngine::render(juce::AudioBuffer<float> &buffer, int numSamples,
   const float clickGain   = juce::Decibels::decibelsToGain(gainDb_.load());
   const float decayMs     = decayMs_.load();
   const int   mode        = mode_.load();
-  const float maxTimeSamples = decayMs * sr / 1000.0f * 5.0f; // 5τ 後に停止
+  // decayMs = 全体の減衰時間。内部時定数 τ = decayMs/5 で exp(-5) ≈ -43dB
+  const float maxTimeSamples = decayMs * sr / 1000.0f;
   const FilterFlags flags = setupFilters(sr);
 
   for (int sample = 0; sample < numSamples; ++sample) {
@@ -89,7 +90,7 @@ void ClickEngine::render(juce::AudioBuffer<float> &buffer, int numSamples,
       break;
     }
 
-    const float amp = std::exp(-noteTimeSamples_ * 1000.0f / (decayMs * sr + 1e-6f));
+    const float amp = std::exp(-noteTimeSamples_ * 5000.0f / (decayMs * sr + 1e-6f));
     const float out = synthesizeSample(mode, flags) * amp * clickGain;
 
     scratchBuffer_[static_cast<size_t>(sample)] = out;

@@ -26,6 +26,7 @@ void EnvelopeCurveEditor::paint(juce::Graphics &g) {
     return;
 
   paintWaveform(g, w, h, centreY);
+  paintClickWaveform(g, w, h, centreY);
   paintEnvelopeOverlay(g, w);
   paintTimeline(g, w, h, bounds.getHeight());
 }
@@ -125,6 +126,59 @@ void EnvelopeCurveEditor::paintWaveform(juce::Graphics &g, float w, float h,
 
   g.setColour(juce::Colours::white.withAlpha(0.06f));
   g.drawHorizontalLine(static_cast<int>(centreY), 0.0f, w);
+}
+
+void EnvelopeCurveEditor::setClickPreviewProvider(
+    std::function<float(float)> fn) {
+  clickPreviewFn_ = std::move(fn);
+  repaint();
+}
+
+void EnvelopeCurveEditor::paintClickWaveform(juce::Graphics &g, float w,
+                                              float h, float centreY) const {
+  if (!clickPreviewFn_)
+    return;
+
+  const auto numPixels = static_cast<int>(w);
+  const float dtSec = (displayDurationMs / 1000.0f) / w;
+
+  juce::Path fillPath;
+  juce::Path waveLine;
+  fillPath.startNewSubPath(0.0f, centreY);
+
+  for (int i = 0; i <= numPixels; ++i) {
+    const auto x = static_cast<float>(i);
+    const float timeSec = x * dtSec;
+    const float sample = juce::jlimit(-1.0f, 1.0f, clickPreviewFn_(timeSec));
+    const float y = juce::jlimit(0.0f, h, centreY - sample * centreY);
+
+    fillPath.lineTo(x, y);
+    if (i == 0)
+      waveLine.startNewSubPath(x, y);
+    else
+      waveLine.lineTo(x, y);
+  }
+
+  fillPath.lineTo(w, centreY);
+  fillPath.closeSubPath();
+
+  // 黄色グラジエント塗りつぶし
+  const juce::Colour baseYellow{0xFFFFCC00};
+  juce::ColourGradient fillGrad(baseYellow.withAlpha(0.28f), 0.0f, 0.0f,
+                                baseYellow.withAlpha(0.02f), 0.0f, centreY,
+                                false);
+  g.setGradientFill(fillGrad);
+  g.fillPath(fillPath);
+
+  // グロー ストローク 3層（外→コア）
+  g.setColour(baseYellow.withAlpha(0.07f));
+  g.strokePath(waveLine, juce::PathStrokeType(9.0f));
+
+  g.setColour(baseYellow.withAlpha(0.28f));
+  g.strokePath(waveLine, juce::PathStrokeType(3.5f));
+
+  g.setColour(baseYellow.withAlpha(0.90f));
+  g.strokePath(waveLine, juce::PathStrokeType(1.2f));
 }
 
 void EnvelopeCurveEditor::setWaveShape(WaveShape shape) {

@@ -48,6 +48,7 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   clickUI.modeCombo.setLookAndFeel(&darkComboLAF);
   clickUI.modeCombo.onChange = [this] {
     processorRef.clickEngine().setMode(clickUI.modeCombo.getSelectedId());
+    envelopeCurveEditor.repaint();
   };
   processorRef.clickEngine().setMode(static_cast<int>(ClickUI::Mode::Tone));
   addAndMakeVisible(clickUI.modeCombo);
@@ -83,6 +84,7 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   clickUI.decaySlider.onValueChange = [this] {
     processorRef.clickEngine().setDecayMs(
         static_cast<float>(clickUI.decaySlider.getValue()));
+    envelopeCurveEditor.repaint();
   };
   addAndMakeVisible(clickUI.decaySlider);
 
@@ -95,6 +97,7 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   clickUI.freq1Slider.onValueChange = [this] {
     processorRef.clickEngine().setFreq1(
         static_cast<float>(clickUI.freq1Slider.getValue()));
+    envelopeCurveEditor.repaint();
   };
   addAndMakeVisible(clickUI.freq1Slider);
 
@@ -184,6 +187,30 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   processorRef.clickEngine().setHpfQ(0.0f);
   processorRef.clickEngine().setLpfFreq(8000.0f);
   processorRef.clickEngine().setLpfQ(0.0f);
+
+  // ── Click 波形プレビュープロバイダーを EnvelopeCurveEditor に登録 ──
+  // Tone: BPF インパルス応答の近似（減衰サイン波）
+  // Noise: 指数減衰エンベロープの輪郭（±env）
+  envelopeCurveEditor.setClickPreviewProvider([this](float timeSec) {
+    const auto decayMs = static_cast<float>(clickUI.decaySlider.getValue());
+    // decayMs = 全体の減衰時間 → τ=decayMs/5。decayMs以降はゼロ。
+    const float env = (timeSec * 1000.0f < decayMs)
+                          ? std::exp(-timeSec * 5000.0f / (decayMs + 1e-6f))
+                          : 0.0f;
+
+    if (const int mode = clickUI.modeCombo.getSelectedId();
+        mode == static_cast<int>(ClickUI::Mode::Noise)) {
+      return env;
+    }
+
+    // Tone: freq1 をそのまま使用（高周波では波形が密になるが変化は見える）
+    // ただし decay 期間内に最大 30 サイクルに収まるよう上限をかけて視認性を確保
+    const auto freq1 = static_cast<float>(clickUI.freq1Slider.getValue());
+    const float maxVisibleFreq = 30000.0f / (decayMs + 1e-6f);
+    const float usedFreq = std::min(freq1, maxVisibleFreq);
+    return std::sin(juce::MathConstants<float>::twoPi * usedFreq * timeSec) *
+           env;
+  });
 }
 
 void BabySquatchAudioProcessorEditor::layoutClickParams(

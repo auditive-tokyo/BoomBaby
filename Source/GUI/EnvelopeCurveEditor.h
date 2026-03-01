@@ -31,6 +31,11 @@ public:
   /// 波形プレビュー用: Mix 値を設定（-1.0〜+1.0）
   void setPreviewBlend(float blend);
 
+  /// Click 波形オーバーレイ用プロバイダーを設定。
+  /// fn(timeSec) → -1.0〜+1.0 の振幅値を返すラムダ。
+  /// nullptr を渡すとオーバーレイを無効化。
+  void setClickPreviewProvider(std::function<float(float)> fn);
+
   /// 波形プレビュー用: Tone1〜Tone4 倍音ゲインを設定（harmonicNum: 1〜4）
   void setPreviewHarmonicGain(int harmonicNum, float gain);
 
@@ -74,6 +79,7 @@ private:
 
   // ── paint() 分割ヘルパー ──
   void paintWaveform(juce::Graphics &g, float w, float h, float centreY) const;
+  void paintClickWaveform(juce::Graphics &g, float w, float h, float centreY) const;
   void paintEnvelopeOverlay(juce::Graphics &g, float w) const;
   void paintTimeline(juce::Graphics &g, float w, float h, float totalH) const;
 
@@ -107,6 +113,7 @@ private:
   float dragCurveStartVal{0.0f}; // ドラッグ開始時の curve 値
   std::function<void()> onChange;
   std::function<void(EditTarget)> onEditTargetChanged;
+  std::function<float(float)> clickPreviewFn_; // Click 波形プロバイダー
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EnvelopeCurveEditor)
 };
