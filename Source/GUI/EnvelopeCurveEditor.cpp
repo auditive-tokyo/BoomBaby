@@ -25,9 +25,15 @@ void EnvelopeCurveEditor::paint(juce::Graphics &g) {
   if (w < 1.0f || h < 1.0f)
     return;
 
+  g.beginTransparencyLayer(UIConstants::subWaveOpacity);
   paintWaveform(g, w, h, centreY);
+  g.endTransparencyLayer();
+  g.beginTransparencyLayer(UIConstants::clickWaveOpacity);
   paintClickWaveform(g, w, h, centreY);
+  g.endTransparencyLayer();
+  g.beginTransparencyLayer(UIConstants::directWaveOpacity);
   paintDirectWaveform(g, w, h, centreY);
+  g.endTransparencyLayer();
   paintEnvelopeOverlay(g, w);
   paintTimeline(g, w, h, bounds.getHeight());
 }
@@ -107,8 +113,8 @@ void EnvelopeCurveEditor::paintWaveform(juce::Graphics &g, float w, float h,
   fillPath.lineTo(w, centreY);
   fillPath.closeSubPath();
 
-  // グラジエント塗りつぶし: 波形外縁→中心ラインへ青→透明
-  const juce::Colour baseBlue{0xFF2080FF}; // 純粋なブルー（シアン寄り排除）
+  // グラジエント塗りつぶし: 波形外縁→中心ラインへ subArc カラー→透明
+  const juce::Colour baseBlue = UIConstants::Colours::subArc;
   juce::ColourGradient fillGrad(baseBlue.withAlpha(0.40f), 0.0f, 0.0f,
                                 baseBlue.withAlpha(0.02f), 0.0f, centreY,
                                 false);

@@ -105,6 +105,9 @@ private:
   // ── CLICK展開パネル: LAF（clickUI のスライダーより先に宣言） ──
   ColouredSliderLAF clickKnobLAF{UIConstants::Colours::clickArc,
                                 UIConstants::Colours::clickThumb};
+  // ── DIRECT展開パネル: LAF（directUI のスライダーより先に宣言） ──
+  ColouredSliderLAF directKnobLAF{UIConstants::Colours::directArc,
+                                 UIConstants::Colours::directThumb};
   // ── CLICK展開パネル ──
   struct ClickUI {
     enum class Mode { Tone = 1, Noise, Sample };
@@ -137,9 +140,27 @@ private:
     enum class Mode { Direct = 1, Sample };
     juce::Label      modeLabel;
     juce::ComboBox   modeCombo;
-    juce::TextButton sampleLoadButton{"Load Sample"};
+    UIConstants::SampleDropButton sampleLoadButton{"Drop or Click to Load"};
     juce::String     loadedFilePath;
     std::unique_ptr<juce::FileChooser> fileChooser;
+    // ── Pitch / Envelope ノブ（上段） ──
+    juce::Label  pitchLabel;
+    juce::Slider pitchSlider;
+    juce::Label  attackLabel;
+    juce::Slider attackSlider;
+    juce::Label  decayLabel;
+    juce::Slider decaySlider;
+    juce::Label  releaseLabel;
+    juce::Slider releaseSlider;
+    // ── フィルター ノブ（下段） ──
+    UIConstants::SlopeSelector hpfSlope{"HP", UIConstants::Colours::directArc};
+    juce::Slider hpfSlider;
+    juce::Label  hpfQLabel;
+    juce::Slider hpfQSlider;
+    UIConstants::SlopeSelector lpfSlope{"LP", UIConstants::Colours::directArc};
+    juce::Slider lpfSlider;
+    juce::Label  lpfQLabel;
+    juce::Slider lpfQSlider;
   };
   DirectUI directUI;
 

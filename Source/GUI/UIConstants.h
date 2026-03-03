@@ -38,6 +38,11 @@ constexpr int keyboardHeight = 70;
 constexpr float fontSizeSmall  = 10.0f;  // ノブラベル、エンベロープ等
 constexpr float fontSizeMedium = 12.0f;  // ComboBox、Length ボックス等
 
+// ── 波形表示 opacity ──
+constexpr float subWaveOpacity    = 0.8f;  // Sub 波形
+constexpr float clickWaveOpacity  = 0.8f;  // Click 波形
+constexpr float directWaveOpacity = 0.8f;  // Direct 波形
+
 // ── カラーパレット ──
 namespace Colours {
 // 背景
@@ -75,7 +80,9 @@ inline const juce::Colour soloOn{0xFFCCAA00};
 /// ラベル行（14px 程度）にそのまま配置できるサイズで設計。
 class SlopeSelector : public juce::Component {
 public:
-  explicit SlopeSelector(juce::String prefix = {}) : prefix_(std::move(prefix)) {}
+  explicit SlopeSelector(juce::String prefix = {},
+                         juce::Colour accentColour = Colours::clickArc)
+      : prefix_(std::move(prefix)), accent_(accentColour) {}
 
   /// 選択変更時に slope 値（12/24/48）を通知するコールバックを登録する
   void setOnChange(std::function<void(int)> cb) { onChange_ = std::move(cb); }
@@ -105,7 +112,7 @@ public:
     const int slotsW = getWidth() - prefixW;
     const int slotW  = slotsW / 3;
     for (int i = 0; i < 3; ++i) {
-      g.setColour(i == selected_ ? Colours::clickArc
+      g.setColour(i == selected_ ? accent_
                                  : juce::Colour(0x88BBBBBB));
       g.drawText(juce::String(kSlopes[static_cast<std::size_t>(i)]),
                  prefixW + i * slotW, 0, slotW, h,
@@ -130,8 +137,65 @@ public:
 private:
   std::function<void(int)> onChange_;
   juce::String prefix_;
+  juce::Colour accent_;
   int          selected_ = 0;
   static constexpr std::array<int, 3> kSlopes = {12, 24, 48};
+};
+
+/// ファイルをドラッグ＆ドロップまたはクリックで読み込むボタン。
+/// ドラッグ中はボーダーをハイライト表示し、対応拡張子のみ受け付ける。
+class SampleDropButton : public juce::TextButton,
+                         public juce::FileDragAndDropTarget {
+public:
+  using juce::TextButton::TextButton;
+
+  /// ファイルがドロップまたはクリック選択されたときのコールバック
+  std::function<void(const juce::File &)> onFileDropped;
+
+  bool isInterestedInFileDrag(const juce::StringArray &files) override {
+    for (const auto &f : files) {
+      const auto ext = juce::File(f).getFileExtension().toLowerCase();
+      if (ext == ".wav" || ext == ".aif" || ext == ".aiff" ||
+          ext == ".flac" || ext == ".ogg")
+        return true;
+    }
+    return false;
+  }
+
+  void fileDragEnter(const juce::StringArray &, int, int) override {
+    dragHovered_ = true;
+    repaint();
+  }
+
+  void fileDragExit(const juce::StringArray &) override {
+    dragHovered_ = false;
+    repaint();
+  }
+
+  void filesDropped(const juce::StringArray &files, int, int) override {
+    dragHovered_ = false;
+    repaint();
+    for (const auto &path : files) {
+      const juce::File file(path);
+      if (file.existsAsFile()) {
+        if (onFileDropped)
+          onFileDropped(file);
+        return; // 最初の1ファイルのみ処理
+      }
+    }
+  }
+
+  void paintButton(juce::Graphics &g, bool highlighted, bool down) override {
+    juce::TextButton::paintButton(g, highlighted || dragHovered_, down);
+    if (dragHovered_) {
+      g.setColour(juce::Colours::white.withAlpha(0.15f));
+      g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(1.0f),
+                             3.0f, 1.5f);
+    }
+  }
+
+private:
+  bool dragHovered_ = false;
 };
 
 } // namespace UIConstants
