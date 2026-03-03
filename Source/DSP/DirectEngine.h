@@ -31,9 +31,9 @@ public:
   // ── UI→DSP setter（スレッドセーフ） ──
   void setGainDb(float db)          { gainDb_.store(db); }
   void setPitchSemitones(float st)  { pitchSemitones_.store(st); }
-  void setAttackMs(float ms)        { attackMs_.store(juce::jmax(0.1f, ms)); }
-  void setDecayMs(float ms)         { decayMs_.store(juce::jmax(0.1f, ms)); }
-  void setReleaseMs(float ms)       { releaseMs_.store(juce::jmax(0.1f, ms)); }
+  void setAttackMs(float ms)        { envParams_.attackMs.store(juce::jmax(0.1f, ms)); }
+  void setDecayMs(float ms)          { envParams_.decayMs.store(juce::jmax(0.1f, ms)); }
+  void setReleaseMs(float ms)        { envParams_.releaseMs.store(juce::jmax(0.1f, ms)); }
 
   void setHpfFreq(float hz) { hpfParams_.freq.store(hz); }
   void setHpfQ(float q)     { hpfParams_.q.store(q); }
@@ -54,6 +54,14 @@ public:
 
   /// レベル計測用スクラッチバッファの先頭ポインタ
   const float *scratchData() const noexcept { return scratchBuffer_.data(); }
+
+  /// ロード時に事前計算した波形サムネイルをコピー（メッセージスレッドから）。
+  /// outMin/outMax に各ビンの最小値・最大値を格納。サンプル未ロード時は false を返す。
+  bool copyWaveformThumbnail(std::vector<float> &outMin,
+                             std::vector<float> &outMax) const noexcept;
+
+  /// サンプル長(秒)を返す（未ロード時は 0.0）。
+  double getSampleDurationSec() const noexcept { return sampleDurationSec_.load(); }
 
 private:
   static constexpr int kMaxCascade = 4;
@@ -82,6 +90,12 @@ private:
     std::atomic<int>   stages{1};
   };
 
+  struct EnvParams {
+    std::atomic<float> attackMs{1.0f};
+    std::atomic<float> decayMs{200.0f};
+    std::atomic<float> releaseMs{50.0f};
+  };
+
   enum class EnvPhase { Idle, Attack, Hold, Release };
 
   // サンプルバッファ（SpinLock でガード）
@@ -90,6 +104,11 @@ private:
   std::atomic<bool>           sampleLoaded_{false};
   double                      sampleSampleRate_{44100.0};
   juce::AudioFormatManager    formatManager_;
+
+  // 波形サムネイル（メッセージスレッド専用・ロック不要）
+  std::vector<float>          waveformThumbMin_;
+  std::vector<float>          waveformThumbMax_;
+  std::atomic<double>         sampleDurationSec_{0.0};
 
   // 再生状態
   std::vector<float>          scratchBuffer_;
@@ -107,7 +126,5 @@ private:
   // パラメータ
   std::atomic<float> gainDb_{0.0f};
   std::atomic<float> pitchSemitones_{0.0f};
-  std::atomic<float> attackMs_{1.0f};
-  std::atomic<float> decayMs_{200.0f};
-  std::atomic<float> releaseMs_{50.0f};
+  EnvParams          envParams_{};
 };

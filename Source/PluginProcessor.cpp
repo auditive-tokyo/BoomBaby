@@ -94,17 +94,12 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   const int numSamples = buffer.getNumSamples();
   const double sr = getSampleRate();
 
-  // Direct レベル計測（レンダリング前の純粋入力信号）
-  using enum ChannelState::Channel;
-  if (passes.direct)
-    channelState_.detector(direct).process(buffer.getReadPointer(0), numSamples);
-  else
-    channelState_.detector(direct).process(nullptr, numSamples);
-
   handleMidiEvents(midiMessages, numSamples);
   subEngine_.render(buffer, numSamples, passes.sub, sr);
   clickEngine_.render(buffer, numSamples, passes.click, sr);
   directEngine_.render(buffer, numSamples, passes.direct, sr);
+
+  using enum ChannelState::Channel;
 
   // Sub レベル計測
   if (passes.sub)
@@ -117,6 +112,12 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
     channelState_.detector(click).process(clickEngine_.scratchData(), numSamples);
   else
     channelState_.detector(click).process(nullptr, numSamples);
+
+  // Direct レベル計測（render 後に scratchData を参照）
+  if (passes.direct)
+    channelState_.detector(direct).process(directEngine_.scratchData(), numSamples);
+  else
+    channelState_.detector(direct).process(nullptr, numSamples);
 }
 
 bool BabySquatchAudioProcessor::hasEditor() const { return true; }

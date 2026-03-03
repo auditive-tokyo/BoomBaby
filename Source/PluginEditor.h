@@ -33,6 +33,8 @@ private:
   void layoutClickParams(juce::Rectangle<int> area);
   void setupDirectParams();
   void layoutDirectParams(juce::Rectangle<int> area);
+  void onSampleLoadClicked();
+  void onSampleFileChosen(const juce::File &file);
   void layoutLengthBox(juce::Rectangle<int> btnRow);
   void setupLengthBox();
   void setupWaveShapeCombo();

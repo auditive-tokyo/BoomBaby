@@ -27,6 +27,7 @@ void EnvelopeCurveEditor::paint(juce::Graphics &g) {
 
   paintWaveform(g, w, h, centreY);
   paintClickWaveform(g, w, h, centreY);
+  paintDirectWaveform(g, w, h, centreY);
   paintEnvelopeOverlay(g, w);
   paintTimeline(g, w, h, bounds.getHeight());
 }
@@ -128,6 +129,12 @@ void EnvelopeCurveEditor::paintWaveform(juce::Graphics &g, float w, float h,
   g.drawHorizontalLine(static_cast<int>(centreY), 0.0f, w);
 }
 
+void EnvelopeCurveEditor::setDirectProvider(
+    std::function<std::pair<float, float>(float)> fn) {
+  directPreviewFn_ = std::move(fn);
+  repaint();
+}
+
 void EnvelopeCurveEditor::setClickPreviewProvider(
     std::function<float(float)> fn) {
   clickNoiseEnvFn_ = nullptr;
@@ -140,6 +147,62 @@ void EnvelopeCurveEditor::setClickNoiseEnvProvider(
   clickPreviewFn_ = nullptr;
   clickNoiseEnvFn_ = std::move(fn);
   repaint();
+}
+
+void EnvelopeCurveEditor::paintDirectWaveform(juce::Graphics &g, float w,
+                                              float h, float centreY) const {
+  if (!directPreviewFn_)
+    return;
+
+  const juce::Colour baseColour = UIConstants::Colours::directArc;
+  const auto numPixels = static_cast<int>(w);
+  const float dtSec = (displayDurationMs / 1000.0f) / w;
+
+  // 波形帯（ピクセルiの最小値→最大値を封た形）
+  juce::Path fillPath;
+  juce::Path topLine;
+  juce::Path botLine;
+
+  // 上側エッジ (左→右, maxVal)
+  for (int i = 0; i <= numPixels; ++i) {
+    const auto x = static_cast<float>(i);
+    const auto [mn, mx] = directPreviewFn_(x * dtSec);
+    const float yTop = juce::jlimit(0.0f, h, centreY - mx * centreY);
+    if (i == 0) {
+      fillPath.startNewSubPath(x, yTop);
+      topLine.startNewSubPath(x, yTop);
+    } else {
+      fillPath.lineTo(x, yTop);
+      topLine.lineTo(x, yTop);
+    }
+  }
+  // 下側エッジ (右→左, minVal)で封じる
+  for (int i = numPixels; i >= 0; --i) {
+    const auto x = static_cast<float>(i);
+    const auto [mn, mx] = directPreviewFn_(x * dtSec);
+    const float yBot = juce::jlimit(0.0f, h, centreY - mn * centreY);
+    fillPath.lineTo(x, yBot);
+    if (i == numPixels)
+      botLine.startNewSubPath(x, yBot);
+    else
+      botLine.lineTo(x, yBot);
+  }
+  fillPath.closeSubPath();
+
+  // グラデーション塗りつぶし（上から下へ）
+  juce::ColourGradient fillGrad(baseColour.withAlpha(0.25f), 0.0f, 0.0f,
+                                baseColour.withAlpha(0.03f), 0.0f, h, false);
+  g.setGradientFill(fillGrad);
+  g.fillPath(fillPath);
+
+  for (const auto *line : {&topLine, &botLine}) {
+    g.setColour(baseColour.withAlpha(0.07f));
+    g.strokePath(*line, juce::PathStrokeType(6.0f));
+    g.setColour(baseColour.withAlpha(0.30f));
+    g.strokePath(*line, juce::PathStrokeType(3.5f));
+    g.setColour(baseColour.withAlpha(0.90f));
+    g.strokePath(*line, juce::PathStrokeType(1.2f));
+  }
 }
 
 void EnvelopeCurveEditor::paintClickWaveform(juce::Graphics &g, float w,
@@ -487,24 +550,15 @@ float EnvelopeCurveEditor::plotHeight() const {
   return std::max(1.0f, static_cast<float>(getHeight()) - timelineHeight);
 }
 
-float EnvelopeCurveEditor::editMinValue() const {
+std::pair<float, float> EnvelopeCurveEditor::editValueRange() const {
   using enum EditTarget;
   if (editTarget == freq)
-    return 20.0f;
-  if (editTarget == mix)
-    return -1.0f;
-  return 0.0f; // gain: 0〜2, saturate: 0〜1
-}
-
-float EnvelopeCurveEditor::editMaxValue() const {
-  using enum EditTarget;
-  if (editTarget == freq)
-    return 20000.0f;
+    return {20.0f, 20000.0f};
   if (editTarget == saturate)
-    return 1.0f;
+    return {0.0f, 1.0f};
   if (editTarget == mix)
-    return 1.0f;
-  return 2.0f; // gain
+    return {-1.0f, 1.0f};
+  return {0.0f, 2.0f}; // gain
 }
 
 float EnvelopeCurveEditor::valueToY(float value) const {
@@ -617,8 +671,8 @@ void EnvelopeCurveEditor::mouseDoubleClick(const juce::MouseEvent &e) {
       editEnvData->removePoint(hit);
   } else {
     const float timeMs = std::clamp(xToTimeMs(px), 0.0f, displayDurationMs);
-    const float value =
-        std::clamp(yToValue(py), editMinValue(), editMaxValue());
+    const auto [lo, hi] = editValueRange();
+    const float value = std::clamp(yToValue(py), lo, hi);
     editEnvData->addPoint(timeMs, value);
   }
 
@@ -666,8 +720,8 @@ void EnvelopeCurveEditor::mouseDrag(const juce::MouseEvent &e) {
 
   const float timeMs =
       std::clamp(xToTimeMs(static_cast<float>(e.x)), 0.0f, displayDurationMs);
-  const float value = std::clamp(yToValue(static_cast<float>(e.y)),
-                                 editMinValue(), editMaxValue());
+  const auto [lo, hi] = editValueRange();
+  const float value = std::clamp(yToValue(static_cast<float>(e.y)), lo, hi);
   dragPointIndex = editEnvData->movePoint(dragPointIndex, timeMs, value);
 
   if (onChange)

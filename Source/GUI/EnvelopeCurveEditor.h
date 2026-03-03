@@ -23,13 +23,17 @@ public:
   /// 編集対象のエンベロープを切り替え（Gain / Freq / Saturate / Mix）
   enum class EditTarget { gain, freq, saturate, mix };
   void setEditTarget(EditTarget target);
-  EditTarget getEditTarget() const { return editTarget; }
 
   /// 波形プレビュー用: 選択波形を設定（Sine/Tri/Square/Saw）
   void setWaveShape(WaveShape shape);
 
   /// 波形プレビュー用: Mix 値を設定（-1.0〜+1.0）
   void setPreviewBlend(float blend);
+
+  /// Direct チャンネル波形オーバーレイ用プロバイダーを設定。
+  /// fn(timeSec) → {min, max}（-1、1）の波形値を返すラムダ。
+  /// nullptr を渡すとオーバーレイを無効化。
+  void setDirectProvider(std::function<std::pair<float, float>(float)> fn);
 
   /// Click 波形オーバーレイ用プロバイダーを設定。
   /// fn(timeSec) → -1.0〜+1.0 の振幅値を返すラムダ。
@@ -57,7 +61,7 @@ public:
 
   /// Length ボックス変更時コールバック（全 LUT 再ベイク用）
 
-  // ── マウス操作（Phase 2） ──
+  // ── マウス操作 ──
   void mouseDoubleClick(const juce::MouseEvent &e) override;
   void mouseDown(const juce::MouseEvent &e) override;
   void mouseDrag(const juce::MouseEvent &e) override;
@@ -70,9 +74,8 @@ private:
   float xToTimeMs(float x) const;
   float yToValue(float y) const;
 
-  /// 現在の編集対象に応じた値の下限・上限
-  float editMinValue() const;
-  float editMaxValue() const;
+  /// 現在の編集対象に応じた値の {min, max}
+  std::pair<float, float> editValueRange() const;
 
   /// ピクセル空間でのヒット判定（-1: なし）
   int findPointAtPixel(float px, float py) const;
@@ -82,7 +85,10 @@ private:
 
   // ── paint() 分割ヘルパー ──
   void paintWaveform(juce::Graphics &g, float w, float h, float centreY) const;
-  void paintClickWaveform(juce::Graphics &g, float w, float h, float centreY) const;
+  void paintClickWaveform(juce::Graphics &g, float w, float h,
+                          float centreY) const;
+  void paintDirectWaveform(juce::Graphics &g, float w, float h,
+                           float centreY) const;
   void paintEnvelopeOverlay(juce::Graphics &g, float w) const;
   void paintTimeline(juce::Graphics &g, float w, float h, float totalH) const;
 
@@ -111,13 +117,15 @@ private:
   float previewBlend = 0.0f; // Mix 値 -1.0〜+1.0
   std::array<float, 4> previewHarmonicGains = {0.0f, 0.0f, 0.0f, 0.0f};
   int dragPointIndex{-1};
-  int dragCurveSegment{-1};   // Shift+ドラッグ中のセグメント（-1: なし）
-  float dragCurveStartY{0.0f}; // ドラッグ開始 Y 座標
+  int dragCurveSegment{-1}; // Shift+ドラッグ中のセグメント（-1: なし）
+  float dragCurveStartY{0.0f};   // ドラッグ開始 Y 座標
   float dragCurveStartVal{0.0f}; // ドラッグ開始時の curve 値
   std::function<void()> onChange;
   std::function<void(EditTarget)> onEditTargetChanged;
-  std::function<float(float)> clickPreviewFn_;   // Click Tone 波形プロバイダー
-  std::function<float(float)> clickNoiseEnvFn_;  // Click Noise 帯プロバイダー
+  std::function<float(float)> clickPreviewFn_; // Click Tone 波形プロバイダー
+  std::function<float(float)> clickNoiseEnvFn_; // Click Noise 帯プロバイダー
+  std::function<std::pair<float, float>(float)>
+      directPreviewFn_; // Direct 波形 {min,max} プロバイダー
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EnvelopeCurveEditor)
 };

@@ -68,6 +68,28 @@ void DirectEngine::loadSample(const juce::File &file) {
 
   const double fileSr = reader->sampleRate;
 
+  // 波形サムネイル事前計算（メッセージスレッド専用・モノ化後に実施）
+  {
+    constexpr int kThumbBins = 512;
+    const int total = mono.getNumSamples();
+    const float *src = mono.getReadPointer(0);
+    waveformThumbMin_.resize(static_cast<std::size_t>(kThumbBins));
+    waveformThumbMax_.resize(static_cast<std::size_t>(kThumbBins));
+    for (int bin = 0; bin < kThumbBins; ++bin) {
+      const int s = (bin * total) / kThumbBins;
+      const int e = ((bin + 1) * total) / kThumbBins;
+      float mn = 0.0f;
+      float mx = 0.0f;
+      for (int j = s; j < e; ++j) {
+        mn = std::min(mn, src[j]);
+        mx = std::max(mx, src[j]);
+      }
+      waveformThumbMin_[static_cast<std::size_t>(bin)] = mn;
+      waveformThumbMax_[static_cast<std::size_t>(bin)] = mx;
+    }
+    sampleDurationSec_.store(static_cast<double>(total) / fileSr);
+  }
+
   // スピンロックで保護しながらスワップ
   {
     const juce::SpinLock::ScopedLockType lock(sampleLock_);
@@ -77,6 +99,15 @@ void DirectEngine::loadSample(const juce::File &file) {
 
   active_.store(false); // 再生中なら停止
   sampleLoaded_.store(true);
+}
+
+bool DirectEngine::copyWaveformThumbnail(
+    std::vector<float> &outMin, std::vector<float> &outMax) const noexcept {
+  if (!sampleLoaded_.load())
+    return false;
+  outMin = waveformThumbMin_;
+  outMax = waveformThumbMax_;
+  return true;
 }
 
 // ────────────────────────────────────────────────────
@@ -182,9 +213,9 @@ void DirectEngine::render(juce::AudioBuffer<float> &buffer, int numSamples,
   const double playRate =
       static_cast<double>(std::pow(2.0f, pitchSemitones_.load() / 12.0f)) *
       sampleSampleRate_ / sampleRate;
-  const float atkSamples = attackMs_.load() * sr / 1000.0f;
-  const float decSamples = decayMs_.load() * sr / 1000.0f;
-  const float relSamples = releaseMs_.load() * sr / 1000.0f;
+  const float atkSamples = envParams_.attackMs.load() * sr / 1000.0f;
+  const float decSamples = envParams_.decayMs.load() * sr / 1000.0f;
+  const float relSamples = envParams_.releaseMs.load() * sr / 1000.0f;
 
   const FilterState fs = prepareFilters(sr);
 
