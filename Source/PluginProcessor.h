@@ -2,6 +2,7 @@
 
 #include "DSP/ChannelState.h"
 #include "DSP/ClickEngine.h"
+#include "DSP/DirectEngine.h"
 #include "DSP/SubEngine.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_audio_utils/juce_audio_utils.h>
@@ -41,8 +42,9 @@ public:
   juce::MidiKeyboardState &getKeyboardState() { return keyboardState; }
 
   // ── 委譲先エンジン／ヘルパーへのアクセサ ──
-  SubEngine &subEngine() noexcept { return subEngine_; }
-  ClickEngine &clickEngine() noexcept { return clickEngine_; }
+  SubEngine    &subEngine()    noexcept { return subEngine_; }
+  ClickEngine  &clickEngine()  noexcept { return clickEngine_; }
+  DirectEngine &directEngine() noexcept { return directEngine_; }
   ChannelState &channelState() noexcept { return channelState_; }
   const ChannelState &channelState() const noexcept { return channelState_; }
 
@@ -50,8 +52,9 @@ private:
   void handleMidiEvents(juce::MidiBuffer &midiMessages, int numSamples);
 
   juce::MidiKeyboardState keyboardState;
-  SubEngine subEngine_;
-  ClickEngine clickEngine_;
+  SubEngine    subEngine_;
+  ClickEngine  clickEngine_;
+  DirectEngine directEngine_;
   ChannelState channelState_;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BabySquatchAudioProcessor)

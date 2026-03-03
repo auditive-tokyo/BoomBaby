@@ -133,8 +133,11 @@ private:
   // ── DIRECTパネル ──
   struct DirectUI {
     enum class Mode { Direct = 1, Sample };
-    juce::Label    modeLabel;
-    juce::ComboBox modeCombo;
+    juce::Label      modeLabel;
+    juce::ComboBox   modeCombo;
+    juce::TextButton sampleLoadButton{"Load Sample"};
+    juce::String     loadedFilePath;
+    std::unique_ptr<juce::FileChooser> fileChooser;
   };
   DirectUI directUI;
 

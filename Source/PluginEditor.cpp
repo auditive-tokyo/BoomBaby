@@ -90,7 +90,11 @@ void BabySquatchAudioProcessorEditor::setupPanelRouting(
     processorRef.clickEngine().setGainDb(
         static_cast<float>(clickPanel.getFader().getValue()));
   };
-  // TODO: direct の gain setter 実装後に配線追加
+  // Direct フェーダー → ゲインコントロール
+  directPanel.getFader().onValueChange = [this] {
+    processorRef.directEngine().setGainDb(
+        static_cast<float>(directPanel.getFader().getValue()));
+  };
 }
 
 // ────────────────────────────────────────────────────

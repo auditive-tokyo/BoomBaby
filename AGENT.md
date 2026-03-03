@@ -117,7 +117,7 @@ BabySquatchは3つのモジュールで構成されています：
     ```
     mode | [sample load button]        ← 上段1行
     Pitch | A    | D    | R            ← ノブ上段4本
-    HPF   | Reso | LPF  | Reso         ← ノブ下段4本
+    HP 12 24 48 | Reso | LP 12 24 48 | Reso         ← ノブ下段4本
     ```
   - Sustain は one-shot サンプルでは実用上不要なため省略（= 常時フルサステイン扱い）
   - 実装要素: `juce::AudioFormatManager` + ファイルピッカー UI + サンプルプレイバック DSP（ADR エンベロープ付き）

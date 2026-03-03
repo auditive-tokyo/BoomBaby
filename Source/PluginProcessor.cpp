@@ -45,6 +45,7 @@ void BabySquatchAudioProcessor::prepareToPlay(double sampleRate,
                                               int samplesPerBlock) {
   subEngine_.prepareToPlay(sampleRate, samplesPerBlock);
   clickEngine_.prepareToPlay(sampleRate, samplesPerBlock);
+  directEngine_.prepareToPlay(sampleRate, samplesPerBlock);
   channelState_.resetDetectors();
 }
 
@@ -74,6 +75,7 @@ void BabySquatchAudioProcessor::handleMidiEvents(juce::MidiBuffer &midiMessages,
     if (msg.isNoteOn()) {
       subEngine_.triggerNote();
       clickEngine_.triggerNote();
+      directEngine_.triggerNote();
     }
     // NoteOff は無視: One-shot 長さは subLengthMs で決定
   }
@@ -102,6 +104,7 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   handleMidiEvents(midiMessages, numSamples);
   subEngine_.render(buffer, numSamples, passes.sub, sr);
   clickEngine_.render(buffer, numSamples, passes.click, sr);
+  directEngine_.render(buffer, numSamples, passes.direct, sr);
 
   // Sub レベル計測
   if (passes.sub)
