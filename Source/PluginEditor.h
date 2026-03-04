@@ -142,7 +142,10 @@ private:
     double thumbDurSec = 0.0;
     // ── Pitch / Envelope ノブ（上段） ──
     struct KnobUI { juce::Label label; juce::Slider slider; };
-    KnobUI pitch, attack, decay, release;
+    KnobUI pitch;
+    KnobUI attack;
+    KnobUI decay;
+    KnobUI release;
     // ── フィルター ノブ（下段） ──
     UIConstants::SlopeSelector hpfSlope{"HP", UIConstants::Colours::directArc};
     juce::Slider hpfSlider;
