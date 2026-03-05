@@ -36,6 +36,9 @@ private:
   void onSampleLoadClicked();
   void onSampleFileChosen(const juce::File &file);
   void refreshDirectProvider();
+  void onClickSampleLoadClicked();
+  void onClickSampleFileChosen(const juce::File &file);
+  void refreshClickSampleProvider();
   void layoutLengthBox(juce::Rectangle<int> btnRow);
   void setupLengthBox();
   void setupWaveShapeCombo();
@@ -106,7 +109,7 @@ private:
     enum class Mode { Tone = 1, Noise, Sample };
     juce::Label    modeLabel;
     juce::ComboBox modeCombo;
-    // ── Decay + Filter params ──
+    // ── Decay + Filter params (Tone/Noise モード) ──
     juce::Label  decayLabel;
     juce::Slider decaySlider;
     juce::Label  freq1Label;
@@ -125,6 +128,18 @@ private:
     juce::Slider lpfSlider;
     juce::Label  lpfQLabel;
     juce::Slider lpfQSlider;
+    // ── Sample モード用 (Pitch / A / D / R + ファイルロード) ──
+    struct KnobUI { juce::Label label; juce::Slider slider; };
+    UIConstants::SampleDropButton sampleLoadButton{"Drop or Click to Load"};
+    juce::String loadedFilePath;
+    std::unique_ptr<juce::FileChooser> fileChooser;
+    std::vector<float> thumbMin;
+    std::vector<float> thumbMax;
+    double thumbDurSec = 0.0;
+    KnobUI pitch;   // -24 〜 +24 半音
+    KnobUI attack;  // 0.1 〜 500 ms
+    KnobUI hold;    // 1 〜 2000 ms (ラベル "D")
+    KnobUI release; // 1 〜 1000 ms
   };
   ClickUI clickUI;
 

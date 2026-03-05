@@ -74,7 +74,8 @@ auto ClickEngine::setupFilters(float sr) -> FilterFlags {
   return flags;
 }
 
-float ClickEngine::synthesizeSample(int mode, const FilterFlags &flags) {
+float ClickEngine::synthesizeSample(int mode, const FilterFlags &flags,
+                                    double playRate) {
   float s = 0.0f;
   if (mode == 1) {
     // ── Tone: インパルス → BPF リング ──
@@ -93,7 +94,7 @@ float ClickEngine::synthesizeSample(int mode, const FilterFlags &flags) {
   } else if (mode == 3) {
     // ── Sample: SamplePlayer から読み出し ──
     bool finished = false;
-    s = sampler_.readNext(1.0, finished);
+    s = sampler_.readNext(playRate, finished);
     if (finished)
       return 0.0f; // render 側で active を落とす
   }
@@ -123,8 +124,20 @@ void ClickEngine::render(juce::AudioBuffer<float> &buffer, int numSamples,
   const float clickGain = juce::Decibels::decibelsToGain(gainDb_.load());
   const float decayMs = decayMs_.load();
   const int mode = mode_.load();
-  // decayMs = 全体の減衰時間。内部時定数 τ = decayMs/5 で exp(-5) ≈ -43dB
-  const float maxTimeSamples = decayMs * sr / 1000.0f;
+
+  // mode=3 用 A/D/R パラメーター（ループ前に一度のみ読む）
+  const float attackMs  = attackMs_.load();
+  const float releaseMs = releaseMs_.load();
+  const double fileSr = sampler_.sampleRate();
+  const double playRate = (mode == 3)
+      ? std::pow(2.0, pitchSemitones_.load() / 12.0) * (fileSr > 0 ? fileSr / sampleRate : 1.0)
+      : 1.0;
+
+  // 全体再生時間（停止判定用）
+  const float maxTimeSamples = (mode == 3)
+      ? (attackMs + decayMs + releaseMs) * sr / 1000.0f
+      : decayMs * sr / 1000.0f;
+
   const FilterFlags flags = setupFilters(sr);
 
   for (int sample = 0; sample < numSamples; ++sample) {
@@ -136,8 +149,23 @@ void ClickEngine::render(juce::AudioBuffer<float> &buffer, int numSamples,
     }
 
     const float amp =
-        std::exp(-noteTimeSamples_ * 5000.0f / (decayMs * sr + 1e-6f));
-    const float out = synthesizeSample(mode, flags) * amp * clickGain;
+        (mode == 3)
+            ? [&]() {
+                const float t  = noteTimeSamples_ / sr;
+                const float aT = attackMs  / 1000.0f;
+                const float dT = decayMs   / 1000.0f;
+                const float rT = releaseMs / 1000.0f;
+                if (t < aT)
+                  return (aT > 0.0f) ? t / aT : 1.0f;
+                if (t < aT + dT)
+                  return 1.0f;
+                const float rel = t - aT - dT;
+                return (rT > 0.0f)
+                           ? juce::jlimit(0.0f, 1.0f, 1.0f - rel / rT)
+                           : 0.0f;
+              }()
+            : std::exp(-noteTimeSamples_ * 5000.0f / (decayMs * sr + 1e-6f));
+    const float out = synthesizeSample(mode, flags, playRate) * amp * clickGain;
 
     scratchBuffer_[static_cast<size_t>(sample)] = out;
     if (clickPass) {

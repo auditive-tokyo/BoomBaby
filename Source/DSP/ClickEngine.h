@@ -56,6 +56,11 @@ public:
     lpfParams_.stages.store(stages);
   }
 
+  // Sample モード区用
+  void setPitchSemitones(float st) { pitchSemitones_.store(st); }
+  void setAttackMs(float ms)       { attackMs_.store(ms); }
+  void setReleaseMs(float ms)      { releaseMs_.store(ms); }
+
   /// レベル計測用 scratchBuffer の先頭ポインタ
   const float *scratchData() const noexcept { return scratchBuffer_.data(); }
 
@@ -83,7 +88,7 @@ private:
     int  lpfStages;
   };
   FilterFlags setupFilters(float sr);
-  float synthesizeSample(int mode, const FilterFlags &flags);
+  float synthesizeSample(int mode, const FilterFlags &flags, double playRate);
 
   // ── 2 段 BPF ──
   juce::dsp::StateVariableTPTFilter<float> bpf1_; // freq1 / focus1
@@ -102,6 +107,11 @@ private:
   std::atomic<int> mode_{1}; // 1=Tone, 2=Noise, 3=Sample
   std::atomic<float> gainDb_{0.0f};
   std::atomic<float> decayMs_{50.0f};
+  // Sample モード用 A/D/R + ピッチ
+  std::atomic<float> pitchSemitones_{0.0f};
+  std::atomic<float> attackMs_{1.0f};
+  std::atomic<float> releaseMs_{50.0f};
+  // Tone/Noise 用 BPF パラメーター
   std::atomic<float> freq1_{5000.0f};   // BPF1 中心周波数
   std::atomic<float> focus1_{0.71f};    // BPF1 Q
   std::atomic<float> freq2_{10000.0f};  // BPF2 中心周波数
