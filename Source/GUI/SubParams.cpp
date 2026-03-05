@@ -59,7 +59,7 @@ void BabySquatchAudioProcessorEditor::setupSubKnobsRow() {
   for (size_t i = 0; i < 8; ++i) {
     auto &knob = subUI.knobs[i];
     knob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    knob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    knob.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 1, 1);
     knob.setRange(0.0, 1.0);
     knob.setLookAndFeel(&subKnobLAF);
     addAndMakeVisible(knob);

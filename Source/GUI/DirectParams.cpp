@@ -5,7 +5,7 @@
 namespace {
 void styleDirectKnob(juce::Slider &s, ColouredSliderLAF &laf) {
   s.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-  s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+  s.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 1, 1);
   s.setLookAndFeel(&laf);
 }
 void styleKnobLabelDirect(juce::Label &label, const juce::String &text,
