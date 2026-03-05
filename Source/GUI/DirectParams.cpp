@@ -168,7 +168,7 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
   addAndMakeVisible(directUI.hpfSlider);
 
   styleDirectKnob(directUI.hpfQSlider, directKnobLAF);
-  directUI.hpfQSlider.setRange(0.1, 12.0, 0.01);
+  directUI.hpfQSlider.setRange(0.1, 6.0, 0.01);
   directUI.hpfQSlider.textFromValueFunction = [](double v) {
     return juce::String(v, 2);
   };
@@ -200,7 +200,7 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
   addAndMakeVisible(directUI.lpfSlider);
 
   styleDirectKnob(directUI.lpfQSlider, directKnobLAF);
-  directUI.lpfQSlider.setRange(0.1, 12.0, 0.01);
+  directUI.lpfQSlider.setRange(0.1, 6.0, 0.01);
   directUI.lpfQSlider.textFromValueFunction = [](double v) {
     return juce::String(v, 2);
   };

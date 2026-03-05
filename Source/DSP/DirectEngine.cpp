@@ -125,14 +125,14 @@ auto DirectEngine::prepareFilters(float sr) -> FilterState {
   const bool doLpf = lpfF < 19999.0f;   // LPF: 最大値(20kHz)より下で有効
 
   if (doHpf) {
-    const float qH = juce::jlimit(0.1f, 12.0f, hpfQv > 0.001f ? hpfQv : 0.707f);
+    const float qH = juce::jlimit(0.1f, 6.0f, hpfQv > 0.001f ? hpfQv : 0.707f);
     for (int i = 0; i < hpfStg; ++i) {
       hpfs_[static_cast<std::size_t>(i)].setCutoffFrequency(hpfF);
       hpfs_[static_cast<std::size_t>(i)].setResonance(qH);
     }
   }
   if (doLpf) {
-    const float qL = juce::jlimit(0.1f, 12.0f, lpfQv > 0.001f ? lpfQv : 0.707f);
+    const float qL = juce::jlimit(0.1f, 6.0f, lpfQv > 0.001f ? lpfQv : 0.707f);
     for (int i = 0; i < lpfStg; ++i) {
       lpfs_[static_cast<std::size_t>(i)].setCutoffFrequency(lpfF);
       lpfs_[static_cast<std::size_t>(i)].setResonance(qL);
@@ -191,6 +191,8 @@ float DirectEngine::readSample(const float *srcData, int srcLen,
     s = hpfs_[static_cast<std::size_t>(fi)].processSample(0, s);
   for (int fi = 0; fs.doLpf && fi < fs.lpfStg; ++fi)
     s = lpfs_[static_cast<std::size_t>(fi)].processSample(0, s);
+  if (fs.doHpf || fs.doLpf)
+    s = std::tanh(s);  // 共振ピークのソフトクリップ
 
   playheadSamples_ += playRate;
   return s * envLevel_ * gain;

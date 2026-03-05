@@ -82,13 +82,11 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.lpfQLabel);
 
   // HPF slope selector
-  clickUI.hpfSlope.setOnChange([this](int dboct) {
-    processorRef.clickEngine().setHpfSlope(dboct);
-  });
+  clickUI.hpfSlope.setOnChange(
+      [this](int dboct) { processorRef.clickEngine().setHpfSlope(dboct); });
   // LPF slope selector
-  clickUI.lpfSlope.setOnChange([this](int dboct) {
-    processorRef.clickEngine().setLpfSlope(dboct);
-  });
+  clickUI.lpfSlope.setOnChange(
+      [this](int dboct) { processorRef.clickEngine().setLpfSlope(dboct); });
 
   // ── Sliders ──
   // Decay  1–2000 ms
@@ -157,8 +155,8 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   clickUI.hpfSlider.setRange(20.0, 20000.0, 1.0);
   clickUI.hpfSlider.setSkewFactorFromMidPoint(1000.0);
   clickUI.hpfSlider.setTextValueSuffix(" Hz");
-  clickUI.hpfSlider.setValue(200.0, juce::dontSendNotification);
-  clickUI.hpfSlider.setDoubleClickReturnValue(true, 200.0);
+  clickUI.hpfSlider.setValue(1100.0, juce::dontSendNotification);
+  clickUI.hpfSlider.setDoubleClickReturnValue(true, 1100.0);
   clickUI.hpfSlider.onValueChange = [this] {
     processorRef.clickEngine().setHpfFreq(
         static_cast<float>(clickUI.hpfSlider.getValue()));
@@ -285,8 +283,8 @@ void BabySquatchAudioProcessorEditor::layoutClickParams(
   for (int row = 0; row < 2; ++row) {
     for (int col = 0; col < 4; ++col) {
       const auto idx = static_cast<size_t>(row * 4 + col);
-      juce::Rectangle slot(area.getX() + col * slotW,
-                           area.getY() + row * rowH, slotW, rowH);
+      juce::Rectangle slot(area.getX() + col * slotW, area.getY() + row * rowH,
+                           slotW, rowH);
       labels[idx]->setBounds(slot.removeFromBottom(14));
       knobs[idx]->setBounds(slot);
     }
