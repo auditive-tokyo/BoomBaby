@@ -53,6 +53,8 @@ target_sources(BabySquatch
         Source/DSP/EnvelopeData.h
         Source/DSP/EnvelopeLutManager.h
         Source/DSP/LevelDetector.h
+        Source/DSP/SamplePlayer.h
+        Source/DSP/SamplePlayer.cpp
         Source/DSP/SubEngine.h
         Source/DSP/SubEngine.cpp
         Source/DSP/SubOscillator.h

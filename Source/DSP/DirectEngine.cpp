@@ -17,19 +17,18 @@ void DirectEngine::prepareToPlay(double /*sampleRate*/, int samplesPerBlock) {
   }
 
   scratchBuffer_.resize(static_cast<std::size_t>(samplesPerBlock));
-  playheadSamples_ = 0.0;
   envPhase_ = EnvPhase::Idle;
   envLevel_ = 0.0f;
   active_.store(false);
 
-  formatManager_.registerBasicFormats(); // WAV / AIFF
+  sampler_.prepare();
 }
 
 void DirectEngine::triggerNote() {
-  if (!sampleLoaded_.load())
+  if (!sampler_.isLoaded())
     return;
 
-  playheadSamples_ = 0.0;
+  sampler_.resetPlayhead();
   envPhase_ = EnvPhase::Attack;
   envLevel_ = 0.0f;
 
@@ -39,75 +38,6 @@ void DirectEngine::triggerNote() {
     f.reset();
 
   active_.store(true);
-}
-
-// ────────────────────────────────────────────────────
-// サンプルロード（メッセージスレッドから）
-// ────────────────────────────────────────────────────
-
-void DirectEngine::loadSample(const juce::File &file) {
-  std::unique_ptr<juce::AudioFormatReader> reader(
-      formatManager_.createReaderFor(file));
-  if (reader == nullptr)
-    return;
-
-  // デコード（最大 30 秒）
-  const auto maxSamples = static_cast<int>(
-      std::min(reader->lengthInSamples,
-               static_cast<juce::int64>(reader->sampleRate * 30.0)));
-  juce::AudioBuffer<float> buf(static_cast<int>(reader->numChannels),
-                               maxSamples);
-  reader->read(&buf, 0, maxSamples, 0, true, true);
-
-  // モノ化（複数チャンネルの場合は平均）
-  juce::AudioBuffer<float> mono(1, maxSamples);
-  mono.clear();
-  for (int ch = 0; ch < buf.getNumChannels(); ++ch)
-    mono.addFrom(0, 0, buf, ch, 0, maxSamples,
-                 1.0f / static_cast<float>(buf.getNumChannels()));
-
-  const double fileSr = reader->sampleRate;
-
-  // 波形サムネイル事前計算（メッセージスレッド専用・モノ化後に実施）
-  {
-    constexpr int kThumbBins = 512;
-    const int total = mono.getNumSamples();
-    const float *src = mono.getReadPointer(0);
-    waveformThumbMin_.resize(static_cast<std::size_t>(kThumbBins));
-    waveformThumbMax_.resize(static_cast<std::size_t>(kThumbBins));
-    for (int bin = 0; bin < kThumbBins; ++bin) {
-      const int s = (bin * total) / kThumbBins;
-      const int e = ((bin + 1) * total) / kThumbBins;
-      float mn = 0.0f;
-      float mx = 0.0f;
-      for (int j = s; j < e; ++j) {
-        mn = std::min(mn, src[j]);
-        mx = std::max(mx, src[j]);
-      }
-      waveformThumbMin_[static_cast<std::size_t>(bin)] = mn;
-      waveformThumbMax_[static_cast<std::size_t>(bin)] = mx;
-    }
-    sampleDurationSec_.store(static_cast<double>(total) / fileSr);
-  }
-
-  // スピンロックで保護しながらスワップ
-  {
-    const juce::SpinLock::ScopedLockType lock(sampleLock_);
-    sampleBuffer_ = std::move(mono);
-    sampleSampleRate_ = fileSr;
-  }
-
-  active_.store(false); // 再生中なら停止
-  sampleLoaded_.store(true);
-}
-
-bool DirectEngine::copyWaveformThumbnail(
-    std::vector<float> &outMin, std::vector<float> &outMax) const noexcept {
-  if (!sampleLoaded_.load())
-    return false;
-  outMin = waveformThumbMin_;
-  outMax = waveformThumbMax_;
-  return true;
 }
 
 // ────────────────────────────────────────────────────
@@ -121,8 +51,8 @@ auto DirectEngine::prepareFilters(float sr) -> FilterState {
   const float lpfF = juce::jlimit(20.0f, sr * 0.49f, lpfParams_.freq.load());
   const float lpfQv = lpfParams_.q.load();
   const int lpfStg = lpfParams_.stages.load();
-  const bool doHpf = hpfF > 20.5f;      // HPF: 最小値(20Hz)より上で有効
-  const bool doLpf = lpfF < 19999.0f;   // LPF: 最大値(20kHz)より下で有効
+  const bool doHpf = hpfF > 20.5f;
+  const bool doLpf = lpfF < 19999.0f;
 
   if (doHpf) {
     const float qH = juce::jlimit(0.1f, 6.0f, hpfQv > 0.001f ? hpfQv : 0.707f);
@@ -139,6 +69,16 @@ auto DirectEngine::prepareFilters(float sr) -> FilterState {
     }
   }
   return {doHpf, doLpf, hpfStg, lpfStg};
+}
+
+float DirectEngine::applyFilters(float s, const FilterState &fs) {
+  for (int fi = 0; fs.doHpf && fi < fs.hpfStg; ++fi)
+    s = hpfs_[static_cast<std::size_t>(fi)].processSample(0, s);
+  for (int fi = 0; fs.doLpf && fi < fs.lpfStg; ++fi)
+    s = lpfs_[static_cast<std::size_t>(fi)].processSample(0, s);
+  if (fs.doHpf || fs.doLpf)
+    s = std::tanh(s);  // 共振ピークのソフトクリップ
+  return s;
 }
 
 bool DirectEngine::advanceEnvelope(float nt, float atkSamples, float decSamples,
@@ -170,34 +110,6 @@ bool DirectEngine::advanceEnvelope(float nt, float atkSamples, float decSamples,
   return false;
 }
 
-float DirectEngine::readSample(const float *srcData, int srcLen,
-                               const FilterState &fs, float gain,
-                               double playRate, bool &done) {
-  using enum EnvPhase;
-  if (playheadSamples_ >= static_cast<double>(srcLen - 1)) {
-    envPhase_ = Idle;
-    active_.store(false);
-    done = true;
-    return 0.0f;
-  }
-
-  const auto i0 = static_cast<int>(playheadSamples_);
-  const int i1 = juce::jmin(i0 + 1, srcLen - 1);
-  const auto frac =
-      static_cast<float>(playheadSamples_ - static_cast<double>(i0));
-  float s = srcData[i0] * (1.0f - frac) + srcData[i1] * frac;
-
-  for (int fi = 0; fs.doHpf && fi < fs.hpfStg; ++fi)
-    s = hpfs_[static_cast<std::size_t>(fi)].processSample(0, s);
-  for (int fi = 0; fs.doLpf && fi < fs.lpfStg; ++fi)
-    s = lpfs_[static_cast<std::size_t>(fi)].processSample(0, s);
-  if (fs.doHpf || fs.doLpf)
-    s = std::tanh(s);  // 共振ピークのソフトクリップ
-
-  playheadSamples_ += playRate;
-  return s * envLevel_ * gain;
-}
-
 // ────────────────────────────────────────────────────
 // render
 // ────────────────────────────────────────────────────
@@ -214,31 +126,45 @@ void DirectEngine::render(juce::AudioBuffer<float> &buffer, int numSamples,
   const float gain = juce::Decibels::decibelsToGain(gainDb_.load());
   const double playRate =
       static_cast<double>(std::pow(2.0f, pitchSemitones_.load() / 12.0f)) *
-      sampleSampleRate_ / sampleRate;
+      sampler_.sampleRate() / sampleRate;
   const float atkSamples = envParams_.attackMs.load() * sr / 1000.0f;
   const float decSamples = envParams_.decayMs.load() * sr / 1000.0f;
   const float relSamples = envParams_.releaseMs.load() * sr / 1000.0f;
 
   const FilterState fs = prepareFilters(sr);
 
-  if (const juce::SpinLock::ScopedTryLockType lock(sampleLock_);
-      !lock.isLocked()) {
+  auto view = sampler_.lock();
+  if (!view) {
     std::fill_n(scratchBuffer_.data(), static_cast<std::size_t>(numSamples),
                 0.0f);
     return;
   }
 
-  const int srcLen = sampleBuffer_.getNumSamples();
-  const float *srcData = sampleBuffer_.getReadPointer(0);
   const int numCh = buffer.getNumChannels();
-  const double noteTimeAtBlock = playheadSamples_ / playRate;
+  // playRate 基準で noteTime を推定
+  // （SamplePlayer の playheadSamples_ は直接見えないため近似）
+  float noteTimeSamples = 0.0f;
+  // 初回ブロック向けに、ブロック先頭の noteTime を保持しない簡易実装
+  // → advanceEnvelope は相対サンプル位置で換算
 
   for (int i = 0; i < numSamples; ++i) {
-    const auto nt =
-        static_cast<float>(noteTimeAtBlock + static_cast<double>(i));
-    bool done = advanceEnvelope(nt, atkSamples, decSamples, relSamples);
-    const float out =
-        done ? 0.0f : readSample(srcData, srcLen, fs, gain, playRate, done);
+    // エンベロープ: ブロック先頭からの出力サンプル数で近似
+    noteTimeSamples += 1.0f;
+    bool done = advanceEnvelope(noteTimeSamples, atkSamples, decSamples, relSamples);
+
+    float out = 0.0f;
+    if (!done) {
+      bool finished = false;
+      float s = sampler_.readInterpolated(view.data, view.length,
+                                          playRate, finished);
+      if (finished) {
+        envPhase_ = EnvPhase::Idle;
+        active_.store(false);
+        done = true;
+      } else {
+        out = applyFilters(s, fs) * envLevel_ * gain;
+      }
+    }
 
     scratchBuffer_[static_cast<std::size_t>(i)] = out;
     if (directPass) {

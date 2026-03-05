@@ -317,13 +317,13 @@ void BabySquatchAudioProcessorEditor::onSampleFileChosen(
   directUI.loadedFilePath = file.getFullPathName();
   directUI.sampleLoadButton.setButtonText(file.getFileNameWithoutExtension());
   directUI.sampleLoadButton.setTooltip(directUI.loadedFilePath);
-  processorRef.directEngine().loadSample(file);
+  processorRef.directEngine().sampler().loadSample(file);
 
   // サムネイルデータをメンバーに保存してプロバイダーを登録
-  if (!processorRef.directEngine().copyWaveformThumbnail(directUI.thumbMin,
-                                                         directUI.thumbMax))
+  if (!processorRef.directEngine().sampler().copyThumbnail(directUI.thumbMin,
+                                                           directUI.thumbMax))
     return;
-  directUI.thumbDurSec = processorRef.directEngine().getSampleDurationSec();
+  directUI.thumbDurSec = processorRef.directEngine().sampler().durationSec();
   refreshDirectProvider();
 }
 

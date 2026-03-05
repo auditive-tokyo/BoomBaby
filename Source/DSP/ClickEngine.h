@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SamplePlayer.h"
+
 #include <array>
 #include <atomic>
 #include <juce_audio_basics/juce_audio_basics.h>
@@ -57,6 +59,10 @@ public:
   /// レベル計測用 scratchBuffer の先頭ポインタ
   const float *scratchData() const noexcept { return scratchBuffer_.data(); }
 
+  /// 内部 SamplePlayer への参照（UI からのロード用）
+  SamplePlayer       &sampler()       noexcept { return sampler_; }
+  const SamplePlayer &sampler() const noexcept { return sampler_; }
+
 private:
   static constexpr int kMaxCascade = 4;
 
@@ -87,6 +93,7 @@ private:
   std::array<juce::dsp::StateVariableTPTFilter<float>, kMaxCascade> lpfs_;
 
   juce::Random random_; // Noise モード用 RNG
+  SamplePlayer sampler_; // Sample モード用
 
   std::vector<float> scratchBuffer_;
   float noteTimeSamples_{0.0f};

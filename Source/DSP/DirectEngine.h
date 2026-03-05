@@ -1,7 +1,8 @@
 #pragma once
 
+#include "SamplePlayer.h"
+
 #include <juce_audio_basics/juce_audio_basics.h>
-#include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_dsp/juce_dsp.h>
 
 #include <array>
@@ -9,9 +10,9 @@
 #include <vector>
 
 /// サンプル再生エンジン（Direct チャンネル / Sample モード）
-/// - ADSR エンベロープ（Sustain なし: Attack → Hold → Release）
+/// - AHR エンベロープ（Attack → Hold → Release）
 /// - ピッチ: セミトーン単位の線形補間再生
-/// - ポスト HPF / LPF カスケードフィルター（ClickEngine と同構造）
+/// - ポスト HPF / LPF カスケードフィルター + tanh ソフトクリップ
 class DirectEngine {
 public:
   // ── lifecycle ──
@@ -24,9 +25,9 @@ public:
   void render(juce::AudioBuffer<float> &buffer, int numSamples,
               bool directPass, double sampleRate);
 
-  /// サンプルファイルをロード（メッセージスレッドから呼び出すこと）
-  void loadSample(const juce::File &file);
-  bool isSampleLoaded() const noexcept { return sampleLoaded_.load(); }
+  /// 内部 SamplePlayer への参照（UI からのロード / サムネイル取得用）
+  SamplePlayer       &sampler()       noexcept { return sampler_; }
+  const SamplePlayer &sampler() const noexcept { return sampler_; }
 
   // ── UI→DSP setter（スレッドセーフ） ──
   void setGainDb(float db)          { gainDb_.store(db); }
@@ -55,18 +56,9 @@ public:
   /// レベル計測用スクラッチバッファの先頭ポインタ
   const float *scratchData() const noexcept { return scratchBuffer_.data(); }
 
-  /// ロード時に事前計算した波形サムネイルをコピー（メッセージスレッドから）。
-  /// outMin/outMax に各ビンの最小値・最大値を格納。サンプル未ロード時は false を返す。
-  bool copyWaveformThumbnail(std::vector<float> &outMin,
-                             std::vector<float> &outMax) const noexcept;
-
-  /// サンプル長(秒)を返す（未ロード時は 0.0）。
-  double getSampleDurationSec() const noexcept { return sampleDurationSec_.load(); }
-
 private:
   static constexpr int kMaxCascade = 4;
 
-  /// フィルター設定後に render ループへ渡す軽量コンテキスト
   struct FilterState {
     bool doHpf;
     bool doLpf;
@@ -74,15 +66,11 @@ private:
     int  lpfStg;
   };
 
-  /// フィルターパラメータをセットし FilterState を返す
   FilterState prepareFilters(float sr);
-  /// エンベロープを 1 サンプル進める。停止すべきなら true を返す
   bool advanceEnvelope(float nt, float atkSamples,
                        float decSamples, float relSamples);
-  /// 線形補間読み出し + フィルター適用。停止すべきなら done=true
-  float readSample(const float *srcData, int srcLen,
-                   const FilterState &fs, float gain,
-                   double playRate, bool &done);
+  /// フィルター適用 + tanh ソフトクリップ
+  float applyFilters(float s, const FilterState &fs);
 
   struct FilterParams {
     std::atomic<float> freq{0.0f};
@@ -98,21 +86,10 @@ private:
 
   enum class EnvPhase { Idle, Attack, Hold, Release };
 
-  // サンプルバッファ（SpinLock でガード）
-  juce::SpinLock              sampleLock_;
-  juce::AudioBuffer<float>    sampleBuffer_;
-  std::atomic<bool>           sampleLoaded_{false};
-  double                      sampleSampleRate_{44100.0};
-  juce::AudioFormatManager    formatManager_;
-
-  // 波形サムネイル（メッセージスレッド専用・ロック不要）
-  std::vector<float>          waveformThumbMin_;
-  std::vector<float>          waveformThumbMax_;
-  std::atomic<double>         sampleDurationSec_{0.0};
+  SamplePlayer sampler_;
 
   // 再生状態
   std::vector<float>          scratchBuffer_;
-  double                      playheadSamples_{0.0};
   std::atomic<bool>           active_{false};
   EnvPhase                    envPhase_{EnvPhase::Idle};
   float                       envLevel_{0.0f};
