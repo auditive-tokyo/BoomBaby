@@ -45,6 +45,8 @@ target_sources(BabySquatch
         Source/GUI/EnvelopeCurveEditor.cpp
         Source/GUI/ChannelFader.h
         Source/GUI/ChannelFader.cpp
+        Source/GUI/MasterFader.h
+        Source/GUI/MasterFader.cpp
         Source/DSP/ChannelState.h
         Source/DSP/ClickEngine.h
         Source/DSP/ClickEngine.cpp

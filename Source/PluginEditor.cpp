@@ -137,7 +137,7 @@ void BabySquatchAudioProcessorEditor::switchEditTarget(
 }
 
 // ────────────────────────────────────────────────────
-// コンストラクター
+// paint
 // ────────────────────────────────────────────────────
 BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
     BabySquatchAudioProcessor &p)
@@ -148,6 +148,16 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
   addAndMakeVisible(directPanel);
   addAndMakeVisible(keyboard);
   addAndMakeVisible(envelopeCurveEditor);
+  addAndMakeVisible(masterSection);
+  addAndMakeVisible(infoBox);
+
+  // infoBox 初期設定
+  infoBox.setText("", juce::dontSendNotification);
+  infoBox.setFont(juce::Font(juce::FontOptions(UIConstants::fontSizeSmall)));
+  infoBox.setColour(juce::Label::textColourId, UIConstants::Colours::labelText);
+  infoBox.setColour(juce::Label::backgroundColourId,
+                   UIConstants::Colours::panelBg.withAlpha(0.0f));
+  infoBox.setJustificationType(juce::Justification::centredLeft);
 
   pitchEnvData.setDefaultValue(200.0f);
 
@@ -163,6 +173,11 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
   setupBlendKnob();
   setupDistKnob();
   setupHarmonicKnobs();
+
+  // マスターフェーダー配線
+  masterSection.setOnValueChange([this](float db) {
+    processorRef.setMasterGainDb(db);
+  });
 
   setSize(UIConstants::windowWidth, UIConstants::windowHeight +
                                         UIConstants::expandedAreaHeight +
@@ -189,8 +204,23 @@ void BabySquatchAudioProcessorEditor::resized() {
   // 常時表示の展開エリア（下部）
   {
     auto expandArea = area.removeFromBottom(UIConstants::expandedAreaHeight);
-    keyboard.setBounds(
-        expandArea.removeFromBottom(UIConstants::keyboardHeight));
+
+    // 鍵盤行: 鍵盤自然幅で左寄せ、余白にマスターセクション
+    auto keyboardRow = expandArea.removeFromBottom(UIConstants::keyboardHeight);
+    const int kbWidth = juce::jmin(keyboardRow.getWidth(),
+                                   keyboard.getPreferredWidth());
+    keyboard.setBounds(keyboardRow.removeFromLeft(kbWidth));
+
+    // マスターセクション（鍵盤の右余白）
+    if (keyboardRow.getWidth() > 0) {
+      constexpr int masterFaderW = 180;
+      auto masterArea = keyboardRow.removeFromLeft(
+          juce::jmin(keyboardRow.getWidth(), masterFaderW));
+      masterSection.setBounds(masterArea);
+
+      infoBox.setBounds(keyboardRow.reduced(6, 4));
+    }
+
     envelopeCurveEditor.setBounds(expandArea);
     area.removeFromBottom(UIConstants::panelGap);
   }

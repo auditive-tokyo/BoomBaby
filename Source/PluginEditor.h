@@ -4,6 +4,7 @@
 #include "GUI/CustomSliderLAF.h"
 #include "GUI/EnvelopeCurveEditor.h"
 #include "GUI/KeyboardComponent.h"
+#include "GUI/MasterFader.h"
 #include "GUI/PanelComponent.h"
 #include "PluginProcessor.h"
 
@@ -61,6 +62,10 @@ private:
   EnvelopeData blendEnvData;
   EnvelopeCurveEditor envelopeCurveEditor{ampEnvData, pitchEnvData, distEnvData,
                                           blendEnvData};
+
+  // ── マスターセクション（鍵盤右余白エリア） ──
+  MasterFader masterSection;
+  juce::Label  infoBox;
 
   // ── SUB展開パネル: LAF（subUI より先に宣言し、後に破棄されるようにする） ──
   ColouredSliderLAF subKnobLAF{UIConstants::Colours::subArc,

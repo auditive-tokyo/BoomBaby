@@ -2,7 +2,7 @@
 
 KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState &state)
     : keyboardState(state) {
-  keyboard.setAvailableRange(12, 96); // C0–C7
+  keyboard.setAvailableRange(12, 84); // C0–C6
   keyboard.setOctaveForMiddleC(4);
   keyboard.setKeyPressBaseOctave(keyPressOctave); // A → C2（低音域向け）
   addAndMakeVisible(keyboard);

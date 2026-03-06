@@ -99,6 +99,9 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   clickEngine_.render(buffer, numSamples, passes.click, sr);
   directEngine_.render(buffer, numSamples, passes.direct, sr);
 
+  // マスターゲイン適用
+  buffer.applyGain(juce::Decibels::decibelsToGain(masterGainDb_.load()));
+
   using enum ChannelState::Channel;
 
   // Sub レベル計測

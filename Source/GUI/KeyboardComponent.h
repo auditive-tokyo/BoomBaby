@@ -14,6 +14,11 @@ public:
   /// 内部の MidiKeyboardComponent にフォーカスを渡す
   void grabFocus();
 
+  /// 鍵盤が実際に描画される幅（レイアウト計算用）
+  int getPreferredWidth() const {
+    return static_cast<int>(keyboard.getTotalKeyboardWidth());
+  }
+
   juce::MidiKeyboardState &getKeyboardState() { return keyboardState; }
 
 private:

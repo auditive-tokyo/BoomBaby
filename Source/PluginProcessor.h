@@ -4,6 +4,7 @@
 #include "DSP/ClickEngine.h"
 #include "DSP/DirectEngine.h"
 #include "DSP/SubEngine.h"
+#include <atomic>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 
@@ -48,6 +49,9 @@ public:
   ChannelState &channelState() noexcept { return channelState_; }
   const ChannelState &channelState() const noexcept { return channelState_; }
 
+  void setMasterGainDb(float db) { masterGainDb_.store(db); }
+  float getMasterGainDb() const  { return masterGainDb_.load(); }
+
 private:
   void handleMidiEvents(juce::MidiBuffer &midiMessages, int numSamples);
 
@@ -56,6 +60,7 @@ private:
   ClickEngine  clickEngine_;
   DirectEngine directEngine_;
   ChannelState channelState_;
+  std::atomic<float> masterGainDb_{0.0f};
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BabySquatchAudioProcessor)
 };
