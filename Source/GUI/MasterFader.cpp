@@ -187,10 +187,11 @@ void MasterFader::paint(juce::Graphics &g) {
 
   // ── 出力レベルテキスト（▲の真上、thumbX 中心） ──
   {
-    const auto norm = static_cast<float>(
-        (fader.getValue() - static_cast<double>(minDb)) /
-        (static_cast<double>(maxDb) - static_cast<double>(minDb)));
-    const float thumbX = meterArea.getX() + meterArea.getWidth() * norm;
+    // 0dB ラインと同じ meterArea 座標系で位置を計算
+    const float faderNorm = juce::jmap(
+        juce::jlimit(minDb, maxDb, static_cast<float>(fader.getValue())),
+        minDb, maxDb, 0.0f, 1.0f);
+    const float thumbX = meterArea.getX() + meterArea.getWidth() * faderNorm;
 
     // L/R のピーク最大値
     float maxPeak = minDb;
@@ -230,5 +231,6 @@ void MasterFader::paint(juce::Graphics &g) {
 void MasterFader::resized() {
   auto area = getLocalBounds();
   label.setBounds(area.removeFromTop(labelHeight));
-  fader.setBounds(area);
+  // fader はメーターバーと同じ幅に縮める（右の gainRect 分を除外）
+  fader.setBounds(area.withTrimmedRight(UIConstants::masterGainLabelWidth));
 }
