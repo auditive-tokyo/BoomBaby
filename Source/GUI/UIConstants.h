@@ -36,6 +36,10 @@ constexpr int meterWidth = 28;
 constexpr float meterFontSize = 8.0f;       // dB スケール目盛りラベル
 constexpr float faderValueFontSize = 12.0f; // フェーダー現在値ラベル
 
+// ── マスターフェーダー ──
+constexpr float masterGainFontSize = 14.0f; // マスターゲイン設定値表示
+constexpr int masterGainLabelWidth = 52;    // 右端に確保する幅 (px)
+
 // ── 鍵盤 ──
 constexpr int keyboardHeight = 70;
 

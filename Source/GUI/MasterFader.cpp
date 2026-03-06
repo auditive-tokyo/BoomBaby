@@ -24,11 +24,13 @@ MasterFader::MasterFader() {
   fader.setColour(juce::Slider::backgroundColourId,
                   juce::Colours::transparentBlack);
   fader.setColour(juce::Slider::trackColourId, juce::Colours::transparentBlack);
-  fader.setColour(juce::Slider::thumbColourId, UIConstants::Colours::text);
+  // サムは非表示（paint() で▲インジケーターを描く）
+  fader.setColour(juce::Slider::thumbColourId, juce::Colours::transparentBlack);
 
   fader.onValueChange = [this] {
     if (onValueChange)
       onValueChange(static_cast<float>(fader.getValue()));
+    repaint(); // 三角インジケーターの位置を更新
   };
   addAndMakeVisible(fader);
 
@@ -46,6 +48,21 @@ void MasterFader::setOnValueChange(std::function<void(float)> cb) {
 
 void MasterFader::setLevelProvider(int ch, std::function<float()> provider) {
   levelProvider[static_cast<std::size_t>(ch & 1)] = std::move(provider);
+}
+
+// ────────────────────────────────────────────────────
+// mouseDown: ピークラベルクリックでリセット
+// ────────────────────────────────────────────────────
+void MasterFader::mouseDown(const juce::MouseEvent &e) {
+  // メーター下半分（ピークテキスト・▲周辺）クリックでピークリセット
+  if (e.y > getHeight() / 2) {
+    for (auto &m : meter) {
+      m.peakDb = minDb;
+      m.peakHoldFrames = 0;
+      m.peakFallVelocity = 0.0f;
+    }
+    repaint();
+  }
 }
 
 // ────────────────────────────────────────────────────
@@ -74,20 +91,31 @@ void MasterFader::timerCallback() {
       }
     }
   }
-  if (anyActive)
+  if (anyActive) {
     repaint();
+  }
 }
 
 // ────────────────────────────────────────────────────
 // paint: L/R 横向きレベルメーターバー2段（フェーダーの背後に描画）
 // ────────────────────────────────────────────────────
 void MasterFader::paint(juce::Graphics &g) {
-  if (const bool hasProvider = levelProvider[0] || levelProvider[1]; !hasProvider)
+  if (const bool hasProvider = levelProvider[0] || levelProvider[1];
+      !hasProvider)
     return;
 
   auto area = getLocalBounds();
   area.removeFromTop(labelHeight);
-  const auto meterArea = area.reduced(4, 4).toFloat();
+  // ボトムに出力レベル行＋▲行を確保
+  static constexpr int peakTextSpace = 14; // 出力レベルテキスト用
+  static constexpr int triSpace = 9;       // ▲用
+  auto meterRect = area.reduced(4, 4);
+  const auto triRow = meterRect.removeFromBottom(triSpace).toFloat();
+  const auto peakTextRow = meterRect.removeFromBottom(peakTextSpace).toFloat();
+  // メーター右端にゲイン設定値エリアを確保
+  const auto gainRect =
+      meterRect.removeFromRight(UIConstants::masterGainLabelWidth).toFloat();
+  const auto meterArea = meterRect.toFloat();
 
   // L/R を縦に2分割
   const float barH = (meterArea.getHeight() - 2.0f) * 0.5f;
@@ -143,8 +171,56 @@ void MasterFader::paint(juce::Graphics &g) {
     // L / R ラベル
     g.setFont(juce::Font(juce::FontOptions(UIConstants::meterFontSize)));
     g.setColour(juce::Colour(0xFF888888));
-    g.drawText(chLabels[ch], bar.withWidth(12.0f),
-               juce::Justification::centred, false);
+    g.drawText(chLabels[ch], bar.withWidth(12.0f), juce::Justification::centred,
+               false);
+  }
+
+  // ── ゲイン設定値（メーター右側） ──
+  {
+    const auto db = static_cast<float>(fader.getValue());
+    const juce::String gainText =
+        (db >= 0.0f ? "+" : "") + juce::String(db, 1) + "dB";
+    g.setFont(juce::Font(juce::FontOptions(UIConstants::masterGainFontSize)));
+    g.setColour(UIConstants::Colours::text);
+    g.drawText(gainText, gainRect, juce::Justification::centred, false);
+  }
+
+  // ── 出力レベルテキスト（▲の真上、thumbX 中心） ──
+  {
+    const auto norm = static_cast<float>(
+        (fader.getValue() - static_cast<double>(minDb)) /
+        (static_cast<double>(maxDb) - static_cast<double>(minDb)));
+    const float thumbX = meterArea.getX() + meterArea.getWidth() * norm;
+
+    // L/R のピーク最大値
+    float maxPeak = minDb;
+    for (const auto &m : meter)
+      maxPeak = juce::jmax(maxPeak, m.peakDb);
+
+    if (maxPeak > minDb) {
+      const juce::String peakText =
+          (maxPeak >= 0.0f ? "+" : "") + juce::String(maxPeak, 1) + "dB";
+      static constexpr float peakTextW = 56.0f;
+      const float minX = meterArea.getX();
+      const float maxX = static_cast<float>(getWidth()) - 4.0f - peakTextW;
+      const float textX = juce::jlimit(minX, maxX, thumbX - peakTextW * 0.5f);
+      const auto textBounds = juce::Rectangle<float>(
+          textX, peakTextRow.getY(), peakTextW, peakTextRow.getHeight());
+      g.setFont(juce::Font(juce::FontOptions(UIConstants::fontSizeSmall)));
+      g.setColour(maxPeak >= 0.0f ? juce::Colour(0xFFFF4444)
+                                  : UIConstants::Colours::labelText);
+      g.drawText(peakText, textBounds, juce::Justification::centred, false);
+    }
+
+    // ── ▲インジケーター（triRow 内） ──
+    const float triTop = triRow.getY() + 1.0f;
+    const float triH = triRow.getHeight() - 2.0f;
+    const float triHW = triH * 0.6f;
+    juce::Path tri;
+    tri.addTriangle(thumbX, triTop, thumbX - triHW, triTop + triH,
+                    thumbX + triHW, triTop + triH);
+    g.setColour(UIConstants::Colours::text);
+    g.fillPath(tri);
   }
 }
 
@@ -154,5 +230,5 @@ void MasterFader::paint(juce::Graphics &g) {
 void MasterFader::resized() {
   auto area = getLocalBounds();
   label.setBounds(area.removeFromTop(labelHeight));
-  fader.setBounds(area); // paint() と同じ領域: meter が後ろ、fader サムが前
+  fader.setBounds(area);
 }

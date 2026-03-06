@@ -20,6 +20,7 @@ public:
 
   void paint(juce::Graphics &) override;
   void resized() override;
+  void mouseDown(const juce::MouseEvent &e) override;
 
   /// dB 値変化時のコールバックを登録する
   void setOnValueChange(std::function<void(float /*dB*/)> cb);
