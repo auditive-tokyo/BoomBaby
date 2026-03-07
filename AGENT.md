@@ -158,6 +158,11 @@ BabySquatchは3つのモジュールで構成されています：
     - BPF1 に Slope（12/24/48 dB/oct）を追加して音の幅を確保
     - ラベルを「Freq/Focus」→「BP/Q」に変更、Q レンジを 0〜18 に拡張
     - Q=0 バイパスを廃止し Q=0.1〜18 の range に統一（突然の無音を防ぐ）
+    - **Tone モード削除（確定）**: Tone（インパルス→BPFリング）は Noise の高Q設定で聴覚上代替可能。モードは Noise / Sample の 2 択に整理
+    - **Noise モードの乱数をシード固定に変更（確定）**: `triggerNote()` で `random_.setSeed(0)` を呼ぶ
+      - 理由: BPF通過後の出力スペクトル形状はフィルター設定で決まり、入力乱数列の違いは聴覚上識別不能
+      - DAW バウンス再現性（ヌルテスト通過）を保証するため決定論的出力が必須
+      - ランダムのままでは毎バウンスでサンプルレベルの差異が生じてプロダクションツールとして不適
   - **Distortion 追加（空いた 2 スロットを活用）**:
     - **Drive ノブ**: BPF 後段にプリゲイン（0〜24 dB）をかけてからクリッパーに入力。値が大きいほど歪みが強くなる
     - **Clip Type ノブ/セレクター**: 歪み方式を選択
@@ -166,14 +171,14 @@ BabySquatchは3つのモジュールで構成されています：
       3. `Bit`   — ビットクラッシャー（サンプル値を `round(s × bits) / bits`）（デジタル感）
     - 実装箇所: `ClickEngine::synthesizeSample()` の BPF 直後・HPF/LPF 手前に挿入
     - 既存 `tanh` は HPF/LPF がかかっているときだけ適用されていたが、Distortion として独立させて常に選択可能にする
-    - UI: ToneNoise の上段 4 スロット → `[BP Slope] [Q] [Drive] [ClipType]` に再配置
+    - UI: Noise の上段 4 スロット → `[BP Slope] [Q] [Drive] [ClipType]` に再配置
       - `BP`: freq ノブ + 上部に Slope セレクター（SlopeSelector を再利用）
       - `Q`: 0.1〜18 ノブ
       - `Drive`: 0〜24 dB ノブ
       - `ClipType`: Soft / Hard / Bit の 3 択セレクター（SlopeSelector 流用 or ComboBox）
-- **Sample モードへの Saturator 適用（設計確定）**:
+  - **Sample モードへの Saturator 適用（設計確定）**:
     - A/D/R 3ノブを廃止 → Gain 1ノブに変更。振幅形状は EnvelopeCurveEditor のカーブで制御（Sub と同方式）
-    - 空いた 2 スロットに Drive / ClipType を配置 → Tone/Noise モードと同じ Saturator が Sample でも使用可能になる
+    - 空いた 2 スロットに Drive / ClipType を配置 → Noise モードと同じ Saturator が Sample でも使用可能になる
     - Sample モードの 4 スロット構成: `[Pitch] [Gain] [Drive] [ClipType]`
     - **EnvelopeData の扱い**: Click amp 用に `EnvelopeData` インスタンスを別途追加（Sub の amp カーブとは独立したデータ）。ただし `EnvelopeData` クラス・`EnvelopeLutManager`・LUT 評価ロジックはすべて既存の共通コードを流用するため、コードの重複は一切なし
     - EnvelopeCurveEditor に Click amp カーブを EditTarget として追加する必要あり
