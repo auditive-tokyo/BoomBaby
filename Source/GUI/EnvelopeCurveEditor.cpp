@@ -456,19 +456,21 @@ void EnvelopeCurveEditor::paintTimeline(juce::Graphics &g, float w, float h,
     const float bBody = std::min(40.0f, displayDurationMs);
     const float bDecay = std::min(140.0f, displayDurationMs);
 
-    // 境界線の配列（表示範囲内のもののみ描画）
+    // 境界線：波形 top → タイムライン bottom まで貫通
     const std::array<float, 3> boundaries = {bAttack, bBody, bDecay};
     g.setColour(juce::Colours::white.withAlpha(0.10f));
     for (const float ms : boundaries) {
       if (ms < displayDurationMs) {
         const float bx = timeMsToX(ms);
         const auto ix = static_cast<int>(bx);
-        g.drawVerticalLine(ix, 0.0f, h);
+        g.drawVerticalLine(ix, 0.0f, totalH);
       }
     }
 
-    // セクションラベル（各区間の中央に描画）
+    // セクションラベル（ms 目盛りの下の行に描画）
     const float dur = displayDurationMs;
+    const float labelRowY = h + 16.0f; // ms行(~14px) の下
+    const float labelRowH = totalH - labelRowY;
     struct Section {
       float startMs;
       float endMs;
@@ -486,11 +488,12 @@ void EnvelopeCurveEditor::paintTimeline(juce::Graphics &g, float w, float h,
 
     for (const auto &[startMs, endMs, name] : sections) {
       if (startMs >= dur)
-        break; // この区間以降は表示範囲外
+        break;
       const float x0 = timeMsToX(startMs);
       const float x1 = timeMsToX(endMs);
-      if (x1 - x0 > 20.0f) { // ラベルが収まる最小幅
-        g.drawText(name, juce::Rectangle<float>(x0, h - 12.0f, x1 - x0, 12.0f),
+      if (x1 - x0 > 20.0f) {
+        g.drawText(name,
+                   juce::Rectangle<float>(x0, labelRowY, x1 - x0, labelRowH),
                    juce::Justification::centred, false);
       }
     }

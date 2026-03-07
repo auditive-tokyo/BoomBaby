@@ -93,7 +93,7 @@ private:
   void paintTimeline(juce::Graphics &g, float w, float h, float totalH) const;
 
   static constexpr float pointHitRadius = 8.0f;
-  static constexpr float timelineHeight = 18.0f;
+  static constexpr float timelineHeight = 30.0f;
 
   /// プロット領域の高さ（タイムライン分を差し引いた値）
   float plotHeight() const;
