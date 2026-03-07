@@ -449,51 +449,50 @@ void EnvelopeCurveEditor::paintTimeline(juce::Graphics &g, float w, float h,
   g.setColour(juce::Colours::white.withAlpha(0.15f));
   g.drawHorizontalLine(static_cast<int>(h), 0.0f, w);
 
-  // ── セクション境界（Attack / Body / Decay / Tail） ──
+  // ── セクション背景色（Attack / Body / Decay / Tail） ──
   {
-    // 境界 ms 値（displayDurationMs にクランプ）
-    const float bAttack = std::min(10.0f, displayDurationMs);
-    const float bBody = std::min(40.0f, displayDurationMs);
-    const float bDecay = std::min(140.0f, displayDurationMs);
-
-    // 境界線：波形 top → タイムライン bottom まで貫通
-    const std::array<float, 3> boundaries = {bAttack, bBody, bDecay};
-    g.setColour(juce::Colours::white.withAlpha(0.10f));
-    for (const float ms : boundaries) {
-      if (ms < displayDurationMs) {
-        const float bx = timeMsToX(ms);
-        const auto ix = static_cast<int>(bx);
-        g.drawVerticalLine(ix, 0.0f, totalH);
-      }
-    }
-
-    // セクションラベル（ms 目盛りの下の行に描画）
     const float dur = displayDurationMs;
     const float labelRowY = h + 16.0f; // ms行(~14px) の下
     const float labelRowH = totalH - labelRowY;
+
     struct Section {
       float startMs;
       float endMs;
       const char *name;
+      juce::Colour colour;
     };
     const std::array<Section, 4> sections = {{
-        {0.0f, std::min(10.0f, dur), "ATK"},
-        {10.0f, std::min(40.0f, dur), "BODY"},
-        {40.0f, std::min(140.0f, dur), "DECAY"},
-        {140.0f, dur, "TAIL"},
+        {0.0f, std::min(10.0f, dur), "ATK", juce::Colour(0xFFDD4444)},
+        {10.0f, std::min(40.0f, dur), "BODY", juce::Colour(0xFF44BB66)},
+        {40.0f, std::min(140.0f, dur), "DECAY", juce::Colour(0xFF4488DD)},
+        {140.0f, dur, "TAIL", juce::Colour(0xFFAA55DD)},
     }};
 
     g.setFont(juce::Font(juce::FontOptions(8.0f)));
-    g.setColour(juce::Colours::white.withAlpha(0.25f));
 
-    for (const auto &[startMs, endMs, name] : sections) {
+    for (const auto &[startMs, endMs, name, colour] : sections) {
       if (startMs >= dur)
         break;
+
       const float x0 = timeMsToX(startMs);
       const float x1 = timeMsToX(endMs);
-      if (x1 - x0 > 20.0f) {
+      const float sectionW = x1 - x0;
+
+      // 波形エリア全体を薄い色で塗りつぶす
+      g.setColour(colour.withAlpha(0.08f));
+      g.fillRect(juce::Rectangle<float>(x0, 0.0f, sectionW, totalH));
+
+      // セクション間の境界線（細く明確に）
+      if (startMs > 0.0f && startMs < dur) {
+        g.setColour(colour.withAlpha(0.35f));
+        g.drawVerticalLine(static_cast<int>(x0), 0.0f, totalH);
+      }
+
+      // セクションラベル
+      if (sectionW > 20.0f) {
+        g.setColour(colour.brighter(0.3f));
         g.drawText(name,
-                   juce::Rectangle<float>(x0, labelRowY, x1 - x0, labelRowH),
+                   juce::Rectangle<float>(x0, labelRowY, sectionW, labelRowH),
                    juce::Justification::centred, false);
       }
     }
@@ -521,7 +520,7 @@ void EnvelopeCurveEditor::paintTimeline(juce::Graphics &g, float w, float h,
     g.setColour(juce::Colours::white.withAlpha(0.20f));
     g.drawVerticalLine(static_cast<int>(x), h, h + 4.0f);
 
-    g.setColour(juce::Colour(0xFF999999));
+    g.setColour(juce::Colours::white);
     const juce::String label = (ms >= 1000.0f)
                                    ? juce::String(ms * 0.001f, 1) + "s"
                                    : juce::String(static_cast<int>(ms));
