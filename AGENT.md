@@ -171,7 +171,12 @@ BabySquatchは3つのモジュールで構成されています：
       - `Q`: 0.1〜18 ノブ
       - `Drive`: 0〜24 dB ノブ
       - `ClipType`: Soft / Hard / Bit の 3 択セレクター（SlopeSelector 流用 or ComboBox）
-  - **Sample モードへの適用**: スペース不足のため保留。別途検討
+- **Sample モードへの Saturator 適用（設計確定）**:
+    - A/D/R 3ノブを廃止 → Gain 1ノブに変更。振幅形状は EnvelopeCurveEditor のカーブで制御（Sub と同方式）
+    - 空いた 2 スロットに Drive / ClipType を配置 → Tone/Noise モードと同じ Saturator が Sample でも使用可能になる
+    - Sample モードの 4 スロット構成: `[Pitch] [Gain] [Drive] [ClipType]`
+    - **EnvelopeData の扱い**: Click amp 用に `EnvelopeData` インスタンスを別途追加（Sub の amp カーブとは独立したデータ）。ただし `EnvelopeData` クラス・`EnvelopeLutManager`・LUT 評価ロジックはすべて既存の共通コードを流用するため、コードの重複は一切なし
+    - EnvelopeCurveEditor に Click amp カーブを EditTarget として追加する必要あり
 
 - **CI / CD パイプライン構築**
   - 目的: GitHub Actions でビルド・静的解析を自動化し、プッシュごとに品質を担保する
