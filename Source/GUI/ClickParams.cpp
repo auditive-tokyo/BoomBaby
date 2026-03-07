@@ -432,8 +432,7 @@ void BabySquatchAudioProcessorEditor::onClickSampleLoadClicked() {
       });
 }
 
-void BabySquatchAudioProcessorEditor::applyClickSampleMode() {
-  // Tone/Noise 専用コントロールを隠す
+void BabySquatchAudioProcessorEditor::setClickModeVisible(bool isSample) {
   for (juce::Component *c :
        {static_cast<juce::Component *>(&clickUI.toneNoise.decayLabel),
         static_cast<juce::Component *>(&clickUI.toneNoise.decaySlider),
@@ -445,9 +444,8 @@ void BabySquatchAudioProcessorEditor::applyClickSampleMode() {
         static_cast<juce::Component *>(&clickUI.toneNoise.bpf2.freqSlider),
         static_cast<juce::Component *>(&clickUI.toneNoise.bpf2.qLabel),
         static_cast<juce::Component *>(&clickUI.toneNoise.bpf2.qSlider)})
-    c->setVisible(false);
+    c->setVisible(!isSample);
 
-  // Sample 専用コントロールを表示
   for (juce::Component *c :
        {static_cast<juce::Component *>(&clickUI.sample.loadButton),
         static_cast<juce::Component *>(&clickUI.sample.pitch.slider),
@@ -458,7 +456,11 @@ void BabySquatchAudioProcessorEditor::applyClickSampleMode() {
         static_cast<juce::Component *>(&clickUI.sample.hold.label),
         static_cast<juce::Component *>(&clickUI.sample.release.slider),
         static_cast<juce::Component *>(&clickUI.sample.release.label)})
-    c->setVisible(true);
+    c->setVisible(isSample);
+}
+
+void BabySquatchAudioProcessorEditor::applyClickSampleMode() {
+  setClickModeVisible(true);
 
   // HPF/LPF Q を "Q" / 0.1–6.0 に変更
   clickUI.hpf.qSlider.setRange(0.1, 6.0, 0.01);
@@ -501,32 +503,7 @@ void BabySquatchAudioProcessorEditor::applyClickSampleMode() {
 }
 
 void BabySquatchAudioProcessorEditor::applyClickToneNoiseMode(int m) {
-  // Tone/Noise 専用コントロールを表示
-  for (juce::Component *c :
-       {static_cast<juce::Component *>(&clickUI.toneNoise.decayLabel),
-        static_cast<juce::Component *>(&clickUI.toneNoise.decaySlider),
-        static_cast<juce::Component *>(&clickUI.toneNoise.bpf1.freqLabel),
-        static_cast<juce::Component *>(&clickUI.toneNoise.bpf1.freqSlider),
-        static_cast<juce::Component *>(&clickUI.toneNoise.bpf1.qLabel),
-        static_cast<juce::Component *>(&clickUI.toneNoise.bpf1.qSlider),
-        static_cast<juce::Component *>(&clickUI.toneNoise.bpf2.freqLabel),
-        static_cast<juce::Component *>(&clickUI.toneNoise.bpf2.freqSlider),
-        static_cast<juce::Component *>(&clickUI.toneNoise.bpf2.qLabel),
-        static_cast<juce::Component *>(&clickUI.toneNoise.bpf2.qSlider)})
-    c->setVisible(true);
-
-  // Sample 専用コントロールを隠す
-  for (juce::Component *c :
-       {static_cast<juce::Component *>(&clickUI.sample.loadButton),
-        static_cast<juce::Component *>(&clickUI.sample.pitch.slider),
-        static_cast<juce::Component *>(&clickUI.sample.pitch.label),
-        static_cast<juce::Component *>(&clickUI.sample.attack.slider),
-        static_cast<juce::Component *>(&clickUI.sample.attack.label),
-        static_cast<juce::Component *>(&clickUI.sample.hold.slider),
-        static_cast<juce::Component *>(&clickUI.sample.hold.label),
-        static_cast<juce::Component *>(&clickUI.sample.release.slider),
-        static_cast<juce::Component *>(&clickUI.sample.release.label)})
-    c->setVisible(false);
+  setClickModeVisible(false);
 
   // HPF/LPF Q を "Reso" / 0–12 に戻す
   // Sample モードから来た場合（range下限が0.1）のみ値もリセットする

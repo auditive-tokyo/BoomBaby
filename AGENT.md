@@ -68,7 +68,7 @@ BabySquatchは3つのモジュールで構成されています：
 │   ├── ChannelFader.cpp       // チャンネルフェーダー実装（メーター＋フェーダー一体）
 │   ├── ChannelFader.h         // チャンネルフェーダー宣言（Sub/Click/Direct 共通）
 │   ├── ClickParams.cpp        // Click パネル UI セットアップ / レイアウト
-│   ├── CustomSliderLAF.h      // ノブ描画LookAndFeel（グラデーション/値表示）
+│   ├── CustomSliderLAF.h      // ノブ描画LookAndFeel（グラデーション/値表示）+ CustomSlider（自然スクロール対応）
 │   ├── DirectParams.cpp       // Direct パネル UI セットアップ / レイアウト
 │   ├── EnvelopeCurveEditor.cpp // エンベロープカーブエディタ実装
 │   ├── EnvelopeCurveEditor.h  // エンベロープカーブエディタ宣言
@@ -80,7 +80,8 @@ BabySquatchは3つのモジュールで構成されています：
 │   ├── PanelComponent.cpp     // SUB/CLICK/DIRECT共通パネル実装
 │   ├── PanelComponent.h       // 共通パネル宣言（ChannelFader・M/S ボタン）
 │   ├── SubParams.cpp          // Sub パネル UI セットアップ / レイアウト
-│   └── UIConstants.h          // UI定数集約（色・レイアウト寸法）
+│   ├── UIConstants.h          // UI定数集約（色・レイアウト寸法）
+│   └── WaveformUtils.h        // 波形プレビュー描画ヘルパー（ClickParams/DirectParams 共通、ヘッダオンリー）
 ├── PluginEditor.cpp
 ├── PluginEditor.h
 ├── PluginProcessor.cpp
@@ -150,3 +151,18 @@ BabySquatchは3つのモジュールで構成されています：
     2. **ホスト報告**: `setLatencySamples(n)` で DAW に総遅延サンプル数を通知し、他トラックとの同期を確保
   - トリガー: ルックアヘッド型トランジェント検出を実装した際に必須となる（ルックアヘッド分だけ Wet が遅れるため）
   - 現状: 大きな遅延源がないため未着手で問題なし。トランジェント検出実装時に同時対応する
+
+- **CI / CD パイプライン構築**
+  - 目的: GitHub Actions でビルド・静的解析を自動化し、プッシュごとに品質を担保する
+  - 優先タスク:
+    1. **`compile_commands.json` の CI 生成**: SonarQube Cloud が Compilation Database モードで解析できるよう、スキャン前に以下を実行するステップを追加
+       ```yaml
+       - name: Generate compile_commands.json
+         run: cmake -S . -B build-clangd -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+       ```
+    2. **SonarQube Cloud スキャンステップ**: `sonar.cfamily.compile-commands=build-clangd/compile_commands.json` を指定して精度の高い C++ 解析を実現
+    3. **ビルド検証ステップ**: macOS runner で `make check` を実行し、コンパイルエラー・ワーニングを PR ごとにチェック
+  - SonarQube Cloud 設定変更（管理画面）:
+    - C file suffixes: `.c`（`.h` を削除）
+    - C++ file suffixes: `.cpp`, `.h`（`.h` を追加）
+    - `sonar.cfamily.analysisMode=compileCommands`

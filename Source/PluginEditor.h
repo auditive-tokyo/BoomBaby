@@ -36,6 +36,7 @@ private:
   void onClickSampleLoadClicked();
   void onClickSampleFileChosen(const juce::File &file);
   void refreshClickSampleProvider();
+  void setClickModeVisible(bool isSample);
   void applyClickSampleMode();
   void applyClickToneNoiseMode(int m);
   void layoutLengthBox(juce::Rectangle<int> btnRow);
