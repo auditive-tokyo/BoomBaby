@@ -38,6 +38,7 @@ void ClickEngine::prepareToPlay(double /*sampleRate*/, int samplesPerBlock) {
 
 void ClickEngine::triggerNote() {
   active_.store(true);
+  random_.setSeed(0); // 決定論的出力（DAWバウンス再現性保証）
   for (auto &f : bpf1s_)
     f.reset();
   bpf2_.reset();
