@@ -99,6 +99,15 @@ BabySquatchは3つのモジュールで構成されています：
   - 実装箇所: `PluginProcessor::processBlock()` の `applyGain()` 直後
   - GUI: MasterFader のメーターにゲインリダクション量（GR）表示を追加できる
 
+- **Infobox（ホバー説明 UI）（検討中）**
+  - 目的: キーボード右のスペースに固定の説明エリアを設置し、各ノブ・パラメーターにホバーしたときに使い方を表示
+  - 実装方針: **中央集権型文字列テーブル + カスタム `InfoBox` コンポーネント**
+    - `Source/GUI/InfoBox.h / InfoBox.cpp`: 右端固定の表示コンポーネント
+    - `Source/GUI/InfoStrings.h`: ID → 説明文のテーブル（`std::unordered_map`、バイナリ埋め込み）
+    - 各コンポーネントに `setComponentID("sub_level")` 等を設定し、汎用 `mouseEnter` / `mouseExit` ハンドラで `infoBox.show(id)` / `infoBox.hide()` を呼ぶ
+  - 外部ファイル（.json / .txt）方式は配布・パス解決が面倒なので採用しない
+  - `juce::TooltipWindow` はスタイル固定で右端常駐 UI に不向きなので採用しない
+
 - **Sub/Click 共通トリガー（トランジェント検出）**
   - 目的: 入力信号の立ち上がり過渡成分を検出して Sub/Click を瞬時に発音（VST/AU の Kick トラック挿入を想定）
   - 検証項目: Sasquatch の発火条件が「トランジェント検出」か「入力レベル/サイドチェイン閾値」かを確認
