@@ -54,10 +54,10 @@ void BabySquatchAudioProcessorEditor::onEnvelopeChanged() {
   bakeLut(blendEnvData, processorRef.subEngine().blendLut(), durationMs);
   // 1点=ノブ制御（有効化＋ポイント値をノブに反映）、2点以上=エンベロープ制御（無効化）
 
-  // Gain
+  // Amp
   const bool ampCtrl = ampEnvData.isEnvelopeControlled();
   subUI.knobs[0].setEnabled(!ampCtrl);
-  subUI.knobs[0].setTooltip(ampCtrl ? "Value is controlled by envelope" : "");
+  subUI.knobs[0].setTooltip(ampCtrl ? "Click on Amp label to edit envelope" : "");
   if (!ampCtrl && ampEnvData.hasPoints()) {
     const float v = ampEnvData.getPoints()[0].value;
     ampEnvData.setDefaultValue(v);
@@ -67,7 +67,7 @@ void BabySquatchAudioProcessorEditor::onEnvelopeChanged() {
   // Freq
   const bool pitchCtrl = pitchEnvData.isEnvelopeControlled();
   subUI.knobs[1].setEnabled(!pitchCtrl);
-  subUI.knobs[1].setTooltip(pitchCtrl ? "Value is controlled by envelope" : "");
+  subUI.knobs[1].setTooltip(pitchCtrl ? "Click on Freq label to edit envelope" : "");
   if (!pitchCtrl && pitchEnvData.hasPoints()) {
     const float hz = pitchEnvData.getPoints()[0].value;
     pitchEnvData.setDefaultValue(hz);
@@ -79,17 +79,17 @@ void BabySquatchAudioProcessorEditor::onEnvelopeChanged() {
   // Saturate
   const bool distCtrl = distEnvData.isEnvelopeControlled();
   subUI.knobs[3].setEnabled(!distCtrl);
-  subUI.knobs[3].setTooltip(distCtrl ? "Value is controlled by envelope" : "");
+  subUI.knobs[3].setTooltip(distCtrl ? "Click on Saturate label to edit envelope" : "");
   if (!distCtrl && distEnvData.hasPoints()) {
     const float v = distEnvData.getPoints()[0].value;
     distEnvData.setDefaultValue(v);
-    subUI.knobs[3].setValue(v * 100.0, juce::dontSendNotification);
+    subUI.knobs[3].setValue(v * 24.0, juce::dontSendNotification);
   }
 
   // Mix
   const bool blendCtrl = blendEnvData.isEnvelopeControlled();
   subUI.knobs[2].setEnabled(!blendCtrl);
-  subUI.knobs[2].setTooltip(blendCtrl ? "Value is controlled by envelope" : "");
+  subUI.knobs[2].setTooltip(blendCtrl ? "Click on Mix label to edit envelope" : "");
   if (!blendCtrl && blendEnvData.hasPoints()) {
     const float v = blendEnvData.getPoints()[0].value;
     blendEnvData.setDefaultValue(v);
@@ -103,14 +103,14 @@ void BabySquatchAudioProcessorEditor::onEnvelopeChanged() {
 // ────────────────────────────────────────────────────
 void BabySquatchAudioProcessorEditor::setupEnvelopeCurveEditor() {
   envelopeCurveEditor.setOnChange([this] { onEnvelopeChanged(); });
-  // 初期状態: Gain が選択済み（ラベル色を反映）
-  switchEditTarget(EnvelopeCurveEditor::EditTarget::gain);
+  // 初期状態: Amp が選択済み（ラベル色を反映）
+  switchEditTarget(EnvelopeCurveEditor::EditTarget::amp);
 }
 
 void BabySquatchAudioProcessorEditor::mouseDown(const juce::MouseEvent &e) {
   using enum EnvelopeCurveEditor::EditTarget;
   if (e.eventComponent == &subUI.knobLabels[0])
-    switchEditTarget(gain);
+    switchEditTarget(amp);
   else if (e.eventComponent == &subUI.knobLabels[1])
     switchEditTarget(freq);
   else if (e.eventComponent == &subUI.knobLabels[2])
@@ -125,8 +125,8 @@ void BabySquatchAudioProcessorEditor::switchEditTarget(
   using enum EnvelopeCurveEditor::EditTarget;
   const auto kLabel = UIConstants::Colours::labelText;
   subUI.knobLabels[0].setColour(juce::Label::textColourId,
-                                t == gain ? UIConstants::Colours::subArc
-                                          : kLabel);
+                                t == amp ? UIConstants::Colours::subArc
+                                         : kLabel);
   subUI.knobLabels[1].setColour(juce::Label::textColourId,
                                 t == freq ? juce::Colours::cyan : kLabel);
   subUI.knobLabels[3].setColour(juce::Label::textColourId,

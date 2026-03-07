@@ -20,8 +20,8 @@ public:
 
   void paint(juce::Graphics &g) override;
 
-  /// 編集対象のエンベロープを切り替え（Gain / Freq / Saturate / Mix）
-  enum class EditTarget { gain, freq, saturate, mix };
+  /// 編集対象のエンベロープを切り替え（Amp / Freq / Saturate / Mix）
+  enum class EditTarget { amp, freq, saturate, mix };
   void setEditTarget(EditTarget target);
 
   /// 波形プレビュー用: 選択波形を設定（Sine/Tri/Square/Saw）
@@ -109,8 +109,8 @@ private:
   EnvelopeData &distEnvData;
   EnvelopeData &blendEnvData;
   EnvelopeData
-      *editEnvData; // 編集中のエンベロープ（Gain / Freq / Saturate / Mix）
-  EditTarget editTarget = EditTarget::gain;
+      *editEnvData; // 編集中のエンベロープ（Amp / Freq / Saturate / Mix）
+  EditTarget editTarget = EditTarget::amp;
   float displayDurationMs = 300.0f;
   float displayCycles = 4.0f;
   WaveShape previewShape = WaveShape::Sine;

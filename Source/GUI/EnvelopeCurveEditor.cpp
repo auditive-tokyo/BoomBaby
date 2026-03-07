@@ -387,7 +387,7 @@ void EnvelopeCurveEditor::paintEnvelopeOverlay(juce::Graphics &g,
   using enum EditTarget;
   juce::Colour envColour;
   switch (editTarget) {
-  case gain:
+  case amp:
     envColour = UIConstants::Colours::subArc.brighter(0.4f);
     break;
   case freq:
@@ -566,7 +566,7 @@ std::pair<float, float> EnvelopeCurveEditor::editValueRange() const {
     return {0.0f, 1.0f};
   if (editTarget == mix)
     return {-1.0f, 1.0f};
-  return {0.0f, 2.0f}; // gain
+  return {0.0f, 2.0f}; // amp
 }
 
 float EnvelopeCurveEditor::valueToY(float value) const {
@@ -588,7 +588,7 @@ float EnvelopeCurveEditor::valueToY(float value) const {
     // Mix: -1.0 → 下端、0.0 → 中央、+1.0 → 上端
     return h - ((value + 1.0f) * 0.5f) * h;
   }
-  // Gain: value 0.0 → 下端、value 2.0 → 上端
+  // Amp: value 0.0 → 下端、value 2.0 → 上端
   return h - (value / 2.0f) * h;
 }
 
@@ -746,7 +746,7 @@ void EnvelopeCurveEditor::setEditTarget(EditTarget target) {
   using enum EditTarget;
   editTarget = target;
   switch (target) {
-  case gain:
+  case amp:
     editEnvData = &ampEnvData;
     break;
   case freq:

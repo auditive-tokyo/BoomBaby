@@ -164,17 +164,17 @@ BabySquatchは3つのモジュールで構成されています：
       - DAW バウンス再現性（ヌルテスト通過）を保証するため決定論的出力が必須
       - ランダムのままでは毎バウンスでサンプルレベルの差異が生じてプロダクションツールとして不適
   - **Distortion 追加（空いた 2 スロットを活用）**:
-    - **Drive ノブ**: BPF 後段にプリゲイン（0〜24 dB）をかけてからクリッパーに入力。値が大きいほど歪みが強くなる
+    - **Drive ノブ**: UI 表示 0〜24 dB（Sub の Saturate と完全統一。内部: `pow(10, dB/20)` → drive 係数 1.0〜15.85）。BPF 後段にプリゲインをかけてからクリッパーに入力。値が大きいほど歪みが強くなる
     - **Clip Type ノブ/セレクター**: 歪み方式を選択
-      1. `Soft`  — `tanh(drive × s)` （ウォーム・奇数倍音）← すでに部分実装済み
-      2. `Hard`  — `jlimit(-1, 1, drive × s)` （ブライト・攻撃的）
-      3. `Bit`   — ビットクラッシャー（サンプル値を `round(s × bits) / bits`）（デジタル感）
+      1. `Soft` — `tanh(drive × s)` （ウォーム・奇数倍音）← すでに部分実装済み
+      2. `Hard` — `jlimit(-1, 1, drive × s)` （ブライト・攻撃的）
+      3. `Bit` — ビットクラッシャー（サンプル値を `round(s × bits) / bits`）（デジタル感）
     - 実装箇所: `ClickEngine::synthesizeSample()` の BPF 直後・HPF/LPF 手前に挿入
     - 既存 `tanh` は HPF/LPF がかかっているときだけ適用されていたが、Distortion として独立させて常に選択可能にする
     - UI: Noise の上段 4 スロット → `[BP Slope] [Q] [Drive] [ClipType]` に再配置
       - `BP`: freq ノブ + 上部に Slope セレクター（SlopeSelector を再利用）
       - `Q`: 0.1〜18 ノブ
-      - `Drive`: 0〜24 dB ノブ
+      - `Drive`: 0〜24 dB ノブ（Sub Saturate と同一マッピング）
       - `ClipType`: Soft / Hard / Bit の 3 択セレクター（SlopeSelector 流用 or ComboBox）
   - **Sample モードへの Saturator 適用（設計確定）**:
     - A/D/R 3ノブを廃止 → Gain 1ノブに変更。振幅形状は EnvelopeCurveEditor のカーブで制御（Sub と同方式）

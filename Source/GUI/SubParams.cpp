@@ -3,9 +3,9 @@
 // チャンネル専用ノブ・ボタン設定メソッド群。 Click / Direct の実装時は同様に
 // ClickParamKnobs.cpp / DirectParamKnobs.cpp を作成する。
 
+#include "LutBaker.h"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
-#include "LutBaker.h"
 
 // ────────────────────────────────────────────────────
 // Length ボックス
@@ -17,24 +17,25 @@ void BabySquatchAudioProcessorEditor::setupLengthBox() {
   subUI.length.label.setText("length:", juce::dontSendNotification);
   subUI.length.label.setFont(tinyFont);
   subUI.length.label.setColour(juce::Label::textColourId,
-                            UIConstants::Colours::labelText);
+                               UIConstants::Colours::labelText);
   subUI.length.label.setJustificationType(juce::Justification::centredRight);
   addAndMakeVisible(subUI.length.label);
 
   subUI.length.slider.setSliderStyle(juce::Slider::LinearHorizontal);
-  subUI.length.slider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 54, 16);
+  subUI.length.slider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 54,
+                                      16);
   subUI.length.slider.setColour(juce::Slider::backgroundColourId,
-                             UIConstants::Colours::waveformBg);
+                                UIConstants::Colours::waveformBg);
   subUI.length.slider.setColour(juce::Slider::trackColourId,
-                             UIConstants::Colours::subArc.withAlpha(0.45f));
+                                UIConstants::Colours::subArc.withAlpha(0.45f));
   subUI.length.slider.setColour(juce::Slider::thumbColourId,
-                             UIConstants::Colours::subArc);
+                                UIConstants::Colours::subArc);
   subUI.length.slider.setColour(juce::Slider::textBoxTextColourId,
-                             juce::Colours::white.withAlpha(0.90f));
+                                juce::Colours::white.withAlpha(0.90f));
   subUI.length.slider.setColour(juce::Slider::textBoxBackgroundColourId,
-                             UIConstants::Colours::waveformBg);
+                                UIConstants::Colours::waveformBg);
   subUI.length.slider.setColour(juce::Slider::textBoxOutlineColourId,
-                             juce::Colours::transparentBlack);
+                                juce::Colours::transparentBlack);
   subUI.length.slider.setRange(10.0, 2000.0, 1.0);
   subUI.length.slider.setTextValueSuffix(" ms");
   subUI.length.slider.setDoubleClickReturnValue(true, 300.0);
@@ -43,9 +44,9 @@ void BabySquatchAudioProcessorEditor::setupLengthBox() {
     const auto v = static_cast<float>(subUI.length.slider.getValue());
     envelopeCurveEditor.setDisplayDurationMs(v);
     processorRef.subEngine().setLengthMs(v);
-    bakeLut(ampEnvData,   processorRef.subEngine().envLut(),   v);
+    bakeLut(ampEnvData, processorRef.subEngine().envLut(), v);
     bakeLut(pitchEnvData, processorRef.subEngine().pitchLut(), v);
-    bakeLut(distEnvData,  processorRef.subEngine().distLut(),  v);
+    bakeLut(distEnvData, processorRef.subEngine().distLut(), v);
     bakeLut(blendEnvData, processorRef.subEngine().blendLut(), v);
   };
   addAndMakeVisible(subUI.length.slider);
@@ -56,7 +57,7 @@ void BabySquatchAudioProcessorEditor::setupLengthBox() {
 // ────────────────────────────────────────────────────
 void BabySquatchAudioProcessorEditor::setupSubKnobsRow() {
   static constexpr std::array<const char *, 8> kLabels = {
-      "Gain", "Freq", "Mix", "Saturate", "Tone1", "Tone2", "Tone3", "Tone4"};
+      "Amp", "Freq", "Mix", "Saturate", "Tone1", "Tone2", "Tone3", "Tone4"};
   for (size_t i = 0; i < 8; ++i) {
     auto &knob = subUI.knobs[i];
     knob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -87,7 +88,7 @@ void BabySquatchAudioProcessorEditor::setupWaveShapeCombo() {
   subUI.wave.label.setText("wave:", juce::dontSendNotification);
   subUI.wave.label.setFont(smallFont);
   subUI.wave.label.setColour(juce::Label::textColourId,
-                          UIConstants::Colours::labelText);
+                             UIConstants::Colours::labelText);
   subUI.wave.label.setJustificationType(juce::Justification::centredRight);
   addAndMakeVisible(subUI.wave.label);
 
@@ -150,15 +151,15 @@ void BabySquatchAudioProcessorEditor::setupPitchKnob() {
 }
 
 // ────────────────────────────────────────────────────
-// Gain ノブ（subUI.knobs[0]）
+// Amp ノブ（subUI.knobs[0]）
 // ────────────────────────────────────────────────────
 void BabySquatchAudioProcessorEditor::setupAmpKnob() {
   subUI.knobs[0].setRange(0.0, 200.0);
   subUI.knobs[0].setValue(ampEnvData.getDefaultValue() * 100.0,
-                       juce::dontSendNotification);
+                          juce::dontSendNotification);
   subUI.knobs[0].setDoubleClickReturnValue(true, 100.0);
   subUI.knobs[0].onDragStart = [this] {
-    switchEditTarget(EnvelopeCurveEditor::EditTarget::gain);
+    switchEditTarget(EnvelopeCurveEditor::EditTarget::amp);
   };
   subUI.knobs[0].onValueChange = [this] {
     const float v = static_cast<float>(subUI.knobs[0].getValue()) / 100.0f;
@@ -173,7 +174,8 @@ void BabySquatchAudioProcessorEditor::setupAmpKnob() {
   ampEnvData.addPoint(0.0f, ampEnvData.getDefaultValue());
   const bool controlled = ampEnvData.isEnvelopeControlled();
   subUI.knobs[0].setEnabled(!controlled);
-  subUI.knobs[0].setTooltip(controlled ? "Value is controlled by envelope" : "");
+  subUI.knobs[0].setTooltip(controlled ? "Click on Amp label to edit envelope"
+                                       : "");
 }
 
 // ────────────────────────────────────────────────────
@@ -206,14 +208,14 @@ void BabySquatchAudioProcessorEditor::setupBlendKnob() {
 // Saturate ノブ（subUI.knobs[3]）
 // ────────────────────────────────────────────────────
 void BabySquatchAudioProcessorEditor::setupDistKnob() {
-  subUI.knobs[3].setRange(0.0, 100.0, 1.0);
+  subUI.knobs[3].setRange(0.0, 24.0, 0.1);
   subUI.knobs[3].setValue(0.0, juce::dontSendNotification);
   subUI.knobs[3].setDoubleClickReturnValue(true, 0.0);
   subUI.knobs[3].onDragStart = [this] {
     switchEditTarget(EnvelopeCurveEditor::EditTarget::saturate);
   };
   subUI.knobs[3].onValueChange = [this] {
-    const float v = static_cast<float>(subUI.knobs[3].getValue()) / 100.0f;
+    const float v = static_cast<float>(subUI.knobs[3].getValue()) / 24.0f;
     distEnvData.setDefaultValue(v);
     if (!distEnvData.isEnvelopeControlled())
       distEnvData.setPointValue(0, v);
@@ -239,7 +241,8 @@ void BabySquatchAudioProcessorEditor::setupHarmonicKnobs() {
     subUI.knobs[idx].setDoubleClickReturnValue(true, 25.0);
     const int harmonicNum = i + 1;
     subUI.knobs[idx].onValueChange = [this, idx, harmonicNum] {
-      const auto gain = static_cast<float>(subUI.knobs[idx].getValue()) / 100.0f;
+      const auto gain =
+          static_cast<float>(subUI.knobs[idx].getValue()) / 100.0f;
       processorRef.subEngine().oscillator().setHarmonicGain(harmonicNum, gain);
       envelopeCurveEditor.setPreviewHarmonicGain(harmonicNum, gain);
     };
@@ -254,7 +257,7 @@ void BabySquatchAudioProcessorEditor::setupHarmonicKnobs() {
 // ────────────────────────────────────────────────────
 void BabySquatchAudioProcessorEditor::layoutSubKnobsRow(
     juce::Rectangle<int> area) {
-  // 上段ノブ: Gain, Freq, Mix, Saturate
+  // 上段ノブ: Amp, Freq, Mix, Saturate
   // 下段ノブ: Tone1, Tone2, Tone3, Tone4
   const int slotW = area.getWidth() / 4;
   const int rowH = area.getHeight() / 2;

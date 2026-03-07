@@ -227,7 +227,7 @@ float SubOscillator::getNextSample() {
 
   // Distortion（tanh soft-clip — 常時適用、Saturate=0 でも軽いサチュレーション）
   const float d = dist_.load();
-  const float drive = 1.0f + d * 9.0f;  // 1.0〜10.0
+  const float drive = std::pow(10.0f, d * 24.0f / 20.0f); // 0〜24 dB → 1.0〜15.85
   sample = std::tanh(drive * sample) / std::tanh(drive);
 
   currentIndex += tableDelta;
