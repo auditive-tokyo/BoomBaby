@@ -38,9 +38,9 @@ public:
   void setDirectProvider(std::function<std::pair<float, float>(float)> fn);
 
   /// Click 波形オーバーレイ用プロバイダーを設定。
-  /// fn(timeSec) → -1.0〜+1.0 の振幅値を返すラムダ。
+  /// fn(timeSec) → {min, max}（-1〜1）の波形値を返すラムダ。
   /// nullptr を渡すとオーバーレイを無効化。
-  void setClickPreviewProvider(std::function<float(float)> fn);
+  void setClickPreviewProvider(std::function<std::pair<float, float>(float)> fn);
 
   /// Click Sample Decay 期間を設定（5msフェードアウトの基準）
   void setClickDecayMs(float ms);
@@ -125,7 +125,7 @@ private:
 
   std::function<void()> onChange;
   std::function<void(EditTarget)> onEditTargetChanged;
-  std::function<float(float)> clickPreviewFn_;
+  std::function<std::pair<float, float>(float)> clickPreviewFn_;
   float clickDecayMs_ = 300.0f;
   std::function<float(float)> clickNoiseEnvFn_;
   std::function<std::pair<float, float>(float)> directPreviewFn_;

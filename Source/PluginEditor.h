@@ -57,6 +57,7 @@ private:
     EnvelopeData dist;
     EnvelopeData mix;
     EnvelopeData clickAmp;
+    EnvelopeData directAmp;
   };
   EnvelopeDatas envDatas;
   EnvelopeCurveEditor envelopeCurveEditor{envDatas.amp, envDatas.freq,
@@ -200,15 +201,21 @@ private:
     std::vector<float> thumbMin;
     std::vector<float> thumbMax;
     double thumbDurSec = 0.0;
-    // ── Pitch / Envelope ノブ（上段） ──
+    // ── Pitch / Amp / Drive / Decay ノブ（上段） ──
     struct KnobUI {
       juce::Label label;
       CustomSlider slider;
     };
+    /// Drive + ClipType モジュール（ClickUI::SaturatorUI と同形）
+    struct SaturatorUI {
+      UIConstants::LabelSelector clipType{{"Soft", "Hard", "Tube"},
+                                          UIConstants::Colours::directArc};
+      CustomSlider driveSlider;
+    };
     KnobUI pitch;
-    KnobUI attack;
+    KnobUI amp;       ///< 0〜200% 振幅スケーラー
+    SaturatorUI saturator;
     KnobUI decay;
-    KnobUI release;
     // ── フィルター ノブ（下段） ──
     UIConstants::SlopeSelector hpfSlope{"HP", UIConstants::Colours::directArc};
     CustomSlider hpfSlider;

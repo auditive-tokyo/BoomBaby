@@ -37,7 +37,10 @@ void BabySquatchAudioProcessorEditor::setupLengthBox() {
   subUI.length.slider.setColour(juce::Slider::textBoxOutlineColourId,
                                 juce::Colours::transparentBlack);
   subUI.length.slider.setRange(10.0, 2000.0, 1.0);
-  subUI.length.slider.setTextValueSuffix(" ms");
+  subUI.length.slider.textFromValueFunction = [](double v) {
+    return v < 1000.0 ? juce::String(juce::roundToInt(v)) + " ms"
+                      : juce::String(v / 1000.0, 2) + " s";
+  };
   subUI.length.slider.setDoubleClickReturnValue(true, 300.0);
   subUI.length.slider.setValue(300.0, juce::dontSendNotification);
   subUI.length.slider.onValueChange = [this] {

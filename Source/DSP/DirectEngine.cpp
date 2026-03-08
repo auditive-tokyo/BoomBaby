@@ -1,4 +1,6 @@
 #include "DirectEngine.h"
+#include "Saturator.h"
+
 #include <cmath>
 
 // ────────────────────────────────────────────────────
@@ -17,11 +19,11 @@ void DirectEngine::prepareToPlay(double /*sampleRate*/, int samplesPerBlock) {
   }
 
   scratchBuffer_.resize(static_cast<std::size_t>(samplesPerBlock));
-  envPhase_ = EnvPhase::Idle;
-  envLevel_ = 0.0f;
+  noteTimeSamples_ = 0.0f;
   active_.store(false);
 
   sampler_.prepare();
+  directAmpLut_.reset();
 }
 
 void DirectEngine::triggerNote() {
@@ -29,8 +31,7 @@ void DirectEngine::triggerNote() {
     return;
 
   sampler_.resetPlayhead();
-  envPhase_ = EnvPhase::Attack;
-  envLevel_ = 0.0f;
+  noteTimeSamples_ = 0.0f;
 
   for (auto &f : hpfs_)
     f.reset();
@@ -71,43 +72,56 @@ auto DirectEngine::prepareFilters(float sr) -> FilterState {
   return {doHpf, doLpf, hpfStg, lpfStg};
 }
 
-float DirectEngine::applyFilters(float s, const FilterState &fs) {
+float DirectEngine::synthesizeSample(const FilterState &fs, double playRate) {
+  bool finished = false;
+  float s = sampler_.readInterpolated(viewData_, viewLen_, playRate, finished);
+  if (finished)
+    return 0.0f; // render 側で active を落とす
+
+  // ── Drive + Clip（HPF/LPF 前）──
+  s = Saturator::process(s, driveDb_.load(), clipType_.load());
+  // ── ポスト HPF / LPF ──
   for (int fi = 0; fs.doHpf && fi < fs.hpfStg; ++fi)
     s = hpfs_[static_cast<std::size_t>(fi)].processSample(0, s);
   for (int fi = 0; fs.doLpf && fi < fs.lpfStg; ++fi)
     s = lpfs_[static_cast<std::size_t>(fi)].processSample(0, s);
   if (fs.doHpf || fs.doLpf)
-    s = std::tanh(s);  // 共振ピークのソフトクリップ
+    s = Saturator::process(s, 0.0f,
+                           clipType_.load()); // 共振ピークを ClipType で整形
   return s;
 }
 
-bool DirectEngine::advanceEnvelope(float nt, float atkSamples, float decSamples,
-                                   float relSamples) {
-  using enum EnvPhase;
-  if (envPhase_ == Attack) {
-    if (atkSamples < 1.0f) {
-      envLevel_ = 1.0f;
-      envPhase_ = Hold;
-    } else {
-      envLevel_ = juce::jmin(1.0f, nt / atkSamples);
-      if (envLevel_ >= 1.0f)
-        envPhase_ = Hold;
-    }
-  } else if (envPhase_ == Hold) {
-    envLevel_ = 1.0f;
-    if (nt >= atkSamples + decSamples)
-      envPhase_ = Release;
-  } else if (envPhase_ == Release) {
-    const float relStart = atkSamples + decSamples;
-    const float t = (relSamples > 0.0f) ? (nt - relStart) / relSamples : 1.0f;
-    envLevel_ = juce::jmax(0.0f, 1.0f - t);
-    if (envLevel_ <= 0.0f) {
-      envPhase_ = Idle;
-      active_.store(false);
-      return true;
-    }
+float DirectEngine::computeMaxTimeSamples(float sr, double playRate) const {
+  const float ampDurMs = directAmpLut_.getDurationMs();
+  const float ampDurSamples = ampDurMs * sr / 1000.0f;
+  const double dur = sampler_.durationSec();
+  const float samplerDurSamples =
+      (dur > 0.0 && playRate > 0.0)
+          ? static_cast<float>(dur / playRate * static_cast<double>(sr))
+          : 1e9f;
+  return std::min(ampDurSamples, samplerDurSamples);
+}
+
+float DirectEngine::computeSampleAmp(float noteTimeMs) const {
+  const auto &ampLut = directAmpLut_.getActiveLut();
+  const float ampDurMs = directAmpLut_.getDurationMs();
+  const float lutPos =
+      (ampDurMs > 0.0f)
+          ? (noteTimeMs / ampDurMs) *
+                static_cast<float>(EnvelopeLutManager::lutSize - 1)
+          : 0.0f;
+  const auto lutIdx =
+      std::min(static_cast<int>(lutPos), EnvelopeLutManager::lutSize - 1);
+  float amp = ampLut[static_cast<size_t>(lutIdx)];
+
+  // 末尾 5ms half-cosine フェードアウト
+  constexpr float fadeOutMs = 5.0f;
+  if (const float fadeStartMs = std::max(0.0f, ampDurMs - fadeOutMs);
+      noteTimeMs > fadeStartMs) {
+    const float t = (noteTimeMs - fadeStartMs) / fadeOutMs;
+    amp *= 0.5f * (1.0f + std::cos(t * juce::MathConstants<float>::pi));
   }
-  return false;
+  return amp;
 }
 
 // ────────────────────────────────────────────────────
@@ -127,10 +141,8 @@ void DirectEngine::render(juce::AudioBuffer<float> &buffer, int numSamples,
   const double playRate =
       static_cast<double>(std::pow(2.0f, pitchSemitones_.load() / 12.0f)) *
       sampler_.sampleRate() / sampleRate;
-  const float atkSamples = envParams_.attackMs.load() * sr / 1000.0f;
-  const float decSamples = envParams_.decayMs.load() * sr / 1000.0f;
-  const float relSamples = envParams_.releaseMs.load() * sr / 1000.0f;
 
+  const float maxTimeSamples = computeMaxTimeSamples(sr, playRate);
   const FilterState fs = prepareFilters(sr);
 
   auto view = sampler_.lock();
@@ -139,42 +151,32 @@ void DirectEngine::render(juce::AudioBuffer<float> &buffer, int numSamples,
                 0.0f);
     return;
   }
+  // synthesizeSample() からアクセスするためメンバーにキャッシュ
+  viewData_ = view.data;
+  viewLen_ = view.length;
 
   const int numCh = buffer.getNumChannels();
-  // playRate 基準で noteTime を推定
-  // （SamplePlayer の playheadSamples_ は直接見えないため近似）
-  float noteTimeSamples = 0.0f;
-  // 初回ブロック向けに、ブロック先頭の noteTime を保持しない簡易実装
-  // → advanceEnvelope は相対サンプル位置で換算
 
   for (int i = 0; i < numSamples; ++i) {
-    // エンベロープ: ブロック先頭からの出力サンプル数で近似
-    noteTimeSamples += 1.0f;
-    bool done = advanceEnvelope(noteTimeSamples, atkSamples, decSamples, relSamples);
-
-    float out = 0.0f;
-    if (!done) {
-      bool finished = false;
-      float s = sampler_.readInterpolated(view.data, view.length,
-                                          playRate, finished);
-      if (finished) {
-        envPhase_ = EnvPhase::Idle;
-        active_.store(false);
-        done = true;
-      } else {
-        out = applyFilters(s, fs) * envLevel_ * gain;
-      }
+    if (noteTimeSamples_ >= maxTimeSamples) {
+      active_.store(false);
+      std::fill_n(scratchBuffer_.data() + i,
+                  static_cast<std::size_t>(numSamples - i), 0.0f);
+      break;
     }
+
+    const float noteTimeMs = noteTimeSamples_ * 1000.0f / sr;
+    const float amp = computeSampleAmp(noteTimeMs);
+    const float out = synthesizeSample(fs, playRate) * amp * gain;
 
     scratchBuffer_[static_cast<std::size_t>(i)] = out;
     if (directPass) {
       for (int ch = 0; ch < numCh; ++ch)
         buffer.addSample(ch, i, out);
     }
-    if (done) {
-      std::fill_n(scratchBuffer_.data() + i + 1,
-                  static_cast<std::size_t>(numSamples - i - 1), 0.0f);
-      break;
-    }
+    noteTimeSamples_ += 1.0f;
   }
+
+  viewData_ = nullptr;
+  viewLen_ = 0;
 }

@@ -536,10 +536,9 @@ void BabySquatchAudioProcessorEditor::refreshClickSampleProvider() {
 
   envelopeCurveEditor.setClickPreviewProvider(
       [minPtr, maxPtr, durSec](float timeSec) {
-        // A/D/R なし: サンプル全体を一定振幅で表示
-        const auto [lo, hi] = WaveformUtils::computePreview(
-            *minPtr, *maxPtr, durSec, 0.0f, static_cast<float>(durSec) + 1.0f,
-            0.0f, timeSec);
-        return (lo + hi) * 0.5f;
+        // A/D/R なし: サンプル全体の実ピーク幅をそのまま返す
+        return WaveformUtils::computePreview(*minPtr, *maxPtr, durSec, 0.0f,
+                                             static_cast<float>(durSec) + 1.0f,
+                                             0.0f, timeSec);
       });
 }

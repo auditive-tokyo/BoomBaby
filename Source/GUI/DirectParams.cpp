@@ -1,6 +1,7 @@
 // DirectParams.cpp
 // Direct panel UI setup / layout
 #include "../PluginEditor.h"
+#include "LutBaker.h"
 #include "WaveformUtils.h"
 
 namespace {
@@ -79,50 +80,69 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
   styleKnobLabelDirect(directUI.pitch.label, "Pitch", knobFont);
   addAndMakeVisible(directUI.pitch.label);
 
-  // Attack: 0.1 〜 500 ms
-  styleDirectKnob(directUI.attack.slider, directKnobLAF);
-  directUI.attack.slider.setRange(0.1, 500.0, 0.1);
-  directUI.attack.slider.setSkewFactorFromMidPoint(20.0);
-  directUI.attack.slider.setDoubleClickReturnValue(true, 1.0);
-  directUI.attack.slider.setValue(1.0, juce::dontSendNotification);
-  directUI.attack.slider.onValueChange = [this] {
-    processorRef.directEngine().setAttackMs(
-        static_cast<float>(directUI.attack.slider.getValue()));
+  // Amp: 0 〜 200%（LUT 経由で DSP へ反映 — Click の Amp と同一方式）
+  styleDirectKnob(directUI.amp.slider, directKnobLAF);
+  directUI.amp.slider.setRange(0.0, 200.0, 0.1);
+  directUI.amp.slider.setDoubleClickReturnValue(true, 100.0);
+  directUI.amp.slider.setValue(100.0, juce::dontSendNotification);
+  directUI.amp.slider.onValueChange = [this] {
+    const float v =
+        static_cast<float>(directUI.amp.slider.getValue()) / 100.0f;
+    envDatas.directAmp.setDefaultValue(v);
+    if (!envDatas.directAmp.isEnvelopeControlled())
+      envDatas.directAmp.setPointValue(0, v);
+    bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
+            processorRef.directEngine().directAmpLut().getDurationMs());
     refreshDirectProvider();
   };
-  addAndMakeVisible(directUI.attack.slider);
-  styleKnobLabelDirect(directUI.attack.label, "A", knobFont);
-  addAndMakeVisible(directUI.attack.label);
+  // 初期デフォルトポイント（1点：ノブ制御状態）
+  envDatas.directAmp.addPoint(0.0f, envDatas.directAmp.getDefaultValue());
+  addAndMakeVisible(directUI.amp.slider);
+  styleKnobLabelDirect(directUI.amp.label, "Amp", knobFont);
+  addAndMakeVisible(directUI.amp.label);
 
-  // Decay: 1 〜 2000 ms
+  // Drive: 0 〜 24 dB
+  styleDirectKnob(directUI.saturator.driveSlider, directKnobLAF);
+  directUI.saturator.driveSlider.setRange(0.0, 24.0, 0.1);
+  directUI.saturator.driveSlider.setDoubleClickReturnValue(true, 0.0);
+  directUI.saturator.driveSlider.setValue(0.0, juce::dontSendNotification);
+  directUI.saturator.driveSlider.textFromValueFunction = [](double v) {
+    return juce::String(v, 1) + " dB";
+  };
+  directUI.saturator.driveSlider.onValueChange = [this] {
+    processorRef.directEngine().setDriveDb(
+        static_cast<float>(directUI.saturator.driveSlider.getValue()));
+  };
+  addAndMakeVisible(directUI.saturator.driveSlider);
+
+  // ClipType セレクター（Soft / Hard / Tube）— Drive ノブ上部ラベルを兼ねる
+  directUI.saturator.clipType.setOnChange(
+      [this](int t) { processorRef.directEngine().setClipType(t); });
+  addAndMakeVisible(directUI.saturator.clipType);
+
+  // Decay: 10 〜 2000 ms（LUT の再生期間を制御 — Click の Sample Decay と同一）
   styleDirectKnob(directUI.decay.slider, directKnobLAF);
-  directUI.decay.slider.setRange(1.0, 2000.0, 1.0);
-  directUI.decay.slider.setSkewFactorFromMidPoint(200.0);
-  directUI.decay.slider.setDoubleClickReturnValue(true, 200.0);
-  directUI.decay.slider.setValue(200.0, juce::dontSendNotification);
+  directUI.decay.slider.setRange(10.0, 2000.0, 1.0);
+  directUI.decay.slider.setSkewFactorFromMidPoint(300.0);
+  directUI.decay.slider.setDoubleClickReturnValue(true, 300.0);
+  directUI.decay.slider.setValue(300.0, juce::dontSendNotification);
+  directUI.decay.slider.textFromValueFunction = [](double v) {
+    return v < 1000.0 ? juce::String(juce::roundToInt(v)) + " ms"
+                      : juce::String(v / 1000.0, 2) + " s";
+  };
   directUI.decay.slider.onValueChange = [this] {
-    processorRef.directEngine().setDecayMs(
-        static_cast<float>(directUI.decay.slider.getValue()));
+    const auto durMs =
+        static_cast<float>(directUI.decay.slider.getValue());
+    bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
+            durMs);
     refreshDirectProvider();
   };
+  // 起動時に LUT 期間を初期値へ反映
+  bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
+          300.0f);
   addAndMakeVisible(directUI.decay.slider);
-  styleKnobLabelDirect(directUI.decay.label, "D", knobFont);
+  styleKnobLabelDirect(directUI.decay.label, "Decay", knobFont);
   addAndMakeVisible(directUI.decay.label);
-
-  // Release: 1 〜 1000 ms
-  styleDirectKnob(directUI.release.slider, directKnobLAF);
-  directUI.release.slider.setRange(1.0, 1000.0, 1.0);
-  directUI.release.slider.setSkewFactorFromMidPoint(100.0);
-  directUI.release.slider.setDoubleClickReturnValue(true, 50.0);
-  directUI.release.slider.setValue(50.0, juce::dontSendNotification);
-  directUI.release.slider.onValueChange = [this] {
-    processorRef.directEngine().setReleaseMs(
-        static_cast<float>(directUI.release.slider.getValue()));
-    refreshDirectProvider();
-  };
-  addAndMakeVisible(directUI.release.slider);
-  styleKnobLabelDirect(directUI.release.label, "R", knobFont);
-  addAndMakeVisible(directUI.release.label);
 
   // HPF: SlopeSelector (label) + freq knob + Q knob
   directUI.hpfSlope.setOnChange(
@@ -190,9 +210,8 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
 
   // ── 起動時デフォルト値を DSP へ反映 ──
   processorRef.directEngine().setPitchSemitones(0.0f);
-  processorRef.directEngine().setAttackMs(1.0f);
-  processorRef.directEngine().setDecayMs(200.0f);
-  processorRef.directEngine().setReleaseMs(50.0f);
+  processorRef.directEngine().setDriveDb(0.0f);
+  processorRef.directEngine().setClipType(0);
   processorRef.directEngine().setHpfFreq(20.0f); // 20Hz = バイパス
   processorRef.directEngine().setHpfQ(0.707f);
   processorRef.directEngine().setHpfSlope(12);
@@ -223,19 +242,19 @@ void BabySquatchAudioProcessorEditor::layoutDirectParams(
   const int slotW = area.getWidth() / 4;
   const int rowH = area.getHeight() / 2;
 
-  // 上段行: Pitch / A / D / R
+  // 上段行: Pitch / Amp / Drive(+ClipType) / Decay
   {
     const std::array<juce::Slider *, 4> rowKnobs = {{
         &directUI.pitch.slider,
-        &directUI.attack.slider,
+        &directUI.amp.slider,
+        &directUI.saturator.driveSlider,
         &directUI.decay.slider,
-        &directUI.release.slider,
     }};
-    const std::array<juce::Label *, 4> rowLabels = {{
+    const std::array<juce::Component *, 4> rowLabels = {{
         &directUI.pitch.label,
-        &directUI.attack.label,
+        &directUI.amp.label,
+        &directUI.saturator.clipType,
         &directUI.decay.label,
-        &directUI.release.label,
     }};
     for (int col = 0; col < 4; ++col) {
       const auto col_u = static_cast<std::size_t>(col);
@@ -310,20 +329,18 @@ void BabySquatchAudioProcessorEditor::refreshDirectProvider() {
   const float speedRatio = std::pow(2.0f, semitones / 12.0f);
   const double durSec = directUI.thumbDurSec / static_cast<double>(speedRatio);
 
-  // A / D(Hold) / R を秒単位でキャプチャ
-  const float attackSec =
-      static_cast<float>(directUI.attack.slider.getValue()) / 1000.0f;
-  const float holdSec =
-      static_cast<float>(directUI.decay.slider.getValue()) / 1000.0f;
-  const float releaseSec =
-      static_cast<float>(directUI.release.slider.getValue()) / 1000.0f;
+  // LUT 期間 (ms) + Amp (0〜2.0)
+  const float ampDurMs =
+      processorRef.directEngine().directAmpLut().getDurationMs();
+  const float ampScale =
+      static_cast<float>(directUI.amp.slider.getValue()) / 100.0f;
 
   auto minPtr = std::make_shared<std::vector<float>>(directUI.thumbMin);
   auto maxPtr = std::make_shared<std::vector<float>>(directUI.thumbMax);
 
-  envelopeCurveEditor.setDirectProvider([minPtr, maxPtr, durSec, attackSec,
-                                         holdSec, releaseSec](float timeSec) {
-    return WaveformUtils::computePreview(*minPtr, *maxPtr, durSec, attackSec,
-                                         holdSec, releaseSec, timeSec);
-  });
+  envelopeCurveEditor.setDirectProvider(
+      [minPtr, maxPtr, durSec, ampDurMs, ampScale](float timeSec) {
+        return WaveformUtils::computeLutPreview(*minPtr, *maxPtr, durSec,
+                                                ampDurMs, ampScale, timeSec);
+      });
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <juce_core/juce_core.h>
 #include <utility>
 #include <vector>
@@ -44,6 +45,38 @@ computePreview(const std::vector<float> &thumbMin,
 
   return {thumbMin[static_cast<std::size_t>(idx)] * env,
           thumbMax[static_cast<std::size_t>(idx)] * env};
+}
+
+/// LUT ベースのエンベロープ・プレビュー（Direct / Click Sample 共通）。
+/// ampDurMs がエンベロープ再生期間、ampScale が振幅スケール。
+/// 再生時間は min(サンプル長, エンベロープ期間) でクリップする。
+inline std::pair<float, float>
+computeLutPreview(const std::vector<float> &thumbMin,
+                  const std::vector<float> &thumbMax, double durSec,
+                  float ampDurMs, float ampScale, float timeSec) {
+  const float ampDurSec = ampDurMs / 1000.0f;
+
+  if (const float maxDur = std::min(static_cast<float>(durSec), ampDurSec);
+      maxDur <= 0.0f || timeSec < 0.0f || timeSec >= maxDur)
+    return {0.0f, 0.0f};
+
+  // 末尾 5ms half-cosine フェードアウト（DSP の computeSampleAmp と同一）
+  constexpr float fadeOutMs = 5.0f;
+  float fade = 1.0f;
+  if (const float fadeStartMs = std::max(0.0f, ampDurMs - fadeOutMs);
+      timeSec * 1000.0f > fadeStartMs) {
+    const float fadeT = (timeSec * 1000.0f - fadeStartMs) / fadeOutMs;
+    fade = 0.5f * (1.0f + std::cos(fadeT * juce::MathConstants<float>::pi));
+  }
+  const float scale = ampScale * fade;
+
+  const float thumbT = timeSec / static_cast<float>(durSec);
+  const auto n = static_cast<int>(thumbMin.size());
+  const int idx =
+      juce::jlimit(0, n - 1, static_cast<int>(thumbT * static_cast<float>(n)));
+
+  return {thumbMin[static_cast<std::size_t>(idx)] * scale,
+          thumbMax[static_cast<std::size_t>(idx)] * scale};
 }
 
 } // namespace WaveformUtils
