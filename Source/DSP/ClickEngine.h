@@ -129,7 +129,7 @@ private:
   std::atomic<int> bpf1Stages_{1}; // BPF1 cascade stages
   std::atomic<int> mode_{1};       // 1=Noise, 2=Sample
   std::atomic<float> gainDb_{0.0f};
-  std::atomic<float> decayMs_{50.0f};
+  std::atomic<float> decayMs_{30.0f};
   // Sample モード用パラメーター
   SampleModeParams sampleParams_;
   // Noise 用 BPF パラメーター

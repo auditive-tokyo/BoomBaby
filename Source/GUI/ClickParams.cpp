@@ -5,29 +5,6 @@
 
 namespace {
 
-void styleFilterSlider(juce::Slider &s) {
-  s.setSliderStyle(juce::Slider::LinearHorizontal);
-  s.setTextBoxStyle(juce::Slider::TextBoxRight, false, 54, 16);
-  s.setColour(juce::Slider::backgroundColourId,
-              UIConstants::Colours::waveformBg);
-  s.setColour(juce::Slider::trackColourId,
-              UIConstants::Colours::clickArc.withAlpha(0.45f));
-  s.setColour(juce::Slider::thumbColourId, UIConstants::Colours::clickArc);
-  s.setColour(juce::Slider::textBoxTextColourId,
-              juce::Colours::white.withAlpha(0.90f));
-  s.setColour(juce::Slider::textBoxBackgroundColourId,
-              UIConstants::Colours::waveformBg);
-  s.setColour(juce::Slider::textBoxOutlineColourId,
-              juce::Colours::transparentBlack);
-}
-
-void styleFilterLabel(juce::Label &label, const juce::String &text,
-                      const juce::Font &font) {
-  label.setText(text, juce::dontSendNotification);
-  label.setFont(font);
-  label.setColour(juce::Label::textColourId, UIConstants::Colours::labelText);
-  label.setJustificationType(juce::Justification::centredRight);
-}
 void styleKnobLabel(juce::Label &label, const juce::String &text,
                     const juce::Font &font) {
   label.setText(text, juce::dontSendNotification);
@@ -65,7 +42,7 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   // ── Filter param labels ──
   const auto tinyFont =
       juce::Font(juce::FontOptions(UIConstants::fontSizeSmall));
-  styleFilterLabel(clickUI.noise.decayLabel, "Decay:", tinyFont);
+  styleKnobLabel(clickUI.noise.decayLabel, "Decay", tinyFont);
   clickUI.noise.bpf1.slopeSelector.setOnChange(
       [this](int dboct) { processorRef.clickEngine().setBpf1Slope(dboct); });
   styleKnobLabel(clickUI.noise.bpf1.qLabel, "Q", tinyFont);
@@ -88,12 +65,16 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
       [this](int dboct) { processorRef.clickEngine().setLpfSlope(dboct); });
 
   // ── Sliders ──
-  // Decay  1–2000 ms
-  styleFilterSlider(clickUI.noise.decaySlider);
+  // Decay  1–2000 ms ロータリーノブ
+  styleClickKnob(clickUI.noise.decaySlider, clickKnobLAF);
   clickUI.noise.decaySlider.setRange(1.0, 2000.0, 1.0);
-  clickUI.noise.decaySlider.setTextValueSuffix(" ms");
-  clickUI.noise.decaySlider.setDoubleClickReturnValue(true, 50.0);
-  clickUI.noise.decaySlider.setValue(50.0, juce::dontSendNotification);
+  clickUI.noise.decaySlider.setSkewFactorFromMidPoint(200.0);
+  clickUI.noise.decaySlider.setDoubleClickReturnValue(true, 30.0);
+  clickUI.noise.decaySlider.setValue(30.0, juce::dontSendNotification);
+  clickUI.noise.decaySlider.textFromValueFunction = [](double v) {
+    return v < 1000.0 ? juce::String(juce::roundToInt(v)) + " ms"
+                      : juce::String(v / 1000.0, 2) + " s";
+  };
   clickUI.noise.decaySlider.onValueChange = [this] {
     processorRef.clickEngine().setDecayMs(
         static_cast<float>(clickUI.noise.decaySlider.getValue()));
@@ -285,7 +266,7 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   addAndMakeVisible(clickUI.sample.loadButton);
 
   // 起動時デフォルト値を DSP へ反映
-  processorRef.clickEngine().setDecayMs(50.0f);
+  processorRef.clickEngine().setDecayMs(30.0f);
   processorRef.clickEngine().setFreq1(5000.0f);
   processorRef.clickEngine().setFocus1(0.71f);
   processorRef.clickEngine().setDriveDb(0.0f);
@@ -333,7 +314,6 @@ void BabySquatchAudioProcessorEditor::layoutClickParams(
   constexpr int modeLabelW = 38;
   constexpr int modeComboW = 72;
   constexpr int colGap = 6;
-  constexpr int labelW = 36;
 
   clickUI.modeLabel.setBounds(topRow.removeFromLeft(modeLabelW));
   clickUI.modeCombo.setBounds(topRow.removeFromLeft(modeComboW));
@@ -343,10 +323,8 @@ void BabySquatchAudioProcessorEditor::layoutClickParams(
                          static_cast<int>(ClickUI::Mode::Sample));
   if (isSample) {
     clickUI.sample.loadButton.setBounds(topRow);
-  } else {
-    clickUI.noise.decayLabel.setBounds(topRow.removeFromLeft(labelW));
-    clickUI.noise.decaySlider.setBounds(topRow);
   }
+  // Noiseモード: Decayは上段ノブ行のスロット3に移動済み—トップ行は何もなし
 
   const int slotW = area.getWidth() / 4;
   const int rowH = area.getHeight() / 2;
@@ -366,21 +344,20 @@ void BabySquatchAudioProcessorEditor::layoutClickParams(
       topKnobs[idx]->setBounds(slot);
     }
   } else {
-    // Noise: スロット 0-2 はノブ+ラベル、スロット 3 は空き（将来拡張用）
-    const std::array<juce::Slider *, 3> topKnobs = {
+    // Noise: スロット 0-2 はノブ+ラベル、スロット 3 は Decay
+    const std::array<juce::Slider *, 4> topKnobs = {
         {&clickUI.noise.bpf1.freqSlider, &clickUI.noise.bpf1.qSlider,
-         &clickUI.noise.saturator.driveSlider}};
-    const std::array<juce::Component *, 3> topLabels = {
+         &clickUI.noise.saturator.driveSlider, &clickUI.noise.decaySlider}};
+    const std::array<juce::Component *, 4> topLabels = {
         {&clickUI.noise.bpf1.slopeSelector, &clickUI.noise.bpf1.qLabel,
-         &clickUI.noise.saturator
-              .clipType}}; // clipType が Drive のラベルを兼ねる
-    for (int col = 0; col < 3; ++col) {
+         &clickUI.noise.saturator.clipType,
+         &clickUI.noise.decayLabel}}; // clipType が Drive のラベルを兼ねる
+    for (int col = 0; col < 4; ++col) {
       const auto idx = static_cast<size_t>(col);
       juce::Rectangle slot(area.getX() + col * slotW, area.getY(), slotW, rowH);
       topLabels[idx]->setBounds(slot.removeFromBottom(14));
       topKnobs[idx]->setBounds(slot);
     }
-    // スロット 3: 空き（将来拡張ノブ用）
   }
 
   // 下段4ノブ: HP(slope) / HPQ / LP(slope) / LPQ（常時）
