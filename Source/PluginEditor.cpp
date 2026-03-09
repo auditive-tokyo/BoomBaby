@@ -1,6 +1,7 @@
 #include "PluginEditor.h"
 #include "GUI/LutBaker.h"
 #include "PluginProcessor.h"
+#include <span>
 
 // ────────────────────────────────────────────────────
 // パネルルーティング（Mute/Solo/レベルメーター）
@@ -258,25 +259,23 @@ void BabySquatchAudioProcessorEditor::timerCallback() {
   // FIFO から利用可能なサンプルをローリング表示バッファに追記
   auto &fifo = processorRef.inputFifo();
   const auto &src = processorRef.inputFifoData();
-  const int avail = fifo.getNumReady();
-
-  if (avail > 0) {
+  if (const int avail = fifo.getNumReady(); avail > 0) {
     int s1;
     int sz1;
     int s2;
     int sz2;
     fifo.prepareToRead(avail, s1, sz1, s2, sz2);
     const int cap = kWaveDisplayCapacity;
-    auto writeToRing = [&](const float *data, int size) {
-      for (int i = 0; i < size; ++i) {
-        waveDisplayBuf_[static_cast<std::size_t>(waveDisplayPos_)] = data[i];
+    auto writeToRing = [&](std::span<const float> data) {
+      for (const float s : data) {
+        waveDisplayBuf_[static_cast<std::size_t>(waveDisplayPos_)] = s;
         waveDisplayPos_ = (waveDisplayPos_ + 1) % cap;
         waveDisplayFilled_ = std::min(waveDisplayFilled_ + 1, cap);
       }
     };
-    writeToRing(src.data() + s1, sz1);
+    writeToRing(std::span<const float>{src.data() + s1, static_cast<std::size_t>(sz1)});
     if (sz2 > 0)
-      writeToRing(src.data() + s2, sz2);
+      writeToRing(std::span<const float>{src.data() + s2, static_cast<std::size_t>(sz2)});
     fifo.finishedRead(sz1 + sz2);
   }
 
