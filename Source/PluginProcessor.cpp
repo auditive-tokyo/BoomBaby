@@ -95,7 +95,8 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   const double sr = getSampleRate();
 
   // ── トランジェント検出（入力信号をクリアする前に解析）──
-  if (transientDetector_.isEnabled() && buffer.getNumChannels() > 0) {
+  // Sample モード時は入力不要のため検出もスキップ
+  if (transientDetector_.isEnabled() && !directSampleMode_.load() && buffer.getNumChannels() > 0) {
     const int numCh = buffer.getNumChannels();
     auto *mono = monoMixBuffer_.data();
     // ステレオ→モノミックス（L+R 平均の絶対値で検出）
