@@ -69,6 +69,11 @@ private:
   MasterFader masterSection;
   juce::Label infoBox;
 
+  // ── Auto Trigger（鍵盤と Master の間） ──
+  UIConstants::GradientButtonLAF autoTrigLAF{
+      UIConstants::Colours::muteOff, juce::Colour(0xFFEE8822)};
+  juce::TextButton autoTrigButton{"Auto"};
+
   // ── SUB展開パネル: LAF（subUI より先に宣言し、後に破棄されるようにする） ──
   ColouredSliderLAF subKnobLAF{UIConstants::Colours::subArc,
                                UIConstants::Colours::subThumb};

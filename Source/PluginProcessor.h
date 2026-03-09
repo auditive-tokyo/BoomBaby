@@ -5,6 +5,7 @@
 #include "DSP/DirectEngine.h"
 #include "DSP/LevelDetector.h"
 #include "DSP/SubEngine.h"
+#include "DSP/TransientDetector.h"
 #include <array>
 #include <atomic>
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -53,6 +54,12 @@ public:
 
   void setMasterGainDb(float db) { masterGainDb_.store(db); }
   float getMasterGainDb() const  { return masterGainDb_.load(); }
+
+  /// トランジェント検出器へのアクセサ
+  TransientDetector &transientDetector() noexcept { return transientDetector_; }
+
+  /// Direct Sample モード時は入力をミュート（UI スレッドから設定）
+  void setDirectSampleMode(bool isSample) noexcept { directSampleMode_.store(isSample); }
   /// UIスレッドからマスター出力ドアを取得 (ch: 0=L, 1=R)
   float getMasterLevelDb(int ch) const { return masterDetector_[static_cast<std::size_t>(ch & 1)].getPeakDb(); }
 
@@ -66,6 +73,9 @@ private:
   ChannelState channelState_;
   std::atomic<float> masterGainDb_{0.0f};
   mutable std::array<LevelDetector, 2> masterDetector_; // 0=L, 1=R
+  TransientDetector transientDetector_;
+  std::vector<float> monoMixBuffer_; // トランジェント検出用モノ合成バッファ
+  std::atomic<bool> directSampleMode_{false}; // Direct が Sample モードのとき入力を消去
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BabySquatchAudioProcessor)
 };

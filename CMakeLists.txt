@@ -63,6 +63,7 @@ target_sources(BabySquatch
         Source/DSP/SubEngine.cpp
         Source/DSP/SubOscillator.h
         Source/DSP/SubOscillator.cpp
+        Source/DSP/TransientDetector.h
 )
 
 target_compile_definitions(BabySquatch

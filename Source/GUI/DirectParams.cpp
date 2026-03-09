@@ -60,6 +60,7 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
     directUI.sampleLoadButton.setVisible(isSample);
     if (!isSample)
       directUI.sampleLoadButton.setButtonText("Drop or Click to Load");
+    processorRef.setDirectSampleMode(isSample);
     resized();
   };
   // ── 8 ノブ セットアップ ──

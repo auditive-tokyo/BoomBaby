@@ -47,6 +47,11 @@ void BabySquatchAudioProcessor::prepareToPlay(double sampleRate,
   clickEngine_.prepareToPlay(sampleRate, samplesPerBlock);
   directEngine_.prepareToPlay(sampleRate, samplesPerBlock);
   channelState_.resetDetectors();
+
+  transientDetector_.prepare(sampleRate);
+  transientDetector_.setThresholdDb(-24.0f);
+  transientDetector_.setHoldMs(50.0f);
+  monoMixBuffer_.resize(static_cast<std::size_t>(samplesPerBlock));
 }
 
 void BabySquatchAudioProcessor::releaseResources() {
@@ -86,13 +91,33 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   juce::ScopedNoDenormals noDenormals;
 
   const auto passes = channelState_.computePasses();
-
-  // Direct ミュート: 入力信号ごと消去（Sub はこの後加算するので影響なし）
-  if (!passes.direct)
-    buffer.clear();
-
   const int numSamples = buffer.getNumSamples();
   const double sr = getSampleRate();
+
+  // ── トランジェント検出（入力信号をクリアする前に解析）──
+  if (transientDetector_.isEnabled() && buffer.getNumChannels() > 0) {
+    const int numCh = buffer.getNumChannels();
+    auto *mono = monoMixBuffer_.data();
+    // ステレオ→モノミックス（L+R 平均の絶対値で検出）
+    const float *ch0 = buffer.getReadPointer(0);
+    if (numCh >= 2) {
+      const float *ch1 = buffer.getReadPointer(1);
+      for (int i = 0; i < numSamples; ++i)
+        mono[i] = (ch0[i] + ch1[i]) * 0.5f;
+    } else {
+      std::copy_n(ch0, numSamples, mono);
+    }
+    if (transientDetector_.process(std::span<const float>(mono, static_cast<std::size_t>(numSamples)))) {
+      subEngine_.triggerNote();
+      clickEngine_.triggerNote();
+      directEngine_.triggerNote();
+    }
+  }
+
+  // Direct ミュート: 入力信号ごと消去（Sub はこの後加算するので影響なし）
+  // Sample モード時も入力をクリア（サンプル再生は render() で加算する）
+  if (!passes.direct || directSampleMode_.load())
+    buffer.clear();
 
   handleMidiEvents(midiMessages, numSamples);
   subEngine_.render(buffer, numSamples, passes.sub, sr);

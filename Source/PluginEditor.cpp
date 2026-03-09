@@ -193,6 +193,16 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
   addAndMakeVisible(masterSection);
   addAndMakeVisible(infoBox);
 
+  // Auto Trigger ボタン
+  autoTrigButton.setClickingTogglesState(true);
+  autoTrigButton.setToggleState(false, juce::dontSendNotification);
+  autoTrigButton.setLookAndFeel(&autoTrigLAF);
+  autoTrigButton.onClick = [this] {
+    processorRef.transientDetector().setEnabled(
+        autoTrigButton.getToggleState());
+  };
+  addAndMakeVisible(autoTrigButton);
+
   // infoBox 初期設定
   infoBox.setText("", juce::dontSendNotification);
   infoBox.setFont(juce::Font(juce::FontOptions(UIConstants::fontSizeSmall)));
@@ -230,6 +240,7 @@ BabySquatchAudioProcessorEditor::~BabySquatchAudioProcessorEditor() {
   subUI.wave.combo.setLookAndFeel(nullptr);
   clickUI.modeCombo.setLookAndFeel(nullptr);
   directUI.modeCombo.setLookAndFeel(nullptr);
+  autoTrigButton.setLookAndFeel(nullptr);
 }
 
 void BabySquatchAudioProcessorEditor::paint(juce::Graphics &g) {
@@ -252,6 +263,13 @@ void BabySquatchAudioProcessorEditor::resized() {
     const int kbWidth =
         juce::jmin(keyboardRow.getWidth(), keyboard.getPreferredWidth());
     keyboard.setBounds(keyboardRow.removeFromLeft(kbWidth));
+
+    // Auto Trigger ボタン（鍵盤と Master の間）
+    if (keyboardRow.getWidth() > 60) {
+      constexpr int trigW = 56;
+      auto trigArea = keyboardRow.removeFromLeft(trigW);
+      autoTrigButton.setBounds(trigArea.reduced(4, 18));
+    }
 
     // マスターセクション（鍵盤の右余白）
     if (keyboardRow.getWidth() > 0) {

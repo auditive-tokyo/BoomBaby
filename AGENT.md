@@ -64,7 +64,8 @@ BabySquatchは3つのモジュールで構成されています：
 │   ├── SubEngine.cpp          // Sub DSP 実装（Wavetable OSC、LUT 駆動）
 │   ├── SubEngine.h            // Sub DSP 宣言
 │   ├── SubOscillator.cpp      // Sub用Wavetable OSC実装
-│   └── SubOscillator.h        // Sub用Wavetable OSC宣言
+│   ├── SubOscillator.h        // Sub用Wavetable OSC宣言
+│   └── TransientDetector.h    // トランジェント検出（ヘッダオンリー、Auto Trigger 用）
 ├── GUI
 │   ├── ChannelFader.cpp       // チャンネルフェーダー実装（メーター＋フェーダー一体）
 │   ├── ChannelFader.h         // チャンネルフェーダー宣言（Sub/Click/Direct 共通）
@@ -110,22 +111,35 @@ BabySquatchは3つのモジュールで構成されています：
   - 外部ファイル（.json / .txt）方式は配布・パス解決が面倒なので採用しない
   - `juce::TooltipWindow` はスタイル固定で右端常駐 UI に不向きなので採用しない
 
-- **Direct ピッチシフト（再生速度変更方式）**
-  - 目的: Direct サンプル再生時にキックの音程を±数半音調整できるようにする
-  - 方式: **再生速度変更（テープピッチ）** — CPU 追加コストゼロ、レイテンシー追加ゼロ
-  - 実装: `SamplePlayer` の position 更新部分に係数を掛けるだけ（数行）
-    ```cpp
-    const double playbackRate = std::pow(2.0, semitones / 12.0);
-    position += playbackRate;  // 毎サンプルこれだけ
-    ```
-  - トレードオフ: 音程と再生時間が連動して変わる（±3〜5半音の実用範囲では許容範囲内）
-  - Phase Vocoder / Rubber Band 方式は FFT レイテンシーや実装コストが大きく、キックの過渡成分が滲むため不採用
-  - UI: Direct パネルの Pitch ノブ（既存）を semitones 入力として `playbackRate` に変換して接続
+- **~~Direct ピッチシフト（再生速度変更方式）~~** ✅ 実装済み
+  - `DirectEngine::render()` で `pow(2, semitones/12) × sampleRate比` を `playRate` として計算
+  - `DirectParams.cpp` Pitch ノブ → `setPitchSemitones()` 接続済み
+  - `refreshDirectProvider()` で波形プレビューに `speedRatio` 反映済み
 
-- **Sub/Click 共通トリガー（トランジェント検出）**
-  - 目的: 入力信号の立ち上がり過渡成分を検出して Sub/Click を瞬時に発音（VST/AU の Kick トラック挿入を想定）
-  - 検証項目: Sasquatch の発火条件が「トランジェント検出」か「入力レベル/サイドチェイン閾値」かを確認
-  - 実装候補: 短時間エネルギー差分 or ハイパス後エンベロープ検出でトリガー、ヒステリシス付きゲートで多重発火防止
+- **~~Sub/Click 共通トリガー（トランジェント検出）~~** ✅ 実装済み
+  - `TransientDetector.h`: 二重エンベロープフォロワー差分方式（Fast 0.2ms/10ms、Slow 10ms/200ms）
+  - 閾値 -24 dBFS 固定、Hold 50ms、ヒステリシス再アーム（30%）
+  - `PluginProcessor::processBlock()` でステレオ入力をモノミックス → 検出 → `triggerNote()` 呼び出し
+  - UI: "Auto" トグルボタン（鍵盤と Master の間、GradientButtonLAF）
+
+- **Auto Trigger UI 拡張（Threshold / Hold）**
+  - 現状: 閾値 -24 dBFS・Hold 50ms は固定値。以下の UI を追加して調整可能にする
+  - **Hold — BPM × Note Division 入力方式**
+    - 計算式: `Hold (ms) = 60000 / BPM / (division / 4)`
+    - BPM: DAW ホストから自動取得（`getPlayHead()->getPosition()->getBpm()`）、手動オーバーライドも可
+    - Division: セグメントまたはコンボボックス（4th / 8th / 16th / 32nd / 64th / 128th …）
+    - **20ms 未満になる Division はグレーアウト**（例: BPM 170 の 128th = 11ms → 無効）
+      - グレーアウト項目に tooltip: "Use MIDI mode for subdivisions this fast"
+      - 20ms 選定根拠: 差分検出＋ヒステリシスにより下限を 30ms より緩和可能と判断
+    - 計算結果の ms 値を小さく表示（確認用ラベル）
+  - **Threshold — dB スライダー**
+    - 範囲: -60 〜 0 dBFS（デフォルト -24 dBFS）
+    - 入力波形リアルタイム表示と組み合わせ、波形を見ながら視覚的に設定可能
+    - 差分検出（Fast − Slow Envelope）の **onset 差分値** に対する閾値（絶対信号レベルとは別物）
+      - 低い値（感度高）: 微小な立ち上がりでもトリガー → ゴーストノートや残響に反応しやすい
+      - 高い値（感度低）: 明確なアタックのみトリガー → 本打ちキックだけを確実に拾う
+      - クリーンなキックチャンネルなら差分が大きく出るため、Threshold 高めでも立ち上がり最初の瞬間にトリガー
+  - 実装タイミング: **入力波形リアルタイム表示**と同時実装を推奨（波形＋Threshold 水平線を重ねて表示するため）
 
 - **入力波形リアルタイム表示（インサートモードと同時実装）**
   - 目的: Direct インサートモード使用時に入力キック波形を EnvelopeCurveEditor 上にリアルタイム描画（FabFilter L2 スタイル）
