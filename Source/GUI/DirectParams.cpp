@@ -61,6 +61,7 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
     if (!isSample)
       directUI.sampleLoadButton.setButtonText("Drop or Click to Load");
     processorRef.setDirectSampleMode(isSample);
+    refreshDirectPassthroughUI();
     resized();
   };
   // ── 8 ノブ セットアップ ──
@@ -229,11 +230,66 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
   processorRef.directEngine().setLpfFreq(20000.0f); // 20kHz = バイパス
   processorRef.directEngine().setLpfQ(0.707f);
   processorRef.directEngine().setLpfSlope(12);
+
+  // ── Threshold ノブ（パススルーモード時に Pitch 位置へ表示） ──
+  styleDirectKnob(directUI.threshold.slider, directKnobLAF);
+  directUI.threshold.slider.setRange(-60.0, 0.0, 0.1);
+  directUI.threshold.slider.setDoubleClickReturnValue(true, -24.0);
+  directUI.threshold.slider.setValue(-24.0, juce::dontSendNotification);
+  directUI.threshold.slider.textFromValueFunction = [](double v) {
+    return juce::String(v, 1) + " dB";
+  };
+  directUI.threshold.slider.onValueChange = [this] {
+    processorRef.transientDetector().setThresholdDb(
+        static_cast<float>(directUI.threshold.slider.getValue()));
+  };
+  addAndMakeVisible(directUI.threshold.slider);
+  styleKnobLabelDirect(directUI.threshold.label, "Thresh", knobFont);
+  addAndMakeVisible(directUI.threshold.label);
+
+  // ── Hold スライダー（mode ドロップダウン右） ──
+  directUI.holdSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+  directUI.holdSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 48,
+                                      18);
+  directUI.holdSlider.setRange(20.0, 500.0, 1.0);
+  directUI.holdSlider.setDoubleClickReturnValue(true, 50.0);
+  directUI.holdSlider.setValue(50.0, juce::dontSendNotification);
+  directUI.holdSlider.textFromValueFunction = [](double v) {
+    return juce::String(juce::roundToInt(v)) + " ms";
+  };
+  directUI.holdSlider.onValueChange = [this] {
+    processorRef.transientDetector().setHoldMs(
+        static_cast<float>(directUI.holdSlider.getValue()));
+  };
+  directUI.holdSlider.setColour(juce::Slider::backgroundColourId,
+                                juce::Colour(0xFF333333));
+  directUI.holdSlider.setColour(juce::Slider::trackColourId,
+                                UIConstants::Colours::directArc);
+  directUI.holdSlider.setColour(juce::Slider::thumbColourId,
+                                UIConstants::Colours::directThumb);
+  directUI.holdSlider.setColour(juce::Slider::textBoxTextColourId,
+                                UIConstants::Colours::text);
+  directUI.holdSlider.setColour(juce::Slider::textBoxBackgroundColourId,
+                                juce::Colour(0xFF333333));
+  directUI.holdSlider.setColour(juce::Slider::textBoxOutlineColourId,
+                                juce::Colours::transparentBlack);
+  addAndMakeVisible(directUI.holdSlider);
+  directUI.holdLabel.setText("Hold", juce::dontSendNotification);
+  directUI.holdLabel.setFont(smallFont);
+  directUI.holdLabel.setColour(juce::Label::textColourId,
+                               UIConstants::Colours::labelText);
+  directUI.holdLabel.setJustificationType(juce::Justification::centredRight);
+  addAndMakeVisible(directUI.holdLabel);
+
+  // 起動時のパススルー UI 状態を設定
+  refreshDirectPassthroughUI();
 }
 
 void BabySquatchAudioProcessorEditor::layoutDirectParams(
     juce::Rectangle<int> area) {
-  // 上段: mode ラベル + コンボ [+ サンプルロードボタン]
+  const bool isPassthrough = processorRef.isDirectPassthrough();
+
+  // 上段: mode ラベル + コンボ [+ Hold / サンプルロードボタン]
   auto topRow = area.removeFromTop(22);
   area.removeFromTop(4);
   constexpr int modeLabelW = 38;
@@ -242,9 +298,14 @@ void BabySquatchAudioProcessorEditor::layoutDirectParams(
   topRow.removeFromLeft(2);
   directUI.modeCombo.setBounds(topRow.removeFromLeft(modeComboW));
 
-  if (const bool isSample = directUI.modeCombo.getSelectedId() ==
-                            static_cast<int>(DirectUI::Mode::Sample);
-      isSample) {
+  if (isPassthrough) {
+    // Hold ラベル + スライダーを mode 右に配置
+    topRow.removeFromLeft(4);
+    constexpr int holdLabelW = 30;
+    directUI.holdLabel.setBounds(topRow.removeFromLeft(holdLabelW));
+    topRow.removeFromLeft(2);
+    directUI.holdSlider.setBounds(topRow);
+  } else {
     topRow.removeFromLeft(4);
     directUI.sampleLoadButton.setBounds(topRow);
   }
@@ -253,16 +314,23 @@ void BabySquatchAudioProcessorEditor::layoutDirectParams(
   const int slotW = area.getWidth() / 4;
   const int rowH = area.getHeight() / 2;
 
-  // 上段行: Pitch / Amp / Drive(+ClipType) / Decay
+  // 上段行: [Pitch or Threshold] / Amp / Drive(+ClipType) / Decay
   {
+    // パススルー時: Threshold を Pitch 位置に表示
+    juce::Slider *col0Knob =
+        isPassthrough ? &directUI.threshold.slider : &directUI.pitch.slider;
+    juce::Component *col0Label =
+        isPassthrough ? static_cast<juce::Component *>(&directUI.threshold.label)
+                      : static_cast<juce::Component *>(&directUI.pitch.label);
+
     const std::array<juce::Slider *, 4> rowKnobs = {{
-        &directUI.pitch.slider,
+        col0Knob,
         &directUI.amp.slider,
         &directUI.saturator.driveSlider,
         &directUI.decay.slider,
     }};
     const std::array<juce::Component *, 4> rowLabels = {{
-        &directUI.pitch.label,
+        col0Label,
         &directUI.amp.label,
         &directUI.saturator.clipType,
         &directUI.decay.label,
@@ -277,7 +345,6 @@ void BabySquatchAudioProcessorEditor::layoutDirectParams(
 
   // 下段行: HP (slope label + freq knob) | Q | LP (slope label + freq knob)
   // | Q
-  //   Click と同パターン: SlopeSelector はノブのラベル位置を占める
   {
     const std::array<juce::Slider *, 4> rowKnobs = {{
         &directUI.hpfSlider,
@@ -299,6 +366,23 @@ void BabySquatchAudioProcessorEditor::layoutDirectParams(
       rowKnobs[col_u]->setBounds(slot);
     }
   }
+}
+
+void BabySquatchAudioProcessorEditor::refreshDirectPassthroughUI() {
+  const bool isPassthrough = processorRef.isDirectPassthrough();
+
+  // Pitch ⇔ Threshold 表示切り替え
+  directUI.pitch.slider.setVisible(!isPassthrough);
+  directUI.pitch.label.setVisible(!isPassthrough);
+  directUI.threshold.slider.setVisible(isPassthrough);
+  directUI.threshold.label.setVisible(isPassthrough);
+
+  // Hold スライダー: パススルーモード時のみ表示
+  directUI.holdLabel.setVisible(isPassthrough);
+  directUI.holdSlider.setVisible(isPassthrough);
+
+  // Auto Trigger: パススルーモード時は自動有効、サンプルモード時は無効
+  processorRef.transientDetector().setEnabled(isPassthrough);
 }
 
 void BabySquatchAudioProcessorEditor::onSampleLoadClicked() {

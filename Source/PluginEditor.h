@@ -38,6 +38,7 @@ private:
   void layoutClickParams(juce::Rectangle<int> area);
   void setupDirectParams();
   void layoutDirectParams(juce::Rectangle<int> area);
+  void refreshDirectPassthroughUI();
   void onSampleLoadClicked();
   void onSampleFileChosen(const juce::File &file);
   void refreshDirectProvider();
@@ -75,11 +76,6 @@ private:
   // ── マスターセクション（鍵盤右余白エリア） ──
   MasterFader masterSection;
   juce::Label infoBox;
-
-  // ── Auto Trigger（鍵盤と Master の間） ──
-  UIConstants::GradientButtonLAF autoTrigLAF{UIConstants::Colours::muteOff,
-                                             juce::Colour(0xFFEE8822)};
-  juce::TextButton autoTrigButton{"Auto"};
 
   // ── SUB展開パネル: LAF（subUI より先に宣言し、後に破棄されるようにする） ──
   ColouredSliderLAF subKnobLAF{UIConstants::Colours::subArc,
@@ -237,8 +233,11 @@ private:
     UIConstants::SlopeSelector lpfSlope{"LP", UIConstants::Colours::directArc};
     CustomSlider lpfSlider;
     juce::Label lpfQLabel;
-    CustomSlider lpfQSlider;
-  };
+    CustomSlider lpfQSlider;    // ── Threshold ノブ（パススルーモード時に Pitch 位置へ表示） ──
+    KnobUI threshold;
+    // ── Hold スライダー（mode ドロップダウン右） ──
+    juce::Label holdLabel;
+    CustomSlider holdSlider;  };
   DirectUI directUI;
 
   // ── ツールチップ（Gainノブの無効時などに使用） ──

@@ -1,6 +1,8 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+#include <span>
+
 BabySquatchAudioProcessor::BabySquatchAudioProcessor()
     : AudioProcessor(
           BusesProperties()
@@ -112,13 +114,12 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
     }
 
     // Auto トリガー: トランジェント検出
-    if (transientDetector_.isEnabled()) {
-      if (transientDetector_.process(std::span<const float>(
-              mono, static_cast<std::size_t>(numSamples)))) {
-        subEngine_.triggerNote();
-        clickEngine_.triggerNote();
-        directEngine_.triggerNote();
-      }
+    if (transientDetector_.isEnabled() &&
+        transientDetector_.process(std::span<const float>(
+            mono, static_cast<std::size_t>(numSamples)))) {
+      subEngine_.triggerNote();
+      clickEngine_.triggerNote();
+      directEngine_.triggerNote();
     }
 
     // 波形リアルタイム表示用 FIFO へ書き込み
@@ -138,14 +139,23 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   }
 
   // Direct ミュート: 入力信号ごと消去（Sub はこの後加算するので影響なし）
-  // Sample モード時も入力をクリア（サンプル再生は render() で加算する）
-  if (!passes.direct || directSampleMode_.load())
-    buffer.clear();
+  // パススルーモード時も renderPassthrough() が addSample するため常にクリア
+  buffer.clear();
 
   handleMidiEvents(midiMessages, numSamples);
   subEngine_.render(buffer, numSamples, passes.sub, sr);
   clickEngine_.render(buffer, numSamples, passes.click, sr);
-  directEngine_.render(buffer, numSamples, passes.direct, sr);
+
+  // Direct: パススルーモードとサンプルモードで呼び分け
+  if (!directSampleMode_.load() && passes.direct) {
+    directEngine_.renderPassthrough(
+        buffer,
+        std::span<const float>(monoMixBuffer_.data(),
+                               static_cast<std::size_t>(numSamples)),
+        numSamples, sr);
+  } else {
+    directEngine_.render(buffer, numSamples, passes.direct, sr);
+  }
 
   // マスターゲイン適用
   buffer.applyGain(juce::Decibels::decibelsToGain(masterGainDb_.load()));

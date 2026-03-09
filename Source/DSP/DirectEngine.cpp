@@ -2,6 +2,7 @@
 #include "Saturator.h"
 
 #include <cmath>
+#include <span>
 
 // ────────────────────────────────────────────────────
 // lifecycle
@@ -27,10 +28,14 @@ void DirectEngine::prepareToPlay(double /*sampleRate*/, int samplesPerBlock) {
 }
 
 void DirectEngine::triggerNote() {
-  if (!sampler_.isLoaded())
+  // パススルーモード時はサンプル不要でトリガー可能
+  if (!passthroughMode_.load() && !sampler_.isLoaded())
     return;
 
-  sampler_.resetPlayhead();
+  // サンプルモード時のみプレイヘッドリセット
+  if (!passthroughMode_.load())
+    sampler_.resetPlayhead();
+
   noteTimeSamples_ = 0.0f;
 
   for (auto &f : hpfs_)
@@ -179,4 +184,60 @@ void DirectEngine::render(juce::AudioBuffer<float> &buffer, int numSamples,
 
   viewData_ = nullptr;
   viewLen_ = 0;
+}
+
+// ────────────────────────────────────────────────
+// renderPassthrough
+// ────────────────────────────────────────────────
+
+void DirectEngine::renderPassthrough(juce::AudioBuffer<float> &buffer,
+                                     std::span<const float> inputMono,
+                                     int numSamples, double sampleRate) {
+  const auto sr = static_cast<float>(sampleRate);
+  const float gain = juce::Decibels::decibelsToGain(gainDb_.load());
+
+  // Amp Envelope LUT の最大再生時間（パススルーではサンプル長がないので LUT 期間のみ）
+  const float ampDurMs = directAmpLut_.getDurationMs();
+  const float maxTimeSamples = ampDurMs * sr / 1000.0f;
+
+  const FilterState fs = prepareFilters(sr);
+  const int numCh = buffer.getNumChannels();
+
+  for (int i = 0; i < numSamples; ++i) {
+    float amp = 1.0f;
+
+    if (active_.load()) {
+      if (noteTimeSamples_ >= maxTimeSamples) {
+        active_.store(false);
+        amp = 0.0f;
+      } else {
+        const float noteTimeMs = noteTimeSamples_ * 1000.0f / sr;
+        amp = computeSampleAmp(noteTimeMs);
+      }
+      noteTimeSamples_ += 1.0f;
+    } else {
+      amp = 0.0f; // Decay 終了後はミュート（Amp Envelope 制御）
+    }
+
+    float s = (i < static_cast<int>(inputMono.size())) ? inputMono[static_cast<std::size_t>(i)] : 0.0f;
+
+    // Drive（プリフィルター）
+    s = Saturator::process(s, driveDb_.load(), clipType_.load());
+
+    // HPF / LPF
+    for (int fi = 0; fs.doHpf && fi < fs.hpfStg; ++fi)
+      s = hpfs_[static_cast<std::size_t>(fi)].processSample(0, s);
+    for (int fi = 0; fs.doLpf && fi < fs.lpfStg; ++fi)
+      s = lpfs_[static_cast<std::size_t>(fi)].processSample(0, s);
+
+    // 共振ピーク整形
+    if (fs.doHpf || fs.doLpf)
+      s = Saturator::process(s, 0.0f, clipType_.load());
+
+    s *= gain * amp;
+
+    scratchBuffer_[static_cast<std::size_t>(i)] = s;
+    for (int ch = 0; ch < numCh; ++ch)
+      buffer.addSample(ch, i, s);
+  }
 }

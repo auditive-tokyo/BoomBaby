@@ -61,6 +61,7 @@ public:
   /// Direct Sample モード時は入力をミュート（UI スレッドから設定）
   void setDirectSampleMode(bool isSample) noexcept {
     directSampleMode_.store(isSample);
+    directEngine_.setPassthroughMode(!isSample);
   }
   /// Direct パススルーモードかどうか（UI スレッドから参照）
   bool isDirectPassthrough() const noexcept {

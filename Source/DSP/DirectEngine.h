@@ -8,6 +8,7 @@
 
 #include <array>
 #include <atomic>
+#include <span>
 #include <vector>
 
 /// サンプル再生エンジン（Direct チャンネル / Sample モード）
@@ -26,6 +27,11 @@ public:
   void render(juce::AudioBuffer<float> &buffer, int numSamples, bool directPass,
               double sampleRate);
 
+  /// パススルーモード時の入力処理（フィルター/Drive/Amp を入力信号に適用）
+  void renderPassthrough(juce::AudioBuffer<float> &buffer,
+                         std::span<const float> inputMono, int numSamples,
+                         double sampleRate);
+
   /// 内部 SamplePlayer への参照（UI からのロード / サムネイル取得用）
   SamplePlayer &sampler() noexcept { return sampler_; }
   const SamplePlayer &sampler() const noexcept { return sampler_; }
@@ -38,6 +44,10 @@ public:
   void setPitchSemitones(float st) { pitchSemitones_.store(st); }
   void setDriveDb(float db) { driveDb_.store(db); }
   void setClipType(int t) { clipType_.store(t); }
+
+  /// パススルーモードフラグ（PluginProcessor がモード切り替え時に設定）
+  void setPassthroughMode(bool b) noexcept { passthroughMode_.store(b); }
+  bool isPassthroughMode() const noexcept { return passthroughMode_.load(); }
 
   void setHpfFreq(float hz) { hpfParams_.freq.store(hz); }
   void setHpfQ(float q) { hpfParams_.q.store(q); }
@@ -111,5 +121,6 @@ private:
   std::atomic<float> pitchSemitones_{0.0f};
   std::atomic<float> driveDb_{0.0f};
   std::atomic<int> clipType_{0};
+  std::atomic<bool> passthroughMode_{false};
   EnvelopeLutManager directAmpLut_; // Direct Amp エンベロープ LUT
 };
