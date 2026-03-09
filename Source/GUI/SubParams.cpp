@@ -54,6 +54,9 @@ void BabySquatchAudioProcessorEditor::setupLengthBox() {
     // Sample Decay のダブルクリックリターン値を Sub length と連動させる
     clickUI.sample.decay.slider.setDoubleClickReturnValue(
         true, static_cast<double>(v));
+    // Direct Decay も同様に連動
+    directUI.decay.slider.setDoubleClickReturnValue(
+        true, static_cast<double>(v));
   };
   // Sample Decay の初期値と初回のバコオフを Sub lengthに合わせる
   const auto initLen =
@@ -64,6 +67,13 @@ void BabySquatchAudioProcessorEditor::setupLengthBox() {
       true, static_cast<double>(initLen));
   bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(), initLen);
   envelopeCurveEditor.setClickDecayMs(initLen);
+  // Direct Decay も Sub length 初期値に合わせる
+  directUI.decay.slider.setValue(static_cast<double>(initLen),
+                                 juce::dontSendNotification);
+  directUI.decay.slider.setDoubleClickReturnValue(
+      true, static_cast<double>(initLen));
+  bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
+          initLen);
   addAndMakeVisible(subUI.length.slider);
 }
 
