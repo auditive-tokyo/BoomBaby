@@ -5,7 +5,7 @@
 #include <atomic>
 
 /// チャンネル単位の Mute / Solo / レベル計測 を一元管理するヘルパー。
-/// BabySquatchAudioProcessor から分離し、メソッド数を削減する。
+/// BoomBabyAudioProcessor から分離し、メソッド数を削減する。
 class ChannelState {
 public:
     enum class Channel { sub = 0, click = 1, direct = 2 };

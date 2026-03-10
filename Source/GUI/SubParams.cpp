@@ -1,5 +1,5 @@
 // SubParamKnobs.cpp
-// BabySquatchAudioProcessorEditor の SUB
+// BoomBabyAudioProcessorEditor の SUB
 // チャンネル専用ノブ・ボタン設定メソッド群。 Click / Direct の実装時は同様に
 // ClickParamKnobs.cpp / DirectParamKnobs.cpp を作成する。
 
@@ -10,7 +10,7 @@
 // ────────────────────────────────────────────────────
 // Length ボックス
 // ────────────────────────────────────────────────────
-void BabySquatchAudioProcessorEditor::setupLengthBox() {
+void BoomBabyAudioProcessorEditor::setupLengthBox() {
   const auto tinyFont =
       juce::Font(juce::FontOptions(UIConstants::fontSizeSmall));
 
@@ -80,7 +80,7 @@ void BabySquatchAudioProcessorEditor::setupLengthBox() {
 // ────────────────────────────────────────────────────
 // SUB Osc ノブ行（8本）初期化
 // ────────────────────────────────────────────────────
-void BabySquatchAudioProcessorEditor::setupSubKnobsRow() {
+void BoomBabyAudioProcessorEditor::setupSubKnobsRow() {
   static constexpr std::array<const char *, 8> kLabels = {
       "Amp", "Freq", "Mix", "Saturate", "Tone1", "Tone2", "Tone3", "Tone4"};
   for (size_t i = 0; i < 8; ++i) {
@@ -224,7 +224,7 @@ void BabySquatchAudioProcessorEditor::setupSubKnobsRow() {
 // ────────────────────────────────────────────────────
 // 波形選択コンボボックス（Tri / SQR / SAW）
 // ────────────────────────────────────────────────────
-void BabySquatchAudioProcessorEditor::setupWaveShapeCombo() {
+void BoomBabyAudioProcessorEditor::setupWaveShapeCombo() {
   const auto smallFont =
       juce::Font(juce::FontOptions(UIConstants::fontSizeMedium));
   subUI.wave.label.setText("wave:", juce::dontSendNotification);
@@ -259,7 +259,7 @@ void BabySquatchAudioProcessorEditor::setupWaveShapeCombo() {
   addAndMakeVisible(subUI.wave.combo);
 }
 
-void BabySquatchAudioProcessorEditor::layoutSubKnobsRow(
+void BoomBabyAudioProcessorEditor::layoutSubKnobsRow(
     juce::Rectangle<int> area) {
   // 上段ノブ: Amp, Freq, Mix, Saturate
   // 下段ノブ: Tone1, Tone2, Tone3, Tone4

@@ -19,7 +19,7 @@ void styleKnobLabelDirect(juce::Label &label, const juce::String &text,
 }
 } // namespace
 
-void BabySquatchAudioProcessorEditor::setupDirectParams() {
+void BoomBabyAudioProcessorEditor::setupDirectParams() {
   const auto smallFont =
       juce::Font(juce::FontOptions(UIConstants::fontSizeMedium));
 
@@ -283,7 +283,7 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
   refreshDirectPassthroughUI();
 }
 
-void BabySquatchAudioProcessorEditor::layoutDirectParams(
+void BoomBabyAudioProcessorEditor::layoutDirectParams(
     juce::Rectangle<int> area) {
   const bool isPassthrough = processorRef.directMode().isPassthrough();
 
@@ -367,7 +367,7 @@ void BabySquatchAudioProcessorEditor::layoutDirectParams(
   }
 }
 
-void BabySquatchAudioProcessorEditor::refreshDirectPassthroughUI() {
+void BoomBabyAudioProcessorEditor::refreshDirectPassthroughUI() {
   const bool isPassthrough = processorRef.directMode().isPassthrough();
 
   // Pitch ⇔ Threshold 表示切り替え
@@ -384,7 +384,7 @@ void BabySquatchAudioProcessorEditor::refreshDirectPassthroughUI() {
   processorRef.directMode().detector().setEnabled(isPassthrough);
 }
 
-void BabySquatchAudioProcessorEditor::onSampleLoadClicked() {
+void BoomBabyAudioProcessorEditor::onSampleLoadClicked() {
   directUI.sample.fileChooser = std::make_unique<juce::FileChooser>(
       "Load Sample",
       juce::File::getSpecialLocation(juce::File::userMusicDirectory),
@@ -399,7 +399,7 @@ void BabySquatchAudioProcessorEditor::onSampleLoadClicked() {
       });
 }
 
-void BabySquatchAudioProcessorEditor::onSampleFileChosen(
+void BoomBabyAudioProcessorEditor::onSampleFileChosen(
     const juce::File &file) {
   directUI.sample.loadedFilePath = file.getFullPathName();
   directUI.sample.loadButton.setButtonText(file.getFileNameWithoutExtension());
@@ -415,7 +415,7 @@ void BabySquatchAudioProcessorEditor::onSampleFileChosen(
   refreshDirectProvider();
 }
 
-void BabySquatchAudioProcessorEditor::refreshDirectProvider() {
+void BoomBabyAudioProcessorEditor::refreshDirectProvider() {
   if (directUI.sample.thumbMin.empty() || directUI.sample.thumbDurSec <= 0.0)
     return;
 

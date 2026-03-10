@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(BabySquatch VERSION 0.1.0)
+project(BoomBaby VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,7 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # JUCEのパスを指定
 add_subdirectory(/Volumes/AUDITIVE/development/JUCE JUCE)
 
-juce_add_plugin(BabySquatch
+juce_add_plugin(BoomBaby
     COMPANY_NAME "Auditive"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT TRUE
@@ -20,15 +20,15 @@ juce_add_plugin(BabySquatch
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
     PLUGIN_MANUFACTURER_CODE AudI
-    PLUGIN_CODE BbSq
-    BUNDLE_ID "com.auditive.babysquatch"
+    PLUGIN_CODE BmBy
+    BUNDLE_ID "com.auditive.boombaby"
     FORMATS AU VST3 Standalone
-    PRODUCT_NAME "BabySquatch"
+    PRODUCT_NAME "BoomBaby"
     MICROPHONE_PERMISSION_ENABLED TRUE
-    MICROPHONE_PERMISSION_TEXT "BabySquatch needs microphone access for audio input."
+    MICROPHONE_PERMISSION_TEXT "BoomBaby needs microphone access for audio input."
 )
 
-target_sources(BabySquatch
+target_sources(BoomBaby
     PRIVATE
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp
@@ -66,19 +66,19 @@ target_sources(BabySquatch
         Source/DSP/TransientDetector.h
 )
 
-target_compile_definitions(BabySquatch
+target_compile_definitions(BoomBaby
     PUBLIC
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
 )
 
-target_include_directories(BabySquatch
+target_include_directories(BoomBaby
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/Source
 )
 
-target_link_libraries(BabySquatch
+target_link_libraries(BoomBaby
     PRIVATE
         juce::juce_audio_utils
         juce::juce_dsp

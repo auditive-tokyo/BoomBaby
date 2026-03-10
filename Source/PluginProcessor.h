@@ -11,10 +11,10 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 
-class BabySquatchAudioProcessor : public juce::AudioProcessor {
+class BoomBabyAudioProcessor : public juce::AudioProcessor {
 public:
-  BabySquatchAudioProcessor();
-  ~BabySquatchAudioProcessor() override;
+  BoomBabyAudioProcessor();
+  ~BoomBabyAudioProcessor() override;
 
   void prepareToPlay(double sampleRate, int samplesPerBlock) override;
   void releaseResources() override;
@@ -102,5 +102,5 @@ private:
   DirectMode directMode_;
   std::vector<float> monoMixBuffer_; ///< トランジェント検出用モノ合成バッファ
 
-  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BabySquatchAudioProcessor)
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BoomBabyAudioProcessor)
 };

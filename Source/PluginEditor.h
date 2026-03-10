@@ -10,11 +10,11 @@
 
 #include <array>
 
-class BabySquatchAudioProcessorEditor : public juce::AudioProcessorEditor,
+class BoomBabyAudioProcessorEditor : public juce::AudioProcessorEditor,
                                         private juce::Timer {
 public:
-  explicit BabySquatchAudioProcessorEditor(BabySquatchAudioProcessor &);
-  ~BabySquatchAudioProcessorEditor() override;
+  explicit BoomBabyAudioProcessorEditor(BoomBabyAudioProcessor &);
+  ~BoomBabyAudioProcessorEditor() override;
 
   void paint(juce::Graphics &) override;
   void resized() override;
@@ -31,7 +31,7 @@ private:
   int waveDisplayFilled_ = 0; // 実際に充際されたサンプル数
 
   // ── コンストラクター分割ヘルパー ──
-  void setupPanelRouting(BabySquatchAudioProcessor &p);
+  void setupPanelRouting(BoomBabyAudioProcessor &p);
   void setupEnvelopeCurveEditor();
   void switchEditTarget(EnvelopeCurveEditor::EditTarget t);
   void setupClickParams();
@@ -58,7 +58,7 @@ private:
   PanelComponent directPanel{"DIRECT", UIConstants::Colours::directArc};
 
   // ── 共有展開エリア（常時表示） ──
-  BabySquatchAudioProcessor &processorRef;
+  BoomBabyAudioProcessor &processorRef;
   KeyboardComponent keyboard;
   struct EnvelopeDatas {
     EnvelopeData amp;
@@ -252,5 +252,5 @@ private:
 
   // ── ツールチップ（Gainノブの無効時などに使用） ──
   juce::TooltipWindow tooltipWindow{this, 500};
-  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BabySquatchAudioProcessorEditor)
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BoomBabyAudioProcessorEditor)
 };

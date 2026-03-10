@@ -20,7 +20,7 @@ void styleClickKnob(juce::Slider &s, ColouredSliderLAF &laf) {
 }
 } // namespace
 
-void BabySquatchAudioProcessorEditor::setupClickParams() {
+void BoomBabyAudioProcessorEditor::setupClickParams() {
   // ── Mode label ──
   const auto smallFont =
       juce::Font(juce::FontOptions(UIConstants::fontSizeMedium));
@@ -311,7 +311,7 @@ void BabySquatchAudioProcessorEditor::setupClickParams() {
   envelopeCurveEditor.setClickNoiseEnvProvider(clickUI.noiseProvider);
 }
 
-void BabySquatchAudioProcessorEditor::layoutClickParams(
+void BoomBabyAudioProcessorEditor::layoutClickParams(
     juce::Rectangle<int> area) {
   // 上段: mode ラベル + コンボ  |  Sample ロードボタン or (Decay ラベル +
   // スライダー)
@@ -389,7 +389,7 @@ void BabySquatchAudioProcessorEditor::layoutClickParams(
     botKnobs[idx]->setBounds(slot);
   }
 }
-void BabySquatchAudioProcessorEditor::onClickSampleLoadClicked() {
+void BoomBabyAudioProcessorEditor::onClickSampleLoadClicked() {
   clickUI.sample.fileChooser = std::make_unique<juce::FileChooser>(
       "Load Sample",
       juce::File::getSpecialLocation(juce::File::userMusicDirectory),
@@ -404,7 +404,7 @@ void BabySquatchAudioProcessorEditor::onClickSampleLoadClicked() {
       });
 }
 
-void BabySquatchAudioProcessorEditor::setClickModeVisible(bool isSample) {
+void BoomBabyAudioProcessorEditor::setClickModeVisible(bool isSample) {
   for (juce::Component *c :
        {static_cast<juce::Component *>(&clickUI.noise.decayLabel),
         static_cast<juce::Component *>(&clickUI.noise.decaySlider),
@@ -430,7 +430,7 @@ void BabySquatchAudioProcessorEditor::setClickModeVisible(bool isSample) {
 }
 
 // ── モード切替: 共有ウィジェットの状態を保存 ──
-void BabySquatchAudioProcessorEditor::ClickUI::saveModeState(
+void BoomBabyAudioProcessorEditor::ClickUI::saveModeState(
     ModeState &dst) const {
   dst.hpfFreq = hpf.slider.getValue();
   dst.hpfQ = hpf.qSlider.getValue();
@@ -443,7 +443,7 @@ void BabySquatchAudioProcessorEditor::ClickUI::saveModeState(
 }
 
 // ── モード切替: 共有ウィジェットへ状態を復元し DSP へ反映 ──
-void BabySquatchAudioProcessorEditor::ClickUI::restoreModeState(
+void BoomBabyAudioProcessorEditor::ClickUI::restoreModeState(
     const ModeState &src, ClickEngine &eng) {
   hpf.slider.setValue(src.hpfFreq, juce::dontSendNotification);
   hpf.qSlider.setValue(src.hpfQ, juce::dontSendNotification);
@@ -464,7 +464,7 @@ void BabySquatchAudioProcessorEditor::ClickUI::restoreModeState(
   eng.setClipType(src.clipType);
 }
 
-void BabySquatchAudioProcessorEditor::applyClickSampleMode() {
+void BoomBabyAudioProcessorEditor::applyClickSampleMode() {
   // 旧モード（Noise）の共有パラメーターを保存
   clickUI.saveModeState(clickUI.noiseState);
 
@@ -483,7 +483,7 @@ void BabySquatchAudioProcessorEditor::applyClickSampleMode() {
   refreshClickSampleProvider();
 }
 
-void BabySquatchAudioProcessorEditor::applyClickNoiseMode(int m) {
+void BoomBabyAudioProcessorEditor::applyClickNoiseMode(int m) {
   // 旧モード（Sample）の共有パラメーターを保存
   clickUI.saveModeState(clickUI.sampleState);
 
@@ -506,7 +506,7 @@ void BabySquatchAudioProcessorEditor::applyClickNoiseMode(int m) {
     envelopeCurveEditor.setClickNoiseEnvProvider(clickUI.noiseProvider);
 }
 
-void BabySquatchAudioProcessorEditor::onClickSampleFileChosen(
+void BoomBabyAudioProcessorEditor::onClickSampleFileChosen(
     const juce::File &file) {
   clickUI.sample.loadedFilePath = file.getFullPathName();
   clickUI.sample.loadButton.setButtonText(file.getFileNameWithoutExtension());
@@ -521,7 +521,7 @@ void BabySquatchAudioProcessorEditor::onClickSampleFileChosen(
   refreshClickSampleProvider();
 }
 
-void BabySquatchAudioProcessorEditor::refreshClickSampleProvider() {
+void BoomBabyAudioProcessorEditor::refreshClickSampleProvider() {
   if (clickUI.sample.thumbMin.empty() || clickUI.sample.thumbDurSec <= 0.0)
     return;
 

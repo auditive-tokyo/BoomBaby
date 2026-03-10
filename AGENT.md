@@ -1,12 +1,12 @@
-# BabySquatch Project
+# BoomBaby Project
 
 ## プロジェクト概要
 
-BabySquatchは、Boz LabのSasquatchから自分が使う機能だけを集約したキックエンハンスプラグインです。
+BoomBabyは、Boz LabのSasquatchとHim DSPのKick Ninjaから自分が使う機能だけを集約したキックエンハンスプラグインです。
 
 ## プラグイン構成
 
-BabySquatchは3つのモジュールで構成されています：
+BoomBabyは3つのモジュールで構成されています：
 
 1. **Sub** - サブ周波数の生成
 2. **Click** - アタック部分の生成（Noise / Sample）
@@ -112,7 +112,7 @@ BabySquatchは3つのモジュールで構成されています：
   - `juce::TooltipWindow` はスタイル固定で右端常駐 UI に不向きなので採用しない
 
 - **レイテンシー補正（Delay Compensation）**
-  - 背景: BabySquatch は Direct（入力パススルー）と Sub/Click（生成信号）を混合するため、どちらかに処理遅延が生じると内部でタイミングズレが発生する
+  - 背景: BoomBaby は Direct（入力パススルー）と Sub/Click（生成信号）を混合するため、どちらかに処理遅延が生じると内部でタイミングズレが発生する
   - 実装方針（2段階）:
     1. **内部補正**: Direct（Dry）側に `juce::dsp::DelayLine` で同量の遅延を与え、Sub/Click（Wet）との位相を揃える
     2. **ホスト報告**: `setLatencySamples(n)` で DAW に総遅延サンプル数を通知し、他トラックとの同期を確保
@@ -159,7 +159,7 @@ BabySquatchは3つのモジュールで構成されています：
     ```
   - CMakeLists.txt に追加:
     ```cmake
-    juce_add_binary_data(BabySquatchBinaryData
+    juce_add_binary_data(BoomBabyBinaryData
         SOURCES Resources/presets/default.xml)
     ```
   - 実装手順:
@@ -172,3 +172,48 @@ BabySquatchは3つのモジュールで構成されています：
     - プリセット読み込みと DAW セッション復元が単一コードパスで統一
     - デフォルト値の変更がコード修正不要（XML 差し替えのみ）
     - ユーザーが「Default」を選ぶだけで全パラメーターをリセット可能
+
+- **プラグイン名変更: BoomBaby → BoomBaby**
+  - 目的: プラグイン名・プロジェクト名を BoomBaby に統一
+  - 影響範囲（全88箇所）:
+    - `CMakeLists.txt` — `project()`, `juce_add_plugin()`, `BUNDLE_ID`, `PRODUCT_NAME`, `PLUGIN_CODE`, `MICROPHONE_PERMISSION_TEXT`, `target_*()` 全11箇所
+    - `Makefile` — スキーム名・アーティファクトパス・xcodeproj名 全7箇所
+    - `Source/PluginProcessor.h/.cpp` — クラス `BoomBabyAudioProcessor` → `BoomBabyAudioProcessor`
+    - `Source/PluginEditor.h/.cpp` — クラス `BoomBabyAudioProcessorEditor` → `BoomBabyAudioProcessorEditor`
+    - `Source/GUI/SubParams.cpp` — メソッド接頭辞
+    - `Source/GUI/ClickParams.cpp` — メソッド接頭辞
+    - `Source/GUI/DirectParams.cpp` — メソッド接頭辞
+    - `Source/GUI/LutBaker.h` — コメント内参照
+    - `Source/DSP/ChannelState.h` — コメント内参照
+    - `AGENT.md` — ドキュメント全体（5箇所）
+    - `compile_commands.json` — build 再生成で自動更新
+  - 手順:
+    1. **旧プラグインの削除**（ID 衝突防止）:
+       ```bash
+       rm -rf ~/Library/Audio/Plug-Ins/VST3/BoomBaby.vst3
+       rm -rf ~/Library/Audio/Plug-Ins/Components/BoomBaby.component
+       ```
+    2. **ソースファイル一括置換**:
+       ```bash
+       find Source -name "*.cpp" -o -name "*.h" | xargs sed -i '' 's/BoomBaby/BoomBaby/g'
+       ```
+    3. **CMakeLists.txt + Makefile + AGENT.md**:
+       ```bash
+       sed -i '' 's/BoomBaby/BoomBaby/g; s/boombaby/boombaby/g' CMakeLists.txt Makefile AGENT.md
+       ```
+    4. **PLUGIN_CODE 変更**: `BmBy` → `BmBy`（4文字コード。DAW セッション互換性が切れる点に注意）
+    5. **BUNDLE_ID 変更**: `com.auditive.boombaby` → `com.auditive.boombaby`
+    6. **build ディレクトリ削除 → cmake 再生成**:
+       ```bash
+       rm -rf build build-clangd
+       make check
+       ```
+    7. **GitHub リポジトリ名リネーム**: Settings → Repository name → `BoomBaby`
+    8. **ローカルフォルダリネーム**:
+       ```bash
+       mv /Volumes/AUDITIVE/GitHub/BoomBaby /Volumes/AUDITIVE/GitHub/BoomBaby
+       ```
+  - 注意事項:
+    - `PLUGIN_CODE` を変更すると DAW が別プラグインとして認識する。既存セッションがある場合は旧コードのまま残す選択肢もある
+    - `compile_commands.json` と `build/` `build-clangd/` は cmake 再生成で自動更新される（手動変更不要）
+    - 手順 1 の旧プラグイン削除を忘れると AU/VST3 のキャッシュで ID衝突が発生し、DAW が正しくロードできなくなる

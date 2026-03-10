@@ -14,17 +14,17 @@ help:
 	@echo "  make clean     - ビルドディレクトリをクリーン"
 
 build:
-	cd build && xcodebuild -scheme "BabySquatch_All" -configuration Debug build
+	cd build && xcodebuild -scheme "BoomBaby_All" -configuration Debug build
 
 run: build
-	open build/BabySquatch_artefacts/Debug/Standalone/BabySquatch.app
+	open build/BoomBaby_artefacts/Debug/Standalone/BoomBaby.app
 
 launch:
-	open build/BabySquatch_artefacts/Debug/Standalone/BabySquatch.app
+	open build/BoomBaby_artefacts/Debug/Standalone/BoomBaby.app
 
 install: build
-	cp -R build/BabySquatch_artefacts/Debug/VST3/BabySquatch.vst3 ~/Library/Audio/Plug-Ins/VST3/
-	cp -R build/BabySquatch_artefacts/Debug/AU/BabySquatch.component ~/Library/Audio/Plug-Ins/Components/
+	cp -R build/BoomBaby_artefacts/Debug/VST3/BoomBaby.vst3 ~/Library/Audio/Plug-Ins/VST3/
+	cp -R build/BoomBaby_artefacts/Debug/AU/BoomBaby.component ~/Library/Audio/Plug-Ins/Components/
 	@echo "✓ プラグインをインストールしました。DAWで再スキャンしてください。"
 
 cmake:
@@ -35,11 +35,11 @@ clean:
 	rm -rf build/* build-clangd/*
 
 check:
-	cd build && cmake .. -G Xcode 2>/dev/null && xcodebuild -project BabySquatch.xcodeproj -scheme "BabySquatch_All" -configuration Debug build 2>&1 | grep -E "(error|warning):" || echo "✓ ビルドエラー・ワーニングなし"
+	cd build && cmake .. -G Xcode 2>/dev/null && xcodebuild -project BoomBaby.xcodeproj -scheme "BoomBaby_All" -configuration Debug build 2>&1 | grep -E "(error|warning):" || echo "✓ ビルドエラー・ワーニングなし"
 
 lint:
 	@echo "基本的なコード検査（コンパイラ警告）..."
-	@cd build && xcodebuild -project BabySquatch.xcodeproj -scheme "BabySquatch_All" -configuration Debug build 2>&1 | \
+	@cd build && xcodebuild -project BoomBaby.xcodeproj -scheme "BoomBaby_All" -configuration Debug build 2>&1 | \
 		grep -E "(warning|error):" | \
 		grep -v "Run script build phase" | \
 		head -50 || echo "✓ 警告・エラーなし"

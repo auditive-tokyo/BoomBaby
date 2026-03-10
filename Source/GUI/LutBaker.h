@@ -6,7 +6,7 @@
 #include <array>
 
 /// EnvelopeData を評価して EnvelopeLutManager に焼き込むユーティリティ。
-/// BabySquatchAudioProcessorEditor のメンバー関数を分割した複数の翻訳単位から
+/// BoomBabyAudioProcessorEditor のメンバー関数を分割した複数の翻訳単位から
 /// 呼び出せるよう inline free function として提供する。
 inline void bakeLut(const EnvelopeData &envData, EnvelopeLutManager &lut,
                     float durationMs) {

@@ -3,47 +3,47 @@
 
 #include <span>
 
-BabySquatchAudioProcessor::BabySquatchAudioProcessor()
+BoomBabyAudioProcessor::BoomBabyAudioProcessor()
     : AudioProcessor(
           BusesProperties()
               .withInput("Input", juce::AudioChannelSet::stereo(), true)
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)) {}
 
-BabySquatchAudioProcessor::~BabySquatchAudioProcessor() = default;
+BoomBabyAudioProcessor::~BoomBabyAudioProcessor() = default;
 
 const juce::String // NOSONAR: JUCE API
-BabySquatchAudioProcessor::getName() const {
+BoomBabyAudioProcessor::getName() const {
   return JucePlugin_Name;
 }
 
-bool BabySquatchAudioProcessor::acceptsMidi() const { return true; }
+bool BoomBabyAudioProcessor::acceptsMidi() const { return true; }
 
-bool BabySquatchAudioProcessor::producesMidi() const { return false; }
+bool BoomBabyAudioProcessor::producesMidi() const { return false; }
 
-bool BabySquatchAudioProcessor::isMidiEffect() const { return false; }
+bool BoomBabyAudioProcessor::isMidiEffect() const { return false; }
 
-double BabySquatchAudioProcessor::getTailLengthSeconds() const { return 0.0; }
+double BoomBabyAudioProcessor::getTailLengthSeconds() const { return 0.0; }
 
-int BabySquatchAudioProcessor::getNumPrograms() { return 1; }
+int BoomBabyAudioProcessor::getNumPrograms() { return 1; }
 
-int BabySquatchAudioProcessor::getCurrentProgram() { return 0; }
+int BoomBabyAudioProcessor::getCurrentProgram() { return 0; }
 
-void BabySquatchAudioProcessor::setCurrentProgram(int index) {
+void BoomBabyAudioProcessor::setCurrentProgram(int index) {
   juce::ignoreUnused(index);
 }
 
 const juce::String // NOSONAR: JUCE API
-BabySquatchAudioProcessor::getProgramName(int index) {
+BoomBabyAudioProcessor::getProgramName(int index) {
   juce::ignoreUnused(index);
   return {};
 }
 
-void BabySquatchAudioProcessor::changeProgramName(int index,
+void BoomBabyAudioProcessor::changeProgramName(int index,
                                                   const juce::String &newName) {
   juce::ignoreUnused(index, newName);
 }
 
-void BabySquatchAudioProcessor::prepareToPlay(double sampleRate,
+void BoomBabyAudioProcessor::prepareToPlay(double sampleRate,
                                               int samplesPerBlock) {
   subEngine_.prepareToPlay(sampleRate, samplesPerBlock);
   clickEngine_.prepareToPlay(sampleRate, samplesPerBlock);
@@ -60,17 +60,17 @@ void BabySquatchAudioProcessor::prepareToPlay(double sampleRate,
   inputMonitor_.fifo_.reset();
 }
 
-void BabySquatchAudioProcessor::setDirectSampleMode(bool isSample) noexcept {
+void BoomBabyAudioProcessor::setDirectSampleMode(bool isSample) noexcept {
   directMode_.sampleMode_.store(isSample);
   directEngine_.setPassthroughMode(!isSample);
 }
 
-void BabySquatchAudioProcessor::releaseResources() {
+void BoomBabyAudioProcessor::releaseResources() {
   // Currently no resources to release - will be populated when adding DSP
   // processing
 }
 
-bool BabySquatchAudioProcessor::isBusesLayoutSupported(
+bool BoomBabyAudioProcessor::isBusesLayoutSupported(
     const BusesLayout &layouts) const {
   if (layouts.getMainOutputChannelSet() == juce::AudioChannelSet::disabled())
     return false;
@@ -95,8 +95,8 @@ struct EngineRefs {
 };
 
 /// パススルーモード時: モノミックス → トランジェント検出 → FIFO 供給
-void processPassthroughMonitor(BabySquatchAudioProcessor::DirectMode &dm,
-                               BabySquatchAudioProcessor::InputMonitor &im,
+void processPassthroughMonitor(BoomBabyAudioProcessor::DirectMode &dm,
+                               BoomBabyAudioProcessor::InputMonitor &im,
                                EngineRefs eng,
                                const juce::AudioBuffer<float> &buffer,
                                std::vector<float> &monoMixBuf, int numSamples) {
@@ -137,7 +137,7 @@ void processPassthroughMonitor(BabySquatchAudioProcessor::DirectMode &dm,
 }
 
 /// Direct エンジンのパススルー vs サンプルモード呼び分け
-void renderDirectEngine(const BabySquatchAudioProcessor::DirectMode &dm,
+void renderDirectEngine(const BoomBabyAudioProcessor::DirectMode &dm,
                         const ChannelState::Passes &passes,
                         DirectEngine &directEng,
                         const std::vector<float> &monoMixBuf,
@@ -156,7 +156,7 @@ void renderDirectEngine(const BabySquatchAudioProcessor::DirectMode &dm,
 
 /// マスター L/R + 各チャンネルのレベル計測
 void measureChannelLevels(const ChannelState::Passes &passes,
-                          BabySquatchAudioProcessor::MasterSection &master,
+                          BoomBabyAudioProcessor::MasterSection &master,
                           ChannelState &channelState, EngineRefs eng,
                           const juce::AudioBuffer<float> &buffer,
                           int numSamples) {
@@ -178,7 +178,7 @@ void measureChannelLevels(const ChannelState::Passes &passes,
 
 } // namespace
 
-void BabySquatchAudioProcessor::handleMidiEvents(juce::MidiBuffer &midiMessages,
+void BoomBabyAudioProcessor::handleMidiEvents(juce::MidiBuffer &midiMessages,
                                                  int numSamples) {
   // GUI鍵盤のMIDIイベントをバッファにマージ
   keyboardState.processNextMidiBuffer(midiMessages, 0, numSamples, true);
@@ -194,7 +194,7 @@ void BabySquatchAudioProcessor::handleMidiEvents(juce::MidiBuffer &midiMessages,
   }
 }
 
-void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
+void BoomBabyAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                              juce::MidiBuffer &midiMessages) {
   juce::ScopedNoDenormals noDenormals;
 
@@ -225,25 +225,25 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                        numSamples);
 }
 
-bool BabySquatchAudioProcessor::hasEditor() const { return true; }
+bool BoomBabyAudioProcessor::hasEditor() const { return true; }
 
-juce::AudioProcessorEditor *BabySquatchAudioProcessor::createEditor() {
+juce::AudioProcessorEditor *BoomBabyAudioProcessor::createEditor() {
   // clang-format off
-  return new BabySquatchAudioProcessorEditor(*this); // NOSONAR: DAW host takes ownership
+  return new BoomBabyAudioProcessorEditor(*this); // NOSONAR: DAW host takes ownership
   // clang-format on
 }
 
-void BabySquatchAudioProcessor::getStateInformation(
+void BoomBabyAudioProcessor::getStateInformation(
     juce::MemoryBlock &destData) {
   juce::ignoreUnused(destData);
 }
 
-void BabySquatchAudioProcessor::setStateInformation(
+void BoomBabyAudioProcessor::setStateInformation(
     const void *data, // NOSONAR: JUCE API
     int sizeInBytes) {
   juce::ignoreUnused(data, sizeInBytes);
 }
 
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
-  return new BabySquatchAudioProcessor(); // NOSONAR: DAW host takes ownership
+  return new BoomBabyAudioProcessor(); // NOSONAR: DAW host takes ownership
 }

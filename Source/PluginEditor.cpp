@@ -6,8 +6,8 @@
 // ────────────────────────────────────────────────────
 // パネルルーティング（Mute/Solo/レベルメーター）
 // ────────────────────────────────────────────────────
-void BabySquatchAudioProcessorEditor::setupPanelRouting(
-    BabySquatchAudioProcessor &p) {
+void BoomBabyAudioProcessorEditor::setupPanelRouting(
+    BoomBabyAudioProcessor &p) {
   using enum ChannelState::Channel;
   subPanel.setOnMuteChanged([&p](bool m) { p.channelState().setMute(sub, m); });
   subPanel.setOnSoloChanged([&p](bool s) { p.channelState().setSolo(sub, s); });
@@ -47,7 +47,7 @@ void BabySquatchAudioProcessorEditor::setupPanelRouting(
 // ────────────────────────────────────────────────────
 // エンベロープ変更時のノブ同期
 // ────────────────────────────────────────────────────
-void BabySquatchAudioProcessorEditor::onEnvelopeChanged() {
+void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
   const float durationMs = envelopeCurveEditor.getDisplayDurationMs();
   bakeLut(envDatas.amp, processorRef.subEngine().envLut(), durationMs);
   bakeLut(envDatas.freq, processorRef.subEngine().freqLut(), durationMs);
@@ -132,13 +132,13 @@ void BabySquatchAudioProcessorEditor::onEnvelopeChanged() {
 // ────────────────────────────────────────────────────
 // エンベロープカーブエディタ内部配線
 // ────────────────────────────────────────────────────
-void BabySquatchAudioProcessorEditor::setupEnvelopeCurveEditor() {
+void BoomBabyAudioProcessorEditor::setupEnvelopeCurveEditor() {
   envelopeCurveEditor.setOnChange([this] { onEnvelopeChanged(); });
   // 初期状態: Amp が選択済み（ラベル色を反映）
   switchEditTarget(EnvelopeCurveEditor::EditTarget::amp);
 }
 
-void BabySquatchAudioProcessorEditor::mouseDown(const juce::MouseEvent &e) {
+void BoomBabyAudioProcessorEditor::mouseDown(const juce::MouseEvent &e) {
   using enum EnvelopeCurveEditor::EditTarget;
   if (e.eventComponent == &subUI.knobLabels[0])
     switchEditTarget(amp);
@@ -154,7 +154,7 @@ void BabySquatchAudioProcessorEditor::mouseDown(const juce::MouseEvent &e) {
     switchEditTarget(directAmp);
 }
 
-void BabySquatchAudioProcessorEditor::switchEditTarget(
+void BoomBabyAudioProcessorEditor::switchEditTarget(
     EnvelopeCurveEditor::EditTarget t) {
   envelopeCurveEditor.setEditTarget(t);
   using enum EnvelopeCurveEditor::EditTarget;
@@ -182,8 +182,8 @@ void BabySquatchAudioProcessorEditor::switchEditTarget(
 // ────────────────────────────────────────────────────
 // paint
 // ────────────────────────────────────────────────────
-BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
-    BabySquatchAudioProcessor &p)
+BoomBabyAudioProcessorEditor::BoomBabyAudioProcessorEditor(
+    BoomBabyAudioProcessor &p)
     : AudioProcessorEditor(&p), processorRef(p),
       keyboard(p.getKeyboardState()) {
   addAndMakeVisible(subPanel);
@@ -231,7 +231,7 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
   startTimerHz(30);
 }
 
-BabySquatchAudioProcessorEditor::~BabySquatchAudioProcessorEditor() {
+BoomBabyAudioProcessorEditor::~BoomBabyAudioProcessorEditor() {
   stopTimer();
   subUI.wave.combo.setLookAndFeel(nullptr);
   clickUI.modeCombo.setLookAndFeel(nullptr);
@@ -239,7 +239,7 @@ BabySquatchAudioProcessorEditor::~BabySquatchAudioProcessorEditor() {
   directUI.hold.slider.setLookAndFeel(nullptr);
 }
 
-void BabySquatchAudioProcessorEditor::timerCallback() {
+void BoomBabyAudioProcessorEditor::timerCallback() {
   // Direct がパススルーモードの場合のみリアルタイム入力波形を表示
   if (!processorRef.directMode().isPassthrough()) {
     envelopeCurveEditor.setUseRealtimeInput(false);
@@ -302,7 +302,7 @@ void BabySquatchAudioProcessorEditor::timerCallback() {
   envelopeCurveEditor.repaint();
 }
 
-void BabySquatchAudioProcessorEditor::paint(juce::Graphics &g) {
+void BoomBabyAudioProcessorEditor::paint(juce::Graphics &g) {
   g.fillAll(UIConstants::Colours::background);
 
   // 展開エリアの背景
@@ -310,7 +310,7 @@ void BabySquatchAudioProcessorEditor::paint(juce::Graphics &g) {
   g.fillRoundedRectangle(envelopeCurveEditor.getBounds().toFloat(), 6.0f);
 }
 
-void BabySquatchAudioProcessorEditor::resized() {
+void BoomBabyAudioProcessorEditor::resized() {
   auto area = getLocalBounds().reduced(UIConstants::panelPadding);
 
   // 常時表示の展開エリア（下部）
