@@ -42,24 +42,24 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
   addAndMakeVisible(directUI.modeCombo);
 
   // ── Sample load button ──
-  directUI.sampleLoadButton.setColour(
+  directUI.sample.loadButton.setColour(
       juce::TextButton::buttonColourId,
       UIConstants::Colours::panelBg.brighter(0.15f));
-  directUI.sampleLoadButton.setColour(juce::TextButton::textColourOffId,
-                                      UIConstants::Colours::labelText);
-  directUI.sampleLoadButton.setVisible(false);
-  directUI.sampleLoadButton.onClick = [this] { onSampleLoadClicked(); };
-  directUI.sampleLoadButton.setOnFileDropped(
+  directUI.sample.loadButton.setColour(juce::TextButton::textColourOffId,
+                                       UIConstants::Colours::labelText);
+  directUI.sample.loadButton.setVisible(false);
+  directUI.sample.loadButton.onClick = [this] { onSampleLoadClicked(); };
+  directUI.sample.loadButton.setOnFileDropped(
       [this](const juce::File &file) { onSampleFileChosen(file); });
-  addAndMakeVisible(directUI.sampleLoadButton);
+  addAndMakeVisible(directUI.sample.loadButton);
 
   // ── Mode コンボ変更時: ボタン表示切り替え ──
   directUI.modeCombo.onChange = [this] {
     const bool isSample = directUI.modeCombo.getSelectedId() ==
                           static_cast<int>(DirectUI::Mode::Sample);
-    directUI.sampleLoadButton.setVisible(isSample);
+    directUI.sample.loadButton.setVisible(isSample);
     if (!isSample)
-      directUI.sampleLoadButton.setButtonText("Drop or Click to Load");
+      directUI.sample.loadButton.setButtonText("Drop or Click to Load");
     processorRef.setDirectSampleMode(isSample);
     refreshDirectPassthroughUI();
     resized();
@@ -91,8 +91,7 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
     switchEditTarget(EnvelopeCurveEditor::EditTarget::directAmp);
   };
   directUI.amp.slider.onValueChange = [this] {
-    const float v =
-        static_cast<float>(directUI.amp.slider.getValue()) / 100.0f;
+    const float v = static_cast<float>(directUI.amp.slider.getValue()) / 100.0f;
     envDatas.directAmp.setDefaultValue(v);
     if (!envDatas.directAmp.isEnvelopeControlled())
       envDatas.directAmp.setPointValue(0, v);
@@ -143,8 +142,7 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
                       : juce::String(v / 1000.0, 2) + " s";
   };
   directUI.decay.slider.onValueChange = [this] {
-    const auto durMs =
-        static_cast<float>(directUI.decay.slider.getValue());
+    const auto durMs = static_cast<float>(directUI.decay.slider.getValue());
     bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
             durMs);
     refreshDirectProvider();
@@ -157,68 +155,68 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
   addAndMakeVisible(directUI.decay.label);
 
   // HPF: SlopeSelector (label) + freq knob + Q knob
-  directUI.hpfSlope.setOnChange(
+  directUI.hpf.slope.setOnChange(
       [this](int dboct) { processorRef.directEngine().setHpfSlope(dboct); });
-  addAndMakeVisible(directUI.hpfSlope);
+  addAndMakeVisible(directUI.hpf.slope);
 
-  styleDirectKnob(directUI.hpfSlider, directKnobLAF);
-  directUI.hpfSlider.setRange(20.0, 20000.0, 1.0);
-  directUI.hpfSlider.setSkewFactorFromMidPoint(1000.0);
-  directUI.hpfSlider.setTextValueSuffix(" Hz");
-  directUI.hpfSlider.setValue(20.0, juce::dontSendNotification);
-  directUI.hpfSlider.setDoubleClickReturnValue(true, 20.0);
-  directUI.hpfSlider.onValueChange = [this] {
+  styleDirectKnob(directUI.hpf.slider, directKnobLAF);
+  directUI.hpf.slider.setRange(20.0, 20000.0, 1.0);
+  directUI.hpf.slider.setSkewFactorFromMidPoint(1000.0);
+  directUI.hpf.slider.setTextValueSuffix(" Hz");
+  directUI.hpf.slider.setValue(20.0, juce::dontSendNotification);
+  directUI.hpf.slider.setDoubleClickReturnValue(true, 20.0);
+  directUI.hpf.slider.onValueChange = [this] {
     processorRef.directEngine().setHpfFreq(
-        static_cast<float>(directUI.hpfSlider.getValue()));
+        static_cast<float>(directUI.hpf.slider.getValue()));
   };
-  addAndMakeVisible(directUI.hpfSlider);
+  addAndMakeVisible(directUI.hpf.slider);
 
-  styleDirectKnob(directUI.hpfQSlider, directKnobLAF);
-  directUI.hpfQSlider.setRange(0.1, 6.0, 0.01);
-  directUI.hpfQSlider.textFromValueFunction = [](double v) {
+  styleDirectKnob(directUI.hpf.qSlider, directKnobLAF);
+  directUI.hpf.qSlider.setRange(0.1, 6.0, 0.01);
+  directUI.hpf.qSlider.textFromValueFunction = [](double v) {
     return juce::String(v, 2);
   };
-  directUI.hpfQSlider.setValue(0.707, juce::dontSendNotification);
-  directUI.hpfQSlider.setDoubleClickReturnValue(true, 0.707);
-  directUI.hpfQSlider.onValueChange = [this] {
+  directUI.hpf.qSlider.setValue(0.707, juce::dontSendNotification);
+  directUI.hpf.qSlider.setDoubleClickReturnValue(true, 0.707);
+  directUI.hpf.qSlider.onValueChange = [this] {
     processorRef.directEngine().setHpfQ(
-        static_cast<float>(directUI.hpfQSlider.getValue()));
+        static_cast<float>(directUI.hpf.qSlider.getValue()));
   };
-  addAndMakeVisible(directUI.hpfQSlider);
-  styleKnobLabelDirect(directUI.hpfQLabel, "Q", knobFont);
-  addAndMakeVisible(directUI.hpfQLabel);
+  addAndMakeVisible(directUI.hpf.qSlider);
+  styleKnobLabelDirect(directUI.hpf.qLabel, "Q", knobFont);
+  addAndMakeVisible(directUI.hpf.qLabel);
 
   // LPF: SlopeSelector (label) + freq knob + Q knob
-  directUI.lpfSlope.setOnChange(
+  directUI.lpf.slope.setOnChange(
       [this](int dboct) { processorRef.directEngine().setLpfSlope(dboct); });
-  addAndMakeVisible(directUI.lpfSlope);
+  addAndMakeVisible(directUI.lpf.slope);
 
-  styleDirectKnob(directUI.lpfSlider, directKnobLAF);
-  directUI.lpfSlider.setRange(20.0, 20000.0, 1.0);
-  directUI.lpfSlider.setSkewFactorFromMidPoint(1000.0);
-  directUI.lpfSlider.setTextValueSuffix(" Hz");
-  directUI.lpfSlider.setValue(20000.0, juce::dontSendNotification);
-  directUI.lpfSlider.setDoubleClickReturnValue(true, 20000.0);
-  directUI.lpfSlider.onValueChange = [this] {
+  styleDirectKnob(directUI.lpf.slider, directKnobLAF);
+  directUI.lpf.slider.setRange(20.0, 20000.0, 1.0);
+  directUI.lpf.slider.setSkewFactorFromMidPoint(1000.0);
+  directUI.lpf.slider.setTextValueSuffix(" Hz");
+  directUI.lpf.slider.setValue(20000.0, juce::dontSendNotification);
+  directUI.lpf.slider.setDoubleClickReturnValue(true, 20000.0);
+  directUI.lpf.slider.onValueChange = [this] {
     processorRef.directEngine().setLpfFreq(
-        static_cast<float>(directUI.lpfSlider.getValue()));
+        static_cast<float>(directUI.lpf.slider.getValue()));
   };
-  addAndMakeVisible(directUI.lpfSlider);
+  addAndMakeVisible(directUI.lpf.slider);
 
-  styleDirectKnob(directUI.lpfQSlider, directKnobLAF);
-  directUI.lpfQSlider.setRange(0.1, 6.0, 0.01);
-  directUI.lpfQSlider.textFromValueFunction = [](double v) {
+  styleDirectKnob(directUI.lpf.qSlider, directKnobLAF);
+  directUI.lpf.qSlider.setRange(0.1, 6.0, 0.01);
+  directUI.lpf.qSlider.textFromValueFunction = [](double v) {
     return juce::String(v, 2);
   };
-  directUI.lpfQSlider.setValue(0.707, juce::dontSendNotification);
-  directUI.lpfQSlider.setDoubleClickReturnValue(true, 0.707);
-  directUI.lpfQSlider.onValueChange = [this] {
+  directUI.lpf.qSlider.setValue(0.707, juce::dontSendNotification);
+  directUI.lpf.qSlider.setDoubleClickReturnValue(true, 0.707);
+  directUI.lpf.qSlider.onValueChange = [this] {
     processorRef.directEngine().setLpfQ(
-        static_cast<float>(directUI.lpfQSlider.getValue()));
+        static_cast<float>(directUI.lpf.qSlider.getValue()));
   };
-  addAndMakeVisible(directUI.lpfQSlider);
-  styleKnobLabelDirect(directUI.lpfQLabel, "Q", knobFont);
-  addAndMakeVisible(directUI.lpfQLabel);
+  addAndMakeVisible(directUI.lpf.qSlider);
+  styleKnobLabelDirect(directUI.lpf.qLabel, "Q", knobFont);
+  addAndMakeVisible(directUI.lpf.qLabel);
 
   // ── 起動時デフォルト値を DSP へ反映 ──
   processorRef.directEngine().setPitchSemitones(0.0f);
@@ -240,7 +238,7 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
     return juce::String(v, 1) + " dB";
   };
   directUI.threshold.slider.onValueChange = [this] {
-    processorRef.transientDetector().setThresholdDb(
+    processorRef.directMode().detector().setThresholdDb(
         static_cast<float>(directUI.threshold.slider.getValue()));
   };
   addAndMakeVisible(directUI.threshold.slider);
@@ -248,38 +246,38 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
   addAndMakeVisible(directUI.threshold.label);
 
   // ── Hold スライダー（mode ドロップダウン右） ──
-  directUI.holdSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-  directUI.holdSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 48,
-                                      18);
-  directUI.holdSlider.setRange(20.0, 500.0, 1.0);
-  directUI.holdSlider.setDoubleClickReturnValue(true, 50.0);
-  directUI.holdSlider.setValue(50.0, juce::dontSendNotification);
-  directUI.holdSlider.textFromValueFunction = [](double v) {
+  directUI.hold.slider.setSliderStyle(juce::Slider::LinearHorizontal);
+  directUI.hold.slider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 48,
+                                       18);
+  directUI.hold.slider.setRange(20.0, 500.0, 1.0);
+  directUI.hold.slider.setDoubleClickReturnValue(true, 50.0);
+  directUI.hold.slider.setValue(50.0, juce::dontSendNotification);
+  directUI.hold.slider.textFromValueFunction = [](double v) {
     return juce::String(juce::roundToInt(v)) + " ms";
   };
-  directUI.holdSlider.onValueChange = [this] {
-    processorRef.transientDetector().setHoldMs(
-        static_cast<float>(directUI.holdSlider.getValue()));
+  directUI.hold.slider.onValueChange = [this] {
+    processorRef.directMode().detector().setHoldMs(
+        static_cast<float>(directUI.hold.slider.getValue()));
   };
-  directUI.holdSlider.setColour(juce::Slider::backgroundColourId,
-                                juce::Colour(0xFF333333));
-  directUI.holdSlider.setColour(juce::Slider::trackColourId,
-                                UIConstants::Colours::directArc);
-  directUI.holdSlider.setColour(juce::Slider::thumbColourId,
-                                UIConstants::Colours::directThumb);
-  directUI.holdSlider.setColour(juce::Slider::textBoxTextColourId,
-                                UIConstants::Colours::text);
-  directUI.holdSlider.setColour(juce::Slider::textBoxBackgroundColourId,
-                                juce::Colour(0xFF333333));
-  directUI.holdSlider.setColour(juce::Slider::textBoxOutlineColourId,
-                                juce::Colours::transparentBlack);
-  addAndMakeVisible(directUI.holdSlider);
-  directUI.holdLabel.setText("Hold", juce::dontSendNotification);
-  directUI.holdLabel.setFont(smallFont);
-  directUI.holdLabel.setColour(juce::Label::textColourId,
-                               UIConstants::Colours::labelText);
-  directUI.holdLabel.setJustificationType(juce::Justification::centredRight);
-  addAndMakeVisible(directUI.holdLabel);
+  directUI.hold.slider.setColour(juce::Slider::backgroundColourId,
+                                 juce::Colour(0xFF333333));
+  directUI.hold.slider.setColour(juce::Slider::trackColourId,
+                                 UIConstants::Colours::directArc);
+  directUI.hold.slider.setColour(juce::Slider::thumbColourId,
+                                 UIConstants::Colours::directThumb);
+  directUI.hold.slider.setColour(juce::Slider::textBoxTextColourId,
+                                 UIConstants::Colours::text);
+  directUI.hold.slider.setColour(juce::Slider::textBoxBackgroundColourId,
+                                 juce::Colour(0xFF333333));
+  directUI.hold.slider.setColour(juce::Slider::textBoxOutlineColourId,
+                                 juce::Colours::transparentBlack);
+  addAndMakeVisible(directUI.hold.slider);
+  directUI.hold.label.setText("Hold", juce::dontSendNotification);
+  directUI.hold.label.setFont(smallFont);
+  directUI.hold.label.setColour(juce::Label::textColourId,
+                                UIConstants::Colours::labelText);
+  directUI.hold.label.setJustificationType(juce::Justification::centredRight);
+  addAndMakeVisible(directUI.hold.label);
 
   // 起動時のパススルー UI 状態を設定
   refreshDirectPassthroughUI();
@@ -287,7 +285,7 @@ void BabySquatchAudioProcessorEditor::setupDirectParams() {
 
 void BabySquatchAudioProcessorEditor::layoutDirectParams(
     juce::Rectangle<int> area) {
-  const bool isPassthrough = processorRef.isDirectPassthrough();
+  const bool isPassthrough = processorRef.directMode().isPassthrough();
 
   // 上段: mode ラベル + コンボ [+ Hold / サンプルロードボタン]
   auto topRow = area.removeFromTop(22);
@@ -302,12 +300,12 @@ void BabySquatchAudioProcessorEditor::layoutDirectParams(
     // Hold ラベル + スライダーを mode 右に配置
     topRow.removeFromLeft(4);
     constexpr int holdLabelW = 30;
-    directUI.holdLabel.setBounds(topRow.removeFromLeft(holdLabelW));
+    directUI.hold.label.setBounds(topRow.removeFromLeft(holdLabelW));
     topRow.removeFromLeft(2);
-    directUI.holdSlider.setBounds(topRow);
+    directUI.hold.slider.setBounds(topRow);
   } else {
     topRow.removeFromLeft(4);
-    directUI.sampleLoadButton.setBounds(topRow);
+    directUI.sample.loadButton.setBounds(topRow);
   }
 
   // 残りエリア: 2 行 × 4 列グリッド
@@ -320,8 +318,9 @@ void BabySquatchAudioProcessorEditor::layoutDirectParams(
     juce::Slider *col0Knob =
         isPassthrough ? &directUI.threshold.slider : &directUI.pitch.slider;
     juce::Component *col0Label =
-        isPassthrough ? static_cast<juce::Component *>(&directUI.threshold.label)
-                      : static_cast<juce::Component *>(&directUI.pitch.label);
+        isPassthrough
+            ? static_cast<juce::Component *>(&directUI.threshold.label)
+            : static_cast<juce::Component *>(&directUI.pitch.label);
 
     const std::array<juce::Slider *, 4> rowKnobs = {{
         col0Knob,
@@ -347,16 +346,16 @@ void BabySquatchAudioProcessorEditor::layoutDirectParams(
   // | Q
   {
     const std::array<juce::Slider *, 4> rowKnobs = {{
-        &directUI.hpfSlider,
-        &directUI.hpfQSlider,
-        &directUI.lpfSlider,
-        &directUI.lpfQSlider,
+        &directUI.hpf.slider,
+        &directUI.hpf.qSlider,
+        &directUI.lpf.slider,
+        &directUI.lpf.qSlider,
     }};
     const std::array<juce::Component *, 4> rowLabels = {{
-        &directUI.hpfSlope,
-        &directUI.hpfQLabel,
-        &directUI.lpfSlope,
-        &directUI.lpfQLabel,
+        &directUI.hpf.slope,
+        &directUI.hpf.qLabel,
+        &directUI.lpf.slope,
+        &directUI.lpf.qLabel,
     }};
     for (int col = 0; col < 4; ++col) {
       const auto col_u = static_cast<std::size_t>(col);
@@ -369,7 +368,7 @@ void BabySquatchAudioProcessorEditor::layoutDirectParams(
 }
 
 void BabySquatchAudioProcessorEditor::refreshDirectPassthroughUI() {
-  const bool isPassthrough = processorRef.isDirectPassthrough();
+  const bool isPassthrough = processorRef.directMode().isPassthrough();
 
   // Pitch ⇔ Threshold 表示切り替え
   directUI.pitch.slider.setVisible(!isPassthrough);
@@ -378,19 +377,19 @@ void BabySquatchAudioProcessorEditor::refreshDirectPassthroughUI() {
   directUI.threshold.label.setVisible(isPassthrough);
 
   // Hold スライダー: パススルーモード時のみ表示
-  directUI.holdLabel.setVisible(isPassthrough);
-  directUI.holdSlider.setVisible(isPassthrough);
+  directUI.hold.label.setVisible(isPassthrough);
+  directUI.hold.slider.setVisible(isPassthrough);
 
   // Auto Trigger: パススルーモード時は自動有効、サンプルモード時は無効
-  processorRef.transientDetector().setEnabled(isPassthrough);
+  processorRef.directMode().detector().setEnabled(isPassthrough);
 }
 
 void BabySquatchAudioProcessorEditor::onSampleLoadClicked() {
-  directUI.fileChooser = std::make_unique<juce::FileChooser>(
+  directUI.sample.fileChooser = std::make_unique<juce::FileChooser>(
       "Load Sample",
       juce::File::getSpecialLocation(juce::File::userMusicDirectory),
       "*.wav;*.aif;*.aiff;*.flac;*.ogg");
-  directUI.fileChooser->launchAsync(
+  directUI.sample.fileChooser->launchAsync(
       juce::FileBrowserComponent::openMode |
           juce::FileBrowserComponent::canSelectFiles,
       [this](const juce::FileChooser &fc) {
@@ -402,36 +401,38 @@ void BabySquatchAudioProcessorEditor::onSampleLoadClicked() {
 
 void BabySquatchAudioProcessorEditor::onSampleFileChosen(
     const juce::File &file) {
-  directUI.loadedFilePath = file.getFullPathName();
-  directUI.sampleLoadButton.setButtonText(file.getFileNameWithoutExtension());
-  directUI.sampleLoadButton.setTooltip(directUI.loadedFilePath);
+  directUI.sample.loadedFilePath = file.getFullPathName();
+  directUI.sample.loadButton.setButtonText(file.getFileNameWithoutExtension());
+  directUI.sample.loadButton.setTooltip(directUI.sample.loadedFilePath);
   processorRef.directEngine().sampler().loadSample(file);
 
   // サムネイルデータをメンバーに保存してプロバイダーを登録
-  if (!processorRef.directEngine().sampler().copyThumbnail(directUI.thumbMin,
-                                                           directUI.thumbMax))
+  if (!processorRef.directEngine().sampler().copyThumbnail(
+          directUI.sample.thumbMin, directUI.sample.thumbMax))
     return;
-  directUI.thumbDurSec = processorRef.directEngine().sampler().durationSec();
+  directUI.sample.thumbDurSec =
+      processorRef.directEngine().sampler().durationSec();
   refreshDirectProvider();
 }
 
 void BabySquatchAudioProcessorEditor::refreshDirectProvider() {
-  if (directUI.thumbMin.empty() || directUI.thumbDurSec <= 0.0)
+  if (directUI.sample.thumbMin.empty() || directUI.sample.thumbDurSec <= 0.0)
     return;
 
   // Pitch (semitones) → 再生速度倍率
   const auto semitones = static_cast<float>(directUI.pitch.slider.getValue());
   const float speedRatio = std::pow(2.0f, semitones / 12.0f);
-  const double durSec = directUI.thumbDurSec / static_cast<double>(speedRatio);
+  const double durSec =
+      directUI.sample.thumbDurSec / static_cast<double>(speedRatio);
 
-  // LUT 期間 (ms) + Amp (0〜2.0)
+  // LUT 期間 (ms) + Amp (0、2.0)
   const float ampDurMs =
       processorRef.directEngine().directAmpLut().getDurationMs();
   const float ampScale =
       static_cast<float>(directUI.amp.slider.getValue()) / 100.0f;
 
-  auto minPtr = std::make_shared<std::vector<float>>(directUI.thumbMin);
-  auto maxPtr = std::make_shared<std::vector<float>>(directUI.thumbMax);
+  auto minPtr = std::make_shared<std::vector<float>>(directUI.sample.thumbMin);
+  auto maxPtr = std::make_shared<std::vector<float>>(directUI.sample.thumbMax);
 
   envelopeCurveEditor.setDirectProvider(
       [minPtr, maxPtr, durSec, ampDurMs, ampScale](float timeSec) {

@@ -108,25 +108,8 @@ float DirectEngine::computeMaxTimeSamples(float sr, double playRate) const {
 }
 
 float DirectEngine::computeSampleAmp(float noteTimeMs) const {
-  const auto &ampLut = directAmpLut_.getActiveLut();
-  const float ampDurMs = directAmpLut_.getDurationMs();
-  const float lutPos =
-      (ampDurMs > 0.0f)
-          ? (noteTimeMs / ampDurMs) *
-                static_cast<float>(EnvelopeLutManager::lutSize - 1)
-          : 0.0f;
-  const auto lutIdx =
-      std::min(static_cast<int>(lutPos), EnvelopeLutManager::lutSize - 1);
-  float amp = ampLut[static_cast<size_t>(lutIdx)];
-
-  // 末尾 5ms half-cosine フェードアウト
-  constexpr float fadeOutMs = 5.0f;
-  if (const float fadeStartMs = std::max(0.0f, ampDurMs - fadeOutMs);
-      noteTimeMs > fadeStartMs) {
-    const float t = (noteTimeMs - fadeStartMs) / fadeOutMs;
-    amp *= 0.5f * (1.0f + std::cos(t * juce::MathConstants<float>::pi));
-  }
-  return amp;
+  return EnvelopeLutManager::computeAmp(
+      directAmpLut_.getActiveLut(), directAmpLut_.getDurationMs(), noteTimeMs);
 }
 
 // ────────────────────────────────────────────────────

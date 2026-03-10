@@ -214,12 +214,12 @@ BabySquatchAudioProcessorEditor::BabySquatchAudioProcessorEditor(
 
   // マスターフェーダー配線
   masterSection.setOnValueChange(
-      [this](float db) { processorRef.setMasterGainDb(db); });
+      [this](float db) { processorRef.master().setGain(db); });
   masterSection.setLevelProvider(0, [this]() {
-    return processorRef.getMasterLevelDb(0); // L
+    return processorRef.master().getLevelDb(0); // L
   });
   masterSection.setLevelProvider(1, [this]() {
-    return processorRef.getMasterLevelDb(1); // R
+    return processorRef.master().getLevelDb(1); // R
   });
 
   setSize(UIConstants::windowWidth, UIConstants::windowHeight +
@@ -236,19 +236,19 @@ BabySquatchAudioProcessorEditor::~BabySquatchAudioProcessorEditor() {
   subUI.wave.combo.setLookAndFeel(nullptr);
   clickUI.modeCombo.setLookAndFeel(nullptr);
   directUI.modeCombo.setLookAndFeel(nullptr);
-  directUI.holdSlider.setLookAndFeel(nullptr);
+  directUI.hold.slider.setLookAndFeel(nullptr);
 }
 
 void BabySquatchAudioProcessorEditor::timerCallback() {
   // Direct がパススルーモードの場合のみリアルタイム入力波形を表示
-  if (!processorRef.isDirectPassthrough()) {
+  if (!processorRef.directMode().isPassthrough()) {
     envelopeCurveEditor.setUseRealtimeInput(false);
     return;
   }
 
   // FIFO から利用可能なサンプルをローリング表示バッファに追記
-  auto &fifo = processorRef.inputFifo();
-  const auto &src = processorRef.inputFifoData();
+  auto &fifo = processorRef.inputMonitor().fifo();
+  const auto &src = processorRef.inputMonitor().data();
   if (const int avail = fifo.getNumReady(); avail > 0) {
     int s1;
     int sz1;

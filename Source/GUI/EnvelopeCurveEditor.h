@@ -80,38 +80,51 @@ public:
   void mouseDrag(const juce::MouseEvent &e) override;
   void mouseUp(const juce::MouseEvent &e) override;
 
-private:
-  // ── 座標変換ヘルパー ──
-  float timeMsToX(float timeMs) const;
-  float valueToY(float value) const;
-  float xToTimeMs(float x) const;
-  float yToValue(float y) const;
-
-  /// ピクセル空間でのヒット判定（-1: なし）
-  int findPointAtPixel(float px, float py) const;
-
-  /// Shift+クリック用: クリック位置に最も近いセグメントを返す（-1: なし）
-  int findSegmentAtPixel(float px, float py) const;
-
-  // ── paint() 分割ヘルパー ──
-  void paintWaveform(juce::Graphics &g, float w, float h, float centreY) const;
-  void paintClickNoiseBand(juce::Graphics &g, float w, float h,
-                           float centreY) const;
-  void paintClickSampleWave(juce::Graphics &g, float w, float h,
-                            float centreY) const;
-  void paintDirectWaveform(juce::Graphics &g, float w, float h,
-                           float centreY) const;
-  void paintEnvelopeOverlay(juce::Graphics &g, float w) const;
-  void paintTimeline(juce::Graphics &g, float w, float h, float totalH) const;
-
   static constexpr float pointHitRadius = 8.0f;
   static constexpr float timelineHeight = 30.0f;
 
-  /// プロット領域の高さ（タイムライン分を差し引いた値）
-  float plotHeight() const;
+private:
+  // ── 座標変換ヘルパー群（nested struct: outer class の private に直接アクセス可能） ──
+  struct CoordMapper {
+    float durationMs;
+    float w;
+    float plotH;        ///< getHeight() - timelineHeight
+    EditTarget editTarget;
+    float timeMsToX(float timeMs) const noexcept;
+    float valueToY(float value) const noexcept;
+    float xToTimeMs(float x) const noexcept;
+    float yToValue(float y) const noexcept;
+  };
+  CoordMapper makeCoords() const noexcept;
 
-  /// Mix + 波形選択に応じた1サンプルを返す（paintWaveform から委譲）
-  float computePreviewWaveValue(float sinVal, float mix, float phase) const;
+  // ── ヒットテスト群 ──
+  struct HitTester {
+    /// ピクセル空間でのポイントヒット判定（-1: なし）
+    static int findPoint(const EnvelopeCurveEditor &e,
+                         const CoordMapper &c, float px, float py);
+    /// Shift+クリック用: 最近傍セグメント（-1: なし）
+    static int findSegment(const EnvelopeCurveEditor &e,
+                           const CoordMapper &c, float px, float py);
+  };
+
+  // ── paint() 分割ヘルパー群 ──
+  struct PaintHelper {
+    static void waveform(const EnvelopeCurveEditor &e, juce::Graphics &g,
+                         const CoordMapper &c, float centreY);
+    static void clickNoiseBand(const EnvelopeCurveEditor &e, juce::Graphics &g,
+                               const CoordMapper &c, float centreY);
+    static void clickSampleWave(const EnvelopeCurveEditor &e, juce::Graphics &g,
+                                const CoordMapper &c, float centreY);
+    static void directWaveform(const EnvelopeCurveEditor &e, juce::Graphics &g,
+                               const CoordMapper &c, float centreY);
+    static void envelopeOverlay(const EnvelopeCurveEditor &e, juce::Graphics &g,
+                                const CoordMapper &c);
+    static void timeline(juce::Graphics &g,
+                         const CoordMapper &c, float totalH);
+    /// Mix + 波形選択に応じた1サンプルを返す
+    static float previewWaveValue(const EnvelopeCurveEditor &e,
+                                  float sinVal, float mix, float phase);
+  };
 
   // [0]=amp, [1]=freq, [2]=dist, [3]=mix, [4]=clickAmp
   std::array<EnvelopeData *, 6> envDatas_;

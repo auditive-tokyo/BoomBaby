@@ -50,13 +50,19 @@ void BabySquatchAudioProcessor::prepareToPlay(double sampleRate,
   directEngine_.prepareToPlay(sampleRate, samplesPerBlock);
   channelState_.resetDetectors();
 
-  transientDetector_.prepare(sampleRate);
-  transientDetector_.setThresholdDb(-24.0f);
-  transientDetector_.setHoldMs(50.0f);
+  directMode_.transientDetector_.prepare(sampleRate);
+  directMode_.transientDetector_.setThresholdDb(-24.0f);
+  directMode_.transientDetector_.setHoldMs(50.0f);
   monoMixBuffer_.resize(static_cast<std::size_t>(samplesPerBlock));
 
-  inputFifoData_.assign(static_cast<std::size_t>(kInputFifoCapacity), 0.0f);
-  inputFifo_.reset();
+  inputMonitor_.data_.assign(static_cast<std::size_t>(InputMonitor::kCapacity),
+                             0.0f);
+  inputMonitor_.fifo_.reset();
+}
+
+void BabySquatchAudioProcessor::setDirectSampleMode(bool isSample) noexcept {
+  directMode_.sampleMode_.store(isSample);
+  directEngine_.setPassthroughMode(!isSample);
 }
 
 void BabySquatchAudioProcessor::releaseResources() {
@@ -74,6 +80,103 @@ bool BabySquatchAudioProcessor::isBusesLayoutSupported(
 
   return true;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// processBlock ヘルパー（フリー関数: クラスメソッドカウントに含まれない）
+// 将来の拡張（input gain, FFT, latency comp, LUFS 等）は各関数へ追記する
+// ─────────────────────────────────────────────────────────────────────────
+namespace {
+
+/// 3エンジンをまとめる集約（パラメータ数削減のため）
+struct EngineRefs {
+  SubEngine &sub;
+  ClickEngine &click;
+  DirectEngine &direct;
+};
+
+/// パススルーモード時: モノミックス → トランジェント検出 → FIFO 供給
+void processPassthroughMonitor(BabySquatchAudioProcessor::DirectMode &dm,
+                               BabySquatchAudioProcessor::InputMonitor &im,
+                               EngineRefs eng,
+                               const juce::AudioBuffer<float> &buffer,
+                               std::vector<float> &monoMixBuf, int numSamples) {
+  if (dm.sampleMode_.load() || buffer.getNumChannels() == 0)
+    return;
+
+  auto *mono = monoMixBuf.data();
+  const float *ch0 = buffer.getReadPointer(0);
+  if (buffer.getNumChannels() >= 2) {
+    const float *ch1 = buffer.getReadPointer(1);
+    for (int i = 0; i < numSamples; ++i)
+      mono[i] = (ch0[i] + ch1[i]) * 0.5f;
+  } else {
+    std::copy_n(ch0, numSamples, mono);
+  }
+
+  if (dm.transientDetector_.isEnabled() &&
+      dm.transientDetector_.process(
+          std::span<const float>(mono, static_cast<std::size_t>(numSamples)))) {
+    eng.sub.triggerNote();
+    eng.click.triggerNote();
+    eng.direct.triggerNote();
+  }
+
+  const int toWrite = juce::jmin(numSamples, im.fifo_.getFreeSpace());
+  if (toWrite > 0) {
+    int s1;
+    int sz1;
+    int s2;
+    int sz2;
+    im.fifo_.prepareToWrite(toWrite, s1, sz1, s2, sz2);
+    if (sz1 > 0)
+      std::copy_n(mono, sz1, im.data_.data() + s1);
+    if (sz2 > 0)
+      std::copy_n(mono + sz1, sz2, im.data_.data() + s2);
+    im.fifo_.finishedWrite(sz1 + sz2);
+  }
+}
+
+/// Direct エンジンのパススルー vs サンプルモード呼び分け
+void renderDirectEngine(const BabySquatchAudioProcessor::DirectMode &dm,
+                        const ChannelState::Passes &passes,
+                        DirectEngine &directEng,
+                        const std::vector<float> &monoMixBuf,
+                        juce::AudioBuffer<float> &buffer, int numSamples,
+                        double sr) {
+  if (!dm.sampleMode_.load() && passes.direct) {
+    directEng.renderPassthrough(
+        buffer,
+        std::span<const float>(monoMixBuf.data(),
+                               static_cast<std::size_t>(numSamples)),
+        numSamples, sr);
+  } else {
+    directEng.render(buffer, numSamples, passes.direct, sr);
+  }
+}
+
+/// マスター L/R + 各チャンネルのレベル計測
+void measureChannelLevels(const ChannelState::Passes &passes,
+                          BabySquatchAudioProcessor::MasterSection &master,
+                          ChannelState &channelState, EngineRefs eng,
+                          const juce::AudioBuffer<float> &buffer,
+                          int numSamples) {
+  for (std::size_t ch = 0; ch < 2; ++ch) {
+    const int bufCh =
+        juce::jmin(static_cast<int>(ch), buffer.getNumChannels() - 1);
+    master.detector_[ch].process(
+        bufCh >= 0 ? buffer.getReadPointer(bufCh) : nullptr, numSamples);
+  }
+
+  using enum ChannelState::Channel;
+  channelState.detector(sub).process(
+      passes.sub ? eng.sub.scratchData() : nullptr, numSamples);
+  channelState.detector(click).process(
+      passes.click ? eng.click.scratchData() : nullptr, numSamples);
+  channelState.detector(direct).process(
+      passes.direct ? eng.direct.scratchData() : nullptr, numSamples);
+}
+
+} // namespace
 
 void BabySquatchAudioProcessor::handleMidiEvents(juce::MidiBuffer &midiMessages,
                                                  int numSamples) {
@@ -99,98 +202,27 @@ void BabySquatchAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   const int numSamples = buffer.getNumSamples();
   const double sr = getSampleRate();
 
-  // ── モノミックス（Direct パススルーモード時: 波形表示 /
-  // トランジェント検出に使用）──
-  if (!directSampleMode_.load() && buffer.getNumChannels() > 0) {
-    const int numCh = buffer.getNumChannels();
-    auto *mono = monoMixBuffer_.data();
-    const float *ch0 = buffer.getReadPointer(0);
-    if (numCh >= 2) {
-      const float *ch1 = buffer.getReadPointer(1);
-      for (int i = 0; i < numSamples; ++i)
-        mono[i] = (ch0[i] + ch1[i]) * 0.5f;
-    } else {
-      std::copy_n(ch0, numSamples, mono);
-    }
+  // パススルーモード: モノミックス / トランジェント検出 / FIFO 供給
+  processPassthroughMonitor(directMode_, inputMonitor_,
+                            {subEngine_, clickEngine_, directEngine_}, buffer,
+                            monoMixBuffer_, numSamples);
 
-    // Auto トリガー: トランジェント検出
-    if (transientDetector_.isEnabled() &&
-        transientDetector_.process(std::span<const float>(
-            mono, static_cast<std::size_t>(numSamples)))) {
-      subEngine_.triggerNote();
-      clickEngine_.triggerNote();
-      directEngine_.triggerNote();
-    }
-
-    // 波形リアルタイム表示用 FIFO へ書き込み
-    const int toWrite = juce::jmin(numSamples, inputFifo_.getFreeSpace());
-    if (toWrite > 0) {
-      int s1;
-      int sz1;
-      int s2;
-      int sz2;
-      inputFifo_.prepareToWrite(toWrite, s1, sz1, s2, sz2);
-      if (sz1 > 0)
-        std::copy_n(mono, sz1, inputFifoData_.data() + s1);
-      if (sz2 > 0)
-        std::copy_n(mono + sz1, sz2, inputFifoData_.data() + s2);
-      inputFifo_.finishedWrite(sz1 + sz2);
-    }
-  }
-
-  // Direct ミュート: 入力信号ごと消去（Sub はこの後加算するので影響なし）
-  // パススルーモード時も renderPassthrough() が addSample するため常にクリア
+  // Direct ミュート: 入力信号を消去（Sub はこの後加算。renderPassthrough も
+  // addSample）
   buffer.clear();
 
   handleMidiEvents(midiMessages, numSamples);
   subEngine_.render(buffer, numSamples, passes.sub, sr);
   clickEngine_.render(buffer, numSamples, passes.click, sr);
-
-  // Direct: パススルーモードとサンプルモードで呼び分け
-  if (!directSampleMode_.load() && passes.direct) {
-    directEngine_.renderPassthrough(
-        buffer,
-        std::span<const float>(monoMixBuffer_.data(),
-                               static_cast<std::size_t>(numSamples)),
-        numSamples, sr);
-  } else {
-    directEngine_.render(buffer, numSamples, passes.direct, sr);
-  }
+  renderDirectEngine(directMode_, passes, directEngine_, monoMixBuffer_, buffer,
+                     numSamples, sr);
 
   // マスターゲイン適用
-  buffer.applyGain(juce::Decibels::decibelsToGain(masterGainDb_.load()));
+  buffer.applyGain(juce::Decibels::decibelsToGain(master_.gainDb_.load()));
 
-  // マスター出力 L/R レベル計測
-  for (std::size_t ch = 0; ch < 2; ++ch) {
-    const int bufCh =
-        juce::jmin(static_cast<int>(ch), buffer.getNumChannels() - 1);
-    if (bufCh >= 0)
-      masterDetector_[ch].process(buffer.getReadPointer(bufCh), numSamples);
-    else
-      masterDetector_[ch].process(nullptr, numSamples);
-  }
-
-  using enum ChannelState::Channel;
-
-  // Sub レベル計測
-  if (passes.sub)
-    channelState_.detector(sub).process(subEngine_.scratchData(), numSamples);
-  else
-    channelState_.detector(sub).process(nullptr, numSamples);
-
-  // Click レベル計測
-  if (passes.click)
-    channelState_.detector(click).process(clickEngine_.scratchData(),
-                                          numSamples);
-  else
-    channelState_.detector(click).process(nullptr, numSamples);
-
-  // Direct レベル計測（render 後に scratchData を参照）
-  if (passes.direct)
-    channelState_.detector(direct).process(directEngine_.scratchData(),
-                                           numSamples);
-  else
-    channelState_.detector(direct).process(nullptr, numSamples);
+  measureChannelLevels(passes, master_, channelState_,
+                       {subEngine_, clickEngine_, directEngine_}, buffer,
+                       numSamples);
 }
 
 bool BabySquatchAudioProcessor::hasEditor() const { return true; }

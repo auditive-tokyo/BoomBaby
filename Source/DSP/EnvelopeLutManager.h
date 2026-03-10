@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cmath>
+#include <numbers>
 
 /// エンベロープ LUT のダブルバッファ管理。
 /// UI スレッドが bake() で書き込み → アトミックフリップ、
@@ -48,6 +50,28 @@ public:
         lut0_.fill(1.0f);
         lut1_.fill(1.0f);
         activeIndex_.store(0);
+    }
+
+    /// LUT エンベロープ振幅を計算（末尾 5ms half-cosine フェード付き）。
+    /// ClickEngine / DirectEngine の computeSampleAmp() から共用。
+    [[nodiscard]] static float computeAmp(
+        const std::array<float, lutSize> &ampLut,
+        float ampDurMs,
+        float noteTimeMs) noexcept {
+        const float lutPos =
+            (ampDurMs > 0.0f)
+                ? (noteTimeMs / ampDurMs) * static_cast<float>(lutSize - 1)
+                : 0.0f;
+        const auto lutIdx = std::min(static_cast<int>(lutPos), lutSize - 1);
+        float amp = ampLut[static_cast<std::size_t>(lutIdx)];
+
+        constexpr float fadeOutMs = 5.0f;
+        if (const float fadeStartMs = std::max(0.0f, ampDurMs - fadeOutMs);
+            noteTimeMs > fadeStartMs) {
+            const float t = (noteTimeMs - fadeStartMs) / fadeOutMs;
+            amp *= 0.5f * (1.0f + std::cos(t * std::numbers::pi_v<float>));
+        }
+        return amp;
     }
 
 private:

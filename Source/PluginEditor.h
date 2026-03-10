@@ -201,16 +201,19 @@ private:
   // ── DIRECTパネル ──
   struct DirectUI {
     enum class Mode { Direct = 1, Sample };
-    juce::Label modeLabel;
-    juce::ComboBox modeCombo;
-    UIConstants::SampleDropButton sampleLoadButton{"Drop or Click to Load"};
-    juce::String loadedFilePath;
-    std::unique_ptr<juce::FileChooser> fileChooser;
-    // サムネイルデータ（Pitch プレビュー更新用）
-    std::vector<float> thumbMin;
-    std::vector<float> thumbMax;
-    double thumbDurSec = 0.0;
-    // ── Pitch / Amp / Drive / Decay ノブ（上段） ──
+    juce::Label modeLabel;   // 1
+    juce::ComboBox modeCombo; // 2
+    // ① サンプル関連をまとめて 1 フィールドへ
+    struct SampleData {
+      UIConstants::SampleDropButton loadButton{"Drop or Click to Load"};
+      juce::String loadedFilePath;
+      std::unique_ptr<juce::FileChooser> fileChooser;
+      std::vector<float> thumbMin;
+      std::vector<float> thumbMax;
+      double thumbDurSec = 0.0;
+    };
+    SampleData sample;       // 3
+    // ── 上段ノブ ──
     struct KnobUI {
       juce::Label label;
       CustomSlider slider;
@@ -221,23 +224,30 @@ private:
                                           UIConstants::Colours::directArc};
       CustomSlider driveSlider;
     };
-    KnobUI pitch;
-    KnobUI amp; ///< 0〜200% 振幅スケーラー
-    SaturatorUI saturator;
-    KnobUI decay;
-    // ── フィルター ノブ（下段） ──
-    UIConstants::SlopeSelector hpfSlope{"HP", UIConstants::Colours::directArc};
-    CustomSlider hpfSlider;
-    juce::Label hpfQLabel;
-    CustomSlider hpfQSlider;
-    UIConstants::SlopeSelector lpfSlope{"LP", UIConstants::Colours::directArc};
-    CustomSlider lpfSlider;
-    juce::Label lpfQLabel;
-    CustomSlider lpfQSlider;    // ── Threshold ノブ（パススルーモード時に Pitch 位置へ表示） ──
-    KnobUI threshold;
-    // ── Hold スライダー（mode ドロップダウン右） ──
-    juce::Label holdLabel;
-    CustomSlider holdSlider;  };
+    KnobUI pitch;            // 4
+    KnobUI amp;              ///< 0〜200% 振幅スケーラー // 5
+    SaturatorUI saturator;   // 6
+    KnobUI decay;            // 7
+    KnobUI threshold;        ///< パススルーモード時に Pitch 位置へ表示 // 8
+    // ② Hold をまとめて 1 フィールドへ
+    struct HoldUI {
+      juce::Label label;
+      CustomSlider slider;
+    };
+    HoldUI hold;             // 9
+    // ③ フィルターバンドをまとめて HPF / LPF へ
+    struct FilterBand {
+      UIConstants::SlopeSelector slope;
+      CustomSlider slider;
+      juce::Label qLabel;
+      CustomSlider qSlider;
+      explicit FilterBand(const char *tag)
+          : slope{tag, UIConstants::Colours::directArc} {}
+    };
+    FilterBand hpf{"HP"};    // 10
+    FilterBand lpf{"LP"};    // 11
+    // 合計: 11 フィールド（旧: 23）
+  };
   DirectUI directUI;
 
   // ── ツールチップ（Gainノブの無効時などに使用） ──
