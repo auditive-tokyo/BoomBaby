@@ -79,6 +79,7 @@ void EnvelopeCurveEditor::paint(juce::Graphics &g) {
   PaintHelper::directWaveform(*this, g, c, centreY);
   g.endTransparencyLayer();
   PaintHelper::envelopeOverlay(*this, g, c);
+  PaintHelper::pointTooltip(*this, g, c);
   PaintHelper::timeline(g, c, totalH);
 }
 
@@ -806,6 +807,24 @@ void EnvelopeCurveEditor::mouseUp(const juce::MouseEvent & /*e*/) {
   drag_.curveSegment = -1;
 }
 
+void EnvelopeCurveEditor::mouseMove(const juce::MouseEvent &e) {
+  const auto px = static_cast<float>(e.x);
+  const auto py = static_cast<float>(e.y);
+  const auto c = makeCoords();
+  const int hit = HitTester::findPoint(*this, c, px, py);
+  if (hit != hoverPointIndex_) {
+    hoverPointIndex_ = hit;
+    repaint();
+  }
+}
+
+void EnvelopeCurveEditor::mouseExit(const juce::MouseEvent & /*e*/) {
+  if (hoverPointIndex_ != -1) {
+    hoverPointIndex_ = -1;
+    repaint();
+  }
+}
+
 void EnvelopeCurveEditor::setEditTarget(EditTarget target) {
   editTarget = target;
   editEnvData = envDatas_[static_cast<std::size_t>(std::to_underlying(target))];
@@ -816,4 +835,92 @@ void EnvelopeCurveEditor::setEditTarget(EditTarget target) {
 void EnvelopeCurveEditor::setOnEditTargetChanged(
     std::function<void(EditTarget)> cb) {
   onEditTargetChanged = std::move(cb);
+}
+
+void EnvelopeCurveEditor::PaintHelper::pointTooltip(
+    const EnvelopeCurveEditor &e, juce::Graphics &g, const CoordMapper &c) {
+  // ドラッグ中 > ホバー の優先順位で表示対象を決定
+  const int idx =
+      (e.drag_.pointIndex >= 0) ? e.drag_.pointIndex : e.hoverPointIndex_;
+  if (idx < 0)
+    return;
+
+  const auto &pts = e.editEnvData->getPoints();
+  if (idx >= static_cast<int>(pts.size()))
+    return;
+
+  const auto &pt = pts[static_cast<std::size_t>(idx)];
+  const float px = c.timeMsToX(pt.timeMs);
+  const float py = c.valueToY(pt.value);
+
+  // 時間ラベル
+  juce::String timeStr;
+  if (pt.timeMs < 10.0f)
+    timeStr = juce::String(pt.timeMs, 2) + " ms";
+  else if (pt.timeMs < 100.0f)
+    timeStr = juce::String(pt.timeMs, 1) + " ms";
+  else
+    timeStr = juce::String(static_cast<int>(std::round(pt.timeMs))) + " ms";
+
+  // 値ラベル（EditTarget に応じてフォーマット）
+  juce::String valueStr;
+  using enum EditTarget;
+  switch (e.editTarget) {
+  case freq:
+    if (pt.value >= 1000.0f)
+      valueStr = juce::String(pt.value / 1000.0f, 2) + " kHz";
+    else
+      valueStr = juce::String(static_cast<int>(std::round(pt.value))) + " Hz";
+    break;
+  case saturate: {
+    // DSP 0.0〜1.0 → 表示 0〜24 dB
+    const float dB = pt.value * 24.0f;
+    valueStr = juce::String(dB, 1) + " dB";
+    break;
+  }
+  case mix: {
+    // DSP -1.0〜1.0 → 表示 -100〜100
+    const auto pct = static_cast<int>(std::round(pt.value * 100.0f));
+    valueStr = juce::String(pct);
+    break;
+  }
+  case amp:
+  case clickAmp:
+  case directAmp: {
+    // DSP 0.0〜2.0 → 表示 0〜200%
+    const auto pct = static_cast<int>(std::round(pt.value * 100.0f));
+    valueStr = juce::String(pct) + "%";
+    break;
+  }
+  }
+
+  const juce::String label = timeStr + "  /  " + valueStr;
+
+  constexpr float padX = 6.0f;
+  constexpr float padY = 4.0f;
+  constexpr float fontSize = 10.0f;
+
+  const juce::Font font{juce::FontOptions{fontSize}};
+  juce::GlyphArrangement ga;
+  ga.addLineOfText(font, label, 0.0f, 0.0f);
+  const float textW = ga.getBoundingBox(0, -1, true).getWidth();
+  const float boxW = textW + padX * 2.0f;
+  const float boxH = fontSize + padY * 2.0f;
+
+  // ポイントの上に表示。境界を超えないようにクランプ
+  float bx = px - boxW * 0.5f;
+  float by = py - boxH - 8.0f;
+  if (by < 0.0f)
+    by = py + 10.0f; // 上が切れる場合は下に表示
+  bx = juce::jlimit(0.0f, c.w - boxW, bx);
+  by = juce::jlimit(0.0f, c.plotH - boxH, by);
+
+  const auto box = juce::Rectangle<float>(bx, by, boxW, boxH);
+  g.setColour(juce::Colours::black.withAlpha(0.80f));
+  g.fillRoundedRectangle(box, 3.0f);
+  g.setColour(juce::Colours::white.withAlpha(0.40f));
+  g.drawRoundedRectangle(box, 3.0f, 0.5f);
+  g.setFont(font);
+  g.setColour(juce::Colours::white);
+  g.drawText(label, box, juce::Justification::centred, false);
 }

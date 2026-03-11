@@ -199,8 +199,10 @@ void BoomBabyAudioProcessorEditor::setupSubKnobsRow() {
   envDatas.dist.addPoint(0.0f, 0.0f);
 
   // ClipType セレクター（Soft / Hard / Tube）— Saturate ノブ上部ラベルを兼ねる
-  subUI.saturateClipType.setOnChange(
-      [this](int t) { processorRef.subEngine().oscillator().setClipType(t); });
+  subUI.saturateClipType.setOnChange([this](int t) {
+    switchEditTarget(EnvelopeCurveEditor::EditTarget::saturate);
+    processorRef.subEngine().oscillator().setClipType(t);
+  });
   addAndMakeVisible(subUI.saturateClipType);
 
   // ── Tone1〜Tone4 ノブ（subUI.knobs[4〜7]） ──

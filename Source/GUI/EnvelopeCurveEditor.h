@@ -79,6 +79,8 @@ public:
   void mouseDown(const juce::MouseEvent &e) override;
   void mouseDrag(const juce::MouseEvent &e) override;
   void mouseUp(const juce::MouseEvent &e) override;
+  void mouseMove(const juce::MouseEvent &e) override;
+  void mouseExit(const juce::MouseEvent &e) override;
 
   static constexpr float pointHitRadius = 8.0f;
   static constexpr float timelineHeight = 30.0f;
@@ -124,6 +126,9 @@ private:
     /// Mix + 波形選択に応じた1サンプルを返す
     static float previewWaveValue(const EnvelopeCurveEditor &e,
                                   float sinVal, float mix, float phase);
+    /// ホバー / ドラッグ中ポイントの値ツールチップを描画
+    static void pointTooltip(const EnvelopeCurveEditor &e, juce::Graphics &g,
+                             const CoordMapper &c);
   };
 
   // [0]=amp, [1]=freq, [2]=dist, [3]=mix, [4]=clickAmp
@@ -154,6 +159,8 @@ private:
   std::vector<std::pair<float, float>>
       realtimePixels_; ///< リアルタイム per-pixel {min,max}
   bool useRealtimeInput_ = false;
+
+  int hoverPointIndex_{-1}; ///< mouseMove で検出したホバー中ポイント（-1: なし）
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EnvelopeCurveEditor)
 };
