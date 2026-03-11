@@ -6,7 +6,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <optional>
 
-// ── Hz → 音名変換ヘルパー（例: 440 → "A4", 88.45 → "F2(+22)"）──
+// ── Hz → 音名変換ヘルパー（例: 440 → "A4", 88.45 → "F2 +22"）──
 inline juce::String hzToNoteName(double hz) {
   if (hz <= 0.0)
     return {};
@@ -20,9 +20,9 @@ inline juce::String hzToNoteName(double hz) {
   juce::String s =
       juce::String(names[static_cast<size_t>(idx)]) + juce::String(octave);
   if (cents > 0)
-    s += "(+" + juce::String(cents) + ")";
+    s += " +" + juce::String(cents);
   else if (cents < 0)
-    s += "(" + juce::String(cents) + ")";
+    s += " " + juce::String(cents);
   return s;
 }
 

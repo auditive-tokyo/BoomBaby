@@ -1,5 +1,6 @@
 #include "EnvelopeCurveEditor.h"
 #include "../DSP/EnvelopeData.h"
+#include "CustomSliderLAF.h"
 #include "UIConstants.h"
 
 #include <array>
@@ -866,12 +867,15 @@ void EnvelopeCurveEditor::PaintHelper::pointTooltip(
   juce::String valueStr;
   using enum EditTarget;
   switch (e.editTarget) {
-  case freq:
+  case freq: {
     if (pt.value >= 1000.0f)
       valueStr = juce::String(pt.value / 1000.0f, 2) + " kHz";
     else
       valueStr = juce::String(static_cast<int>(std::round(pt.value))) + " Hz";
+    if (const juce::String noteName = hzToNoteName(static_cast<double>(pt.value)); noteName.isNotEmpty())
+      valueStr += "  " + noteName;
     break;
+  }
   case saturate: {
     // DSP 0.0〜1.0 → 表示 0〜24 dB
     const float dB = pt.value * 24.0f;
