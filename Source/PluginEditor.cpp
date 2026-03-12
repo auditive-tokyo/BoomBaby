@@ -1,5 +1,7 @@
 #include "PluginEditor.h"
+#include "DSP/Saturator.h"
 #include "GUI/LutBaker.h"
+#include "GUI/WaveformUtils.h"
 #include "PluginProcessor.h"
 #include <span>
 
@@ -312,6 +314,48 @@ void BoomBabyAudioProcessorEditor::timerCallback() {
     }
     pixels[static_cast<std::size_t>(px)] = {mn, mx};
   }
+
+  // Drive + ClipType をピクセル min/max に適用（Saturator は単調関数）
+  const auto driveDb =
+      static_cast<float>(directUI.saturator.driveSlider.getValue());
+  const int clipType = directUI.saturator.clipType.getSelected();
+  const auto nPx = static_cast<std::size_t>(w);
+  std::vector<float> pxMin(nPx), pxMax(nPx);
+  for (std::size_t i = 0; i < nPx; ++i) {
+    pxMin[i] = Saturator::process(pixels[i].first, driveDb, clipType);
+    pxMax[i] = Saturator::process(pixels[i].second, driveDb, clipType);
+  }
+
+  // HPF / LPF をピクセルデータに適用
+  const float sr = getDisplaySampleRate();
+  const auto hpfFreq = static_cast<float>(directUI.hpf.slider.getValue());
+  if (hpfFreq > 20.5f) {
+    const auto hpfQ = static_cast<float>(directUI.hpf.qSlider.getValue());
+    const int hpfSlope = directUI.hpf.slope.getSlope();
+    int hpfStages = 1;
+    if (hpfSlope >= 48)
+      hpfStages = 4;
+    else if (hpfSlope >= 24)
+      hpfStages = 2;
+    SvfPassUtils::applySvfPass(pxMin, hpfFreq, hpfQ, hpfStages, 0, sr);
+    SvfPassUtils::applySvfPass(pxMax, hpfFreq, hpfQ, hpfStages, 0, sr);
+  }
+  const auto lpfFreq = static_cast<float>(directUI.lpf.slider.getValue());
+  if (lpfFreq < 19999.5f) {
+    const auto lpfQ = static_cast<float>(directUI.lpf.qSlider.getValue());
+    const int lpfSlope = directUI.lpf.slope.getSlope();
+    int lpfStages = 1;
+    if (lpfSlope >= 48)
+      lpfStages = 4;
+    else if (lpfSlope >= 24)
+      lpfStages = 2;
+    SvfPassUtils::applySvfPass(pxMin, lpfFreq, lpfQ, lpfStages, 1, sr);
+    SvfPassUtils::applySvfPass(pxMax, lpfFreq, lpfQ, lpfStages, 1, sr);
+  }
+
+  // 処理済みデータをピクセルに戻す
+  for (std::size_t i = 0; i < nPx; ++i)
+    pixels[i] = {pxMin[i], pxMax[i]};
 
   envelopeCurveEditor.setRealtimePixels(std::move(pixels));
   envelopeCurveEditor.setUseRealtimeInput(true);
