@@ -48,6 +48,8 @@ private:
   void setClickModeVisible(bool isSample);
   void applyClickSampleMode();
   void applyClickNoiseMode(int m);
+  float computeNoiseEnvelope(float timeSec) const;
+  float computeBpfScale() const;
   void setupLengthBox();
   void setupWaveShapeCombo();
   void layoutSubKnobsRow(juce::Rectangle<int> knobRow);

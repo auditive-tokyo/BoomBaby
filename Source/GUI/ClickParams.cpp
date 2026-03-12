@@ -44,8 +44,10 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
   const auto tinyFont =
       juce::Font(juce::FontOptions(UIConstants::fontSizeSmall));
   styleKnobLabel(clickUI.noise.decayLabel, "Decay", tinyFont);
-  clickUI.noise.bpf1.slopeSelector.setOnChange(
-      [this](int dboct) { processorRef.clickEngine().setBpf1Slope(dboct); });
+  clickUI.noise.bpf1.slopeSelector.setOnChange([this](int dboct) {
+    processorRef.clickEngine().setBpf1Slope(dboct);
+    envelopeCurveEditor.repaint();
+  });
   styleKnobLabel(clickUI.noise.bpf1.qLabel, "Q", tinyFont);
   // ClipTypeセレクターはノブ上部ラベルを兼ねるため別途KnobLabel設定不要
   styleKnobLabel(clickUI.hpf.qLabel, "Q", tinyFont);
@@ -317,13 +319,9 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
   processorRef.clickEngine().setSampleAmpLevel(1.0f);
 
   // プレビュープロバイダーを clickUI に保持
-  // DSP = BPFインパルス応答 × Decayエンベロープ なので両方の積を使う
+  // DSP = BPF(constant-skirt) × Decayエンベロープ なので形状 × 振幅スケーリング
   clickUI.noiseProvider = [this](float timeSec) {
-    const auto decayMs =
-        static_cast<float>(clickUI.noise.decaySlider.getValue());
-    return (timeSec * 1000.0f < decayMs)
-               ? std::exp(-timeSec * 5000.0f / (decayMs + 1e-6f))
-               : 0.0f;
+    return computeNoiseEnvelope(timeSec) * computeBpfScale();
   };
 
   // モード変更時にコントロール表示切替 + プロバイダー更新
@@ -339,6 +337,31 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
 
   // 起動時は Noise モード
   envelopeCurveEditor.setClickNoiseEnvProvider(clickUI.noiseProvider);
+}
+
+float BoomBabyAudioProcessorEditor::computeNoiseEnvelope(float timeSec) const {
+  const auto decayMs =
+      static_cast<float>(clickUI.noise.decaySlider.getValue());
+  return (timeSec * 1000.0f < decayMs)
+             ? std::exp(-timeSec * 5000.0f / (decayMs + 1e-6f))
+             : 0.0f;
+}
+
+float BoomBabyAudioProcessorEditor::computeBpfScale() const {
+  // constant-skirt SVF-TPT BPF: 出力 RMS ∝ √(Q × fc)
+  // stages が増えると累乗される。デフォルト値 (Q=0.71, fc=5000, 1段) で 1.0 に正規化。
+  const auto q =
+      static_cast<float>(clickUI.noise.bpf1.qSlider.getValue());
+  const auto freq =
+      static_cast<float>(clickUI.noise.bpf1.freqSlider.getValue());
+  const int slope = clickUI.noise.bpf1.slopeSelector.getSlope();
+  float stages = 1.0f;
+  if (slope >= 48)
+    stages = 4.0f;
+  else if (slope >= 24)
+    stages = 2.0f;
+  constexpr float kDefaultQxFc = 0.71f * 5000.0f;
+  return std::pow(q * freq / kDefaultQxFc, stages * 0.5f);
 }
 
 void BoomBabyAudioProcessorEditor::layoutClickParams(
