@@ -138,14 +138,22 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
   clickUI.noise.saturator.driveSlider.onValueChange = [this] {
     processorRef.clickEngine().setDriveDb(
         static_cast<float>(clickUI.noise.saturator.driveSlider.getValue()));
-    envelopeCurveEditor.repaint();
+    if (clickUI.modeCombo.getSelectedId() ==
+        std::to_underlying(ClickUI::Mode::Sample))
+      refreshClickSampleProvider();
+    else
+      envelopeCurveEditor.repaint();
   };
   addAndMakeVisible(clickUI.noise.saturator.driveSlider);
 
   // ClipType セレクター（Soft / Hard / Tube）— Drive ノブ上部ラベルを兼ねる
   clickUI.noise.saturator.clipType.setOnChange([this](int t) {
     processorRef.clickEngine().setClipType(t);
-    envelopeCurveEditor.repaint();
+    if (clickUI.modeCombo.getSelectedId() ==
+        std::to_underlying(ClickUI::Mode::Sample))
+      refreshClickSampleProvider();
+    else
+      envelopeCurveEditor.repaint();
   });
   addAndMakeVisible(clickUI.noise.saturator.clipType);
 
@@ -597,8 +605,19 @@ void BoomBabyAudioProcessorEditor::refreshClickSampleProvider() {
   const double durSec =
       clickUI.sample.thumbDurSec / static_cast<double>(speedRatio);
 
-  auto minPtr = std::make_shared<std::vector<float>>(clickUI.sample.thumbMin);
-  auto maxPtr = std::make_shared<std::vector<float>>(clickUI.sample.thumbMax);
+  // Drive + ClipType を thumb min/max に適用（Saturator は単調関数なので min/max への直接適用で精確）
+  const auto driveDb =
+      static_cast<float>(clickUI.noise.saturator.driveSlider.getValue());
+  const int clipType = clickUI.noise.saturator.clipType.getSelected();
+  const std::size_t n = clickUI.sample.thumbMin.size();
+  auto minPtr = std::make_shared<std::vector<float>>(n);
+  auto maxPtr = std::make_shared<std::vector<float>>(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    (*minPtr)[i] =
+        Saturator::process(clickUI.sample.thumbMin[i], driveDb, clipType);
+    (*maxPtr)[i] =
+        Saturator::process(clickUI.sample.thumbMax[i], driveDb, clipType);
+  }
 
   envelopeCurveEditor.setClickPreviewProvider(
       [minPtr, maxPtr, durSec](float timeSec) {
@@ -607,4 +626,5 @@ void BoomBabyAudioProcessorEditor::refreshClickSampleProvider() {
                                              static_cast<float>(durSec) + 1.0f,
                                              0.0f, timeSec);
       });
+  envelopeCurveEditor.repaint();
 }
