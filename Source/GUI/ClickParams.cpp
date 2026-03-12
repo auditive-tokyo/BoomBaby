@@ -20,30 +20,6 @@ void styleClickKnob(juce::Slider &s, ColouredSliderLAF &laf) {
   s.setLookAndFeel(&laf);
 }
 
-/// SVF-TPT フィルタを1パス適用するヘルパー（描画用）。
-/// type: 0=HP, 1=LP。stages 段カスケード。
-inline void applySvfPass(std::vector<float> &data, float cutoffHz, float q,
-                         int stages, int type, float sr) {
-  const float g = std::tan(juce::MathConstants<float>::pi * cutoffHz / sr);
-  const float R = 1.0f / (2.0f * q);
-  for (int stg = 0; stg < stages; ++stg) {
-    float ic1eq = 0.0f, ic2eq = 0.0f;
-    const float a1 = 1.0f / (1.0f + 2.0f * R * g + g * g);
-    const float a2 = 2.0f * R + g;
-    for (auto &s : data) {
-      const float v3 = s - ic2eq;
-      const float v1 = a1 * (ic1eq + g * v3);
-      const float v2 = ic2eq + g * v1;
-      ic1eq = 2.0f * v1 - ic1eq;
-      ic2eq = 2.0f * v2 - ic2eq;
-      if (type == 0)
-        s = s - a2 * v1 - v2; // HP
-      else
-        s = v2; // LP
-    }
-  }
-}
-
 } // namespace
 
 void BoomBabyAudioProcessorEditor::setupClickParams() {
@@ -734,8 +710,8 @@ void BoomBabyAudioProcessorEditor::refreshClickSampleProvider() {
       hpfStages = 4;
     else if (hpfSlope >= 24)
       hpfStages = 2;
-    applySvfPass(*minPtr, hpfFreq, hpfQ, hpfStages, 0, sr);
-    applySvfPass(*maxPtr, hpfFreq, hpfQ, hpfStages, 0, sr);
+    SvfPassUtils::applySvfPass(*minPtr, hpfFreq, hpfQ, hpfStages, 0, sr);
+    SvfPassUtils::applySvfPass(*maxPtr, hpfFreq, hpfQ, hpfStages, 0, sr);
   }
   const auto lpfFreq = static_cast<float>(clickUI.lpf.slider.getValue());
   if (lpfFreq < 19999.5f) {
@@ -746,8 +722,8 @@ void BoomBabyAudioProcessorEditor::refreshClickSampleProvider() {
       lpfStages = 4;
     else if (lpfSlope >= 24)
       lpfStages = 2;
-    applySvfPass(*minPtr, lpfFreq, lpfQ, lpfStages, 1, sr);
-    applySvfPass(*maxPtr, lpfFreq, lpfQ, lpfStages, 1, sr);
+    SvfPassUtils::applySvfPass(*minPtr, lpfFreq, lpfQ, lpfStages, 1, sr);
+    SvfPassUtils::applySvfPass(*maxPtr, lpfFreq, lpfQ, lpfStages, 1, sr);
   }
 
   envelopeCurveEditor.setClickPreviewProvider(

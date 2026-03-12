@@ -1,5 +1,6 @@
 // DirectParams.cpp
 // Direct panel UI setup / layout
+#include "../DSP/Saturator.h"
 #include "../PluginEditor.h"
 #include "LutBaker.h"
 #include "WaveformUtils.h"
@@ -129,12 +130,15 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   directUI.saturator.driveSlider.onValueChange = [this] {
     processorRef.directEngine().setDriveDb(
         static_cast<float>(directUI.saturator.driveSlider.getValue()));
+    refreshDirectProvider();
   };
   addAndMakeVisible(directUI.saturator.driveSlider);
 
   // ClipType セレクター（Soft / Hard / Tube）— Drive ノブ上部ラベルを兼ねる
-  directUI.saturator.clipType.setOnChange(
-      [this](int t) { processorRef.directEngine().setClipType(t); });
+  directUI.saturator.clipType.setOnChange([this](int t) {
+    processorRef.directEngine().setClipType(t);
+    refreshDirectProvider();
+  });
   addAndMakeVisible(directUI.saturator.clipType);
 
   // Decay: 10 〜 2000 ms（LUT の再生期間を制御 — Click の Sample Decay と同一）
@@ -164,8 +168,10 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   addAndMakeVisible(directUI.decay.label);
 
   // HPF: SlopeSelector (label) + freq knob + Q knob
-  directUI.hpf.slope.setOnChange(
-      [this](int dboct) { processorRef.directEngine().setHpfSlope(dboct); });
+  directUI.hpf.slope.setOnChange([this](int dboct) {
+    processorRef.directEngine().setHpfSlope(dboct);
+    refreshDirectProvider();
+  });
   addAndMakeVisible(directUI.hpf.slope);
 
   styleDirectKnob(directUI.hpf.slider, directKnobLAF);
@@ -180,6 +186,7 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   directUI.hpf.slider.onValueChange = [this] {
     processorRef.directEngine().setHpfFreq(
         static_cast<float>(directUI.hpf.slider.getValue()));
+    refreshDirectProvider();
   };
   addAndMakeVisible(directUI.hpf.slider);
 
@@ -196,14 +203,17 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   directUI.hpf.qSlider.onValueChange = [this] {
     processorRef.directEngine().setHpfQ(
         static_cast<float>(directUI.hpf.qSlider.getValue()));
+    refreshDirectProvider();
   };
   addAndMakeVisible(directUI.hpf.qSlider);
   styleKnobLabelDirect(directUI.hpf.qLabel, "Q", knobFont);
   addAndMakeVisible(directUI.hpf.qLabel);
 
   // LPF: SlopeSelector (label) + freq knob + Q knob
-  directUI.lpf.slope.setOnChange(
-      [this](int dboct) { processorRef.directEngine().setLpfSlope(dboct); });
+  directUI.lpf.slope.setOnChange([this](int dboct) {
+    processorRef.directEngine().setLpfSlope(dboct);
+    refreshDirectProvider();
+  });
   addAndMakeVisible(directUI.lpf.slope);
 
   styleDirectKnob(directUI.lpf.slider, directKnobLAF);
@@ -218,6 +228,7 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   directUI.lpf.slider.onValueChange = [this] {
     processorRef.directEngine().setLpfFreq(
         static_cast<float>(directUI.lpf.slider.getValue()));
+    refreshDirectProvider();
   };
   addAndMakeVisible(directUI.lpf.slider);
 
@@ -234,6 +245,7 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   directUI.lpf.qSlider.onValueChange = [this] {
     processorRef.directEngine().setLpfQ(
         static_cast<float>(directUI.lpf.qSlider.getValue()));
+    refreshDirectProvider();
   };
   addAndMakeVisible(directUI.lpf.qSlider);
   styleKnobLabelDirect(directUI.lpf.qLabel, "Q", knobFont);
@@ -457,8 +469,46 @@ void BoomBabyAudioProcessorEditor::refreshDirectProvider() {
   const float ampScale =
       static_cast<float>(directUI.amp.slider.getValue()) / 100.0f;
 
-  auto minPtr = std::make_shared<std::vector<float>>(directUI.sample.thumbMin);
-  auto maxPtr = std::make_shared<std::vector<float>>(directUI.sample.thumbMax);
+  // Drive + ClipType を thumb min/max に適用
+  const auto driveDb =
+      static_cast<float>(directUI.saturator.driveSlider.getValue());
+  const int clipType = directUI.saturator.clipType.getSelected();
+  const std::size_t n = directUI.sample.thumbMin.size();
+  auto minPtr = std::make_shared<std::vector<float>>(n);
+  auto maxPtr = std::make_shared<std::vector<float>>(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    (*minPtr)[i] =
+        Saturator::process(directUI.sample.thumbMin[i], driveDb, clipType);
+    (*maxPtr)[i] =
+        Saturator::process(directUI.sample.thumbMax[i], driveDb, clipType);
+  }
+
+  // HPF / LPF を thumb データに適用（DSP: Saturator → HPF → LPF の順）
+  const float sr = getDisplaySampleRate();
+  const auto hpfFreq = static_cast<float>(directUI.hpf.slider.getValue());
+  if (hpfFreq > 20.5f) {
+    const auto hpfQ = static_cast<float>(directUI.hpf.qSlider.getValue());
+    const int hpfSlope = directUI.hpf.slope.getSlope();
+    int hpfStages = 1;
+    if (hpfSlope >= 48)
+      hpfStages = 4;
+    else if (hpfSlope >= 24)
+      hpfStages = 2;
+    SvfPassUtils::applySvfPass(*minPtr, hpfFreq, hpfQ, hpfStages, 0, sr);
+    SvfPassUtils::applySvfPass(*maxPtr, hpfFreq, hpfQ, hpfStages, 0, sr);
+  }
+  const auto lpfFreq = static_cast<float>(directUI.lpf.slider.getValue());
+  if (lpfFreq < 19999.5f) {
+    const auto lpfQ = static_cast<float>(directUI.lpf.qSlider.getValue());
+    const int lpfSlope = directUI.lpf.slope.getSlope();
+    int lpfStages = 1;
+    if (lpfSlope >= 48)
+      lpfStages = 4;
+    else if (lpfSlope >= 24)
+      lpfStages = 2;
+    SvfPassUtils::applySvfPass(*minPtr, lpfFreq, lpfQ, lpfStages, 1, sr);
+    SvfPassUtils::applySvfPass(*maxPtr, lpfFreq, lpfQ, lpfStages, 1, sr);
+  }
 
   envelopeCurveEditor.setDirectProvider(
       [minPtr, maxPtr, durSec, ampDurMs, ampScale](float timeSec) {
