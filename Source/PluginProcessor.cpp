@@ -166,6 +166,8 @@ BoomBabyAudioProcessor::createParameterLayout() {
 namespace {
 constexpr std::array kAllParamIDs = {
     ParamIDs::subWaveShape,   ParamIDs::subLength,
+    ParamIDs::subAmp,         ParamIDs::subFreq,
+    ParamIDs::subMix,         ParamIDs::subSatDrive,
     ParamIDs::subSatClipType, ParamIDs::subTone1,
     ParamIDs::subTone2,       ParamIDs::subTone3,
     ParamIDs::subTone4,       ParamIDs::subGain,
@@ -180,7 +182,8 @@ constexpr std::array kAllParamIDs = {
     ParamIDs::clickLpfQ,      ParamIDs::clickLpfSlope,
     ParamIDs::clickGain,      ParamIDs::clickMute,
     ParamIDs::clickSolo,      ParamIDs::directMode,
-    ParamIDs::directPitch,    ParamIDs::directDrive,
+    ParamIDs::directPitch,    ParamIDs::directAmp,
+    ParamIDs::directDecay,    ParamIDs::directDrive,
     ParamIDs::directClipType, ParamIDs::directHpfFreq,
     ParamIDs::directHpfQ,     ParamIDs::directHpfSlope,
     ParamIDs::directLpfFreq,  ParamIDs::directLpfQ,
@@ -188,6 +191,15 @@ constexpr std::array kAllParamIDs = {
     ParamIDs::directHold,     ParamIDs::directGain,
     ParamIDs::directMute,     ParamIDs::directSolo,
     ParamIDs::masterGain};
+
+/// LUT 駆動パラメータ: DAW Undo/Redo やオートメーション変更時に
+/// bakeAllLutsFromState() を再呼出しする必要があるパラメータ群。
+constexpr std::array kLutAffectedParamIDs = {
+    ParamIDs::subLength,       ParamIDs::subAmp,
+    ParamIDs::subFreq,         ParamIDs::subMix,
+    ParamIDs::subSatDrive,     ParamIDs::clickSampleAmp,
+    ParamIDs::clickSampleDecay,ParamIDs::directAmp,
+    ParamIDs::directDecay};
 } // namespace
 
 BoomBabyAudioProcessor::BoomBabyAudioProcessor()
@@ -369,6 +381,14 @@ void BoomBabyAudioProcessor::parameterChanged(const juce::String &parameterID,
                      directMode_.transientDetector_, channelState_);
   else if (parameterID == ParamIDs::masterGain)
     master_.setGain(v);
+
+  // LUT 駆動パラメータは DAW Undo/Redo 時にも再ベイクが必要
+  for (const auto *p : kLutAffectedParamIDs) {
+    if (parameterID == p) {
+      bakeAllLutsFromState();
+      break;
+    }
+  }
 }
 
 const juce::String // NOSONAR: JUCE API

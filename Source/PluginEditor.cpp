@@ -79,15 +79,23 @@ void BoomBabyAudioProcessorEditor::setupPanelRouting(
 // エンベロープ変更時のノブ同期
 // ────────────────────────────────────────────────────
 void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
-  const float durationMs = envelopeCurveEditor.getDisplayDurationMs();
-  bakeLut(envDatas.amp, processorRef.subEngine().envLut(), durationMs);
-  bakeLut(envDatas.freq, processorRef.subEngine().freqLut(), durationMs);
-  bakeLut(envDatas.dist, processorRef.subEngine().distLut(), durationMs);
-  bakeLut(envDatas.mix, processorRef.subEngine().mixLut(), durationMs);
+  // スライダー値から直接読むことで、editor 再開時に displayDurationMs が
+  // デフォルト (300ms) のまま焼かれるバグを防止。
+  const auto subLenMs = static_cast<float>(subUI.length.slider.getValue());
+  envelopeCurveEditor.setDisplayDurationMs(subLenMs);
+  bakeLut(envDatas.amp, processorRef.subEngine().envLut(), subLenMs);
+  bakeLut(envDatas.freq, processorRef.subEngine().freqLut(), subLenMs);
+  bakeLut(envDatas.dist, processorRef.subEngine().distLut(), subLenMs);
+  bakeLut(envDatas.mix, processorRef.subEngine().mixLut(), subLenMs);
+  const auto clickDecayMs =
+      static_cast<float>(clickUI.sample.decay.slider.getValue());
   bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(),
-          static_cast<float>(clickUI.sample.decay.slider.getValue()));
+          clickDecayMs);
+  envelopeCurveEditor.setClickDecayMs(clickDecayMs);
+  const auto directDecayMs =
+      static_cast<float>(directUI.decay.slider.getValue());
   bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
-          processorRef.directEngine().directAmpLut().getDurationMs());
+          directDecayMs);
   // 1点=ノブ制御（有効化＋ポイント値をノブに反映）、2点以上=エンベロープ制御（無効化）
 
   // Amp
@@ -688,6 +696,10 @@ void BoomBabyAudioProcessorEditor::loadEnvelopesFromState() {
 
   // LUT 再ベイク＋ノブ有効/無効同期
   onEnvelopeChanged();
+
+  // onEnvelopeChanged() で正しい decay duration がベイクされた後に
+  // Direct プレビューを再構築（lambda が ampDurMs をキャプチャするため）
+  refreshDirectProvider();
 }
 
 void BoomBabyAudioProcessorEditor::timerCallback() {
