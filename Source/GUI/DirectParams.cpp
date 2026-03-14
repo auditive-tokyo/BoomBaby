@@ -177,9 +177,7 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
             durMs);
     refreshDirectProvider();
   };
-  // 起動時に LUT 期間を初期値へ反映
-  bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
-          300.0f);
+  // ※ LUT は syncUIFromState() → onEnvelopeChanged() で正しい値にベイクされる
   addAndMakeVisible(directUI.decay.slider);
   styleKnobLabelDirect(directUI.decay.label, "Decay", knobFont);
   addAndMakeVisible(directUI.decay.label);
@@ -284,16 +282,8 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   styleKnobLabelDirect(directUI.lpf.qLabel, "Q", knobFont);
   addAndMakeVisible(directUI.lpf.qLabel);
 
-  // ── 起動時デフォルト値を DSP へ反映 ──
-  processorRef.directEngine().setPitchSemitones(0.0f);
-  processorRef.directEngine().setDriveDb(0.0f);
-  processorRef.directEngine().setClipType(0);
-  processorRef.directEngine().setHpfFreq(20.0f); // 20Hz = バイパス
-  processorRef.directEngine().setHpfQ(0.707f);
-  processorRef.directEngine().setHpfSlope(12);
-  processorRef.directEngine().setLpfFreq(20000.0f); // 20kHz = バイパス
-  processorRef.directEngine().setLpfQ(0.707f);
-  processorRef.directEngine().setLpfSlope(12);
+  // ※ DSP デフォルト値の設定は不要 — プロセッサの setStateInformation で
+  // 正しい値が既に適用されており、syncUIFromState() で復元される。
 
   // ── Threshold ノブ（パススルーモード時に Pitch 位置へ表示） ──
   styleDirectKnob(directUI.threshold.slider, directKnobLAF);
@@ -479,9 +469,8 @@ void BoomBabyAudioProcessorEditor::onSampleFileChosen(const juce::File &file) {
   directUI.sample.loadedFilePath = file.getFullPathName();
   directUI.sample.loadButton.setButtonText(file.getFileNameWithoutExtension());
   directUI.sample.loadButton.setTooltip(directUI.sample.loadedFilePath);
-  processorRef.getAPVTS().state.setProperty("directSamplePath",
-                                            directUI.sample.loadedFilePath,
-                                            nullptr);
+  processorRef.getAPVTS().state.setProperty(
+      "directSamplePath", directUI.sample.loadedFilePath, nullptr);
   processorRef.directEngine().sampler().loadSample(file);
 
   // サムネイルデータをメンバーに保存してプロバイダーを登録

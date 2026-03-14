@@ -55,7 +55,6 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
   clickUI.modeCombo.setSelectedId(std::to_underlying(ClickUI::Mode::Noise),
                                   juce::dontSendNotification);
   clickUI.modeCombo.setLookAndFeel(&darkComboLAF);
-  processorRef.clickEngine().setMode(std::to_underlying(ClickUI::Mode::Noise));
   addAndMakeVisible(clickUI.modeCombo);
 
   // ── Filter param labels ──
@@ -119,7 +118,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     processorRef.clickEngine().setDecayMs(
         static_cast<float>(clickUI.noise.decaySlider.getValue()));
     syncParam(ParamIDs::clickNoiseDecay,
-             static_cast<float>(clickUI.noise.decaySlider.getValue()));
+              static_cast<float>(clickUI.noise.decaySlider.getValue()));
     envelopeCurveEditor.repaint();
   };
   addAndMakeVisible(clickUI.noise.decaySlider);
@@ -138,7 +137,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     processorRef.clickEngine().setFreq1(
         static_cast<float>(clickUI.noise.bpf1.freqSlider.getValue()));
     syncParam(ParamIDs::clickBpf1Freq,
-             static_cast<float>(clickUI.noise.bpf1.freqSlider.getValue()));
+              static_cast<float>(clickUI.noise.bpf1.freqSlider.getValue()));
     envelopeCurveEditor.repaint();
   };
   addAndMakeVisible(clickUI.noise.bpf1.freqSlider);
@@ -158,7 +157,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     processorRef.clickEngine().setFocus1(
         static_cast<float>(clickUI.noise.bpf1.qSlider.getValue()));
     syncParam(ParamIDs::clickBpf1Q,
-             static_cast<float>(clickUI.noise.bpf1.qSlider.getValue()));
+              static_cast<float>(clickUI.noise.bpf1.qSlider.getValue()));
     envelopeCurveEditor.repaint();
   };
   addAndMakeVisible(clickUI.noise.bpf1.qSlider);
@@ -177,8 +176,9 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
   clickUI.noise.saturator.driveSlider.onValueChange = [this] {
     processorRef.clickEngine().setDriveDb(
         static_cast<float>(clickUI.noise.saturator.driveSlider.getValue()));
-    syncParam(ParamIDs::clickDrive,
-             static_cast<float>(clickUI.noise.saturator.driveSlider.getValue()));
+    syncParam(
+        ParamIDs::clickDrive,
+        static_cast<float>(clickUI.noise.saturator.driveSlider.getValue()));
     clickRepaintOrRefresh();
   };
   addAndMakeVisible(clickUI.noise.saturator.driveSlider);
@@ -205,7 +205,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     processorRef.clickEngine().setHpfFreq(
         static_cast<float>(clickUI.hpf.slider.getValue()));
     syncParam(ParamIDs::clickHpfFreq,
-             static_cast<float>(clickUI.hpf.slider.getValue()));
+              static_cast<float>(clickUI.hpf.slider.getValue()));
     clickRepaintOrRefresh();
   };
   addAndMakeVisible(clickUI.hpf.slider);
@@ -225,7 +225,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     processorRef.clickEngine().setHpfQ(
         static_cast<float>(clickUI.hpf.qSlider.getValue()));
     syncParam(ParamIDs::clickHpfQ,
-             static_cast<float>(clickUI.hpf.qSlider.getValue()));
+              static_cast<float>(clickUI.hpf.qSlider.getValue()));
     clickRepaintOrRefresh();
   };
   addAndMakeVisible(clickUI.hpf.qSlider);
@@ -245,7 +245,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     processorRef.clickEngine().setLpfFreq(
         static_cast<float>(clickUI.lpf.slider.getValue()));
     syncParam(ParamIDs::clickLpfFreq,
-             static_cast<float>(clickUI.lpf.slider.getValue()));
+              static_cast<float>(clickUI.lpf.slider.getValue()));
     clickRepaintOrRefresh();
   };
   addAndMakeVisible(clickUI.lpf.slider);
@@ -265,7 +265,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     processorRef.clickEngine().setLpfQ(
         static_cast<float>(clickUI.lpf.qSlider.getValue()));
     syncParam(ParamIDs::clickLpfQ,
-             static_cast<float>(clickUI.lpf.qSlider.getValue()));
+              static_cast<float>(clickUI.lpf.qSlider.getValue()));
     clickRepaintOrRefresh();
   };
   addAndMakeVisible(clickUI.lpf.qSlider);
@@ -283,7 +283,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     processorRef.clickEngine().setPitchSemitones(
         static_cast<float>(clickUI.sample.pitch.slider.getValue()));
     syncParam(ParamIDs::clickSamplePitch,
-             static_cast<float>(clickUI.sample.pitch.slider.getValue()));
+              static_cast<float>(clickUI.sample.pitch.slider.getValue()));
     refreshClickSampleProvider();
   };
   styleKnobLabel(clickUI.sample.pitch.label, "Pitch", tinyFont);
@@ -304,7 +304,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     const float v =
         static_cast<float>(clickUI.sample.amp.slider.getValue()) / 100.0f;
     syncParam(ParamIDs::clickSampleAmp,
-             static_cast<float>(clickUI.sample.amp.slider.getValue()));
+              static_cast<float>(clickUI.sample.amp.slider.getValue()));
     envDatas.clickAmp.setDefaultValue(v);
     if (!envDatas.clickAmp.isEnvelopeControlled())
       envDatas.clickAmp.setPointValue(0, v);
@@ -348,8 +348,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(), durMs);
     envelopeCurveEditor.setClickDecayMs(durMs);
   };
-  // 起動時に LUT 期間を初期値へ反映（setupLengthBox 実行後に上書きされる）
-  bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(), 300.0f);
+  // ※ LUT は syncUIFromState() → onEnvelopeChanged() で正しい値にベイクされる
   styleKnobLabel(clickUI.sample.decay.label, "Decay", tinyFont);
   clickUI.sample.decay.slider.setVisible(false);
   clickUI.sample.decay.label.setVisible(false);
@@ -368,18 +367,10 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
       [this](const juce::File &file) { onClickSampleFileChosen(file); });
   addAndMakeVisible(clickUI.sample.loadButton);
 
-  // 起動時デフォルト値を DSP へ反映
-  processorRef.clickEngine().setDecayMs(30.0f);
-  processorRef.clickEngine().setFreq1(5000.0f);
-  processorRef.clickEngine().setFocus1(0.71f);
-  processorRef.clickEngine().setDriveDb(0.0f);
-  processorRef.clickEngine().setClipType(0);
-  processorRef.clickEngine().setHpfFreq(20.0f); // バイパス
-  processorRef.clickEngine().setHpfQ(0.71f);
-  processorRef.clickEngine().setLpfFreq(20000.0f); // バイパス
-  processorRef.clickEngine().setLpfQ(0.71f);
-  processorRef.clickEngine().setPitchSemitones(0.0f);
-  processorRef.clickEngine().setSampleAmpLevel(1.0f);
+  // ※ DSP デフォルト値の設定は不要 — プロセッサの setStateInformation で
+  // 正しい値が既に適用されており、エディタ構築直後の syncUIFromState() で
+  // ウィジェット＋DSP が正確に復元される。ここでリセットすると再生中に
+  // 一瞬デフォルト値が適用されノイズの原因になる。
 
   // プレビュープロバイダーを clickUI に保持
   // DSP = BPF(constant-skirt) × Decayエンベロープ なので形状 × 振幅スケーリング
@@ -629,8 +620,7 @@ void BoomBabyAudioProcessorEditor::ClickUI::restoreModeState(
 }
 
 void BoomBabyAudioProcessorEditor::applyClickMode(int modeId) {
-  const bool isSample =
-      (modeId == std::to_underlying(ClickUI::Mode::Sample));
+  const bool isSample = (modeId == std::to_underlying(ClickUI::Mode::Sample));
 
   if (isSample) {
     // 旧モード（Noise）の共有パラメーターを保存
@@ -664,7 +654,8 @@ void BoomBabyAudioProcessorEditor::applyClickMode(int modeId) {
       envelopeCurveEditor.setClickNoiseEnvProvider(clickUI.noiseProvider);
   }
 
-  // 復元した共有パラメーターを APVTS に反映（DAW 保存時に正しい値が取得されるように）
+  // 復元した共有パラメーターを APVTS に反映（DAW
+  // 保存時に正しい値が取得されるように）
   syncParam(ParamIDs::clickHpfFreq,
             static_cast<float>(clickUI.hpf.slider.getValue()));
   syncParam(ParamIDs::clickHpfQ,
@@ -695,9 +686,8 @@ void BoomBabyAudioProcessorEditor::onClickSampleFileChosen(
   clickUI.sample.loadedFilePath = file.getFullPathName();
   clickUI.sample.loadButton.setButtonText(file.getFileNameWithoutExtension());
   clickUI.sample.loadButton.setTooltip(clickUI.sample.loadedFilePath);
-  processorRef.getAPVTS().state.setProperty("clickSamplePath",
-                                            clickUI.sample.loadedFilePath,
-                                            nullptr);
+  processorRef.getAPVTS().state.setProperty(
+      "clickSamplePath", clickUI.sample.loadedFilePath, nullptr);
   processorRef.clickEngine().sampler().loadSample(file);
 
   if (!processorRef.clickEngine().sampler().copyThumbnail(
