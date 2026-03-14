@@ -3,7 +3,7 @@
 // チャンネル専用ノブ・ボタン設定メソッド群。 Click / Direct の実装時は同様に
 // ClickParamKnobs.cpp / DirectParamKnobs.cpp を作成する。
 
-#include "InfoBox.h"
+#include "InfoBoxText.h"
 #include "LutBaker.h"
 #include "ParamIDs.h"
 #include "PluginEditor.h"
@@ -74,7 +74,7 @@ void BoomBabyAudioProcessorEditor::setupLengthBox() {
           effectiveLutDuration(envDatas.directAmp, initLen));
   addAndMakeVisible(subUI.length.slider);
 
-  InfoBox::setInfo(subUI.length.slider, "Sub note duration (10–2000 ms)");
+  InfoBox::setInfo(subUI.length.slider, InfoText::subLength);
 }
 
 // ────────────────────────────────────────────────────
@@ -237,15 +237,15 @@ void BoomBabyAudioProcessorEditor::setupSubKnobsRow() {
   }
 
   // InfoBox descriptions
-  InfoBox::setInfo(subUI.knobs[0], "Sub amplitude (0–200%)");
-  InfoBox::setInfo(subUI.knobs[1], "Sub fundamental frequency (20–20k Hz)");
-  InfoBox::setInfo(subUI.knobs[2], "Dry/wet mix (-100 dry … +100 wet)");
-  InfoBox::setInfo(subUI.knobs[3], "Saturation drive (0–24 dB)");
-  InfoBox::setInfo(subUI.saturateClipType, "Saturation mode: Soft / Hard / Tube");
-  InfoBox::setInfo(subUI.knobs[4], "2nd harmonic level");
-  InfoBox::setInfo(subUI.knobs[5], "3rd harmonic level");
-  InfoBox::setInfo(subUI.knobs[6], "4th harmonic level");
-  InfoBox::setInfo(subUI.knobs[7], "5th harmonic level");
+  InfoBox::setInfo(subUI.knobs[0], InfoText::subAmp);
+  InfoBox::setInfo(subUI.knobs[1], InfoText::subFreq);
+  InfoBox::setInfo(subUI.knobs[2], InfoText::subMix);
+  InfoBox::setInfo(subUI.knobs[3], InfoText::subSaturate);
+  InfoBox::setInfo(subUI.saturateClipType, InfoText::subClipType);
+  InfoBox::setInfo(subUI.knobs[4], InfoText::subTone2);
+  InfoBox::setInfo(subUI.knobs[5], InfoText::subTone3);
+  InfoBox::setInfo(subUI.knobs[6], InfoText::subTone4);
+  InfoBox::setInfo(subUI.knobs[7], InfoText::subTone5);
 }
 
 // ────────────────────────────────────────────────────
@@ -287,7 +287,7 @@ void BoomBabyAudioProcessorEditor::setupWaveShapeCombo() {
   };
   addAndMakeVisible(subUI.wave.combo);
 
-  InfoBox::setInfo(subUI.wave.combo, "Sub oscillator waveform: Tri / SQR / SAW");
+  InfoBox::setInfo(subUI.wave.combo, InfoText::subWave);
 }
 
 void BoomBabyAudioProcessorEditor::layoutSubKnobsRow(

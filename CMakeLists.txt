@@ -45,6 +45,7 @@ target_sources(BoomBaby
         Source/GUI/EnvelopeCurveEditor.cpp
         Source/GUI/InfoBox.h
         Source/GUI/InfoBox.cpp
+        Source/GUI/InfoBoxText.h
         Source/GUI/ChannelFader.h
         Source/GUI/ChannelFader.cpp
         Source/GUI/MasterFader.h

@@ -3,7 +3,7 @@
 #include "../DSP/Saturator.h"
 #include "../ParamIDs.h"
 #include "../PluginEditor.h"
-#include "InfoBox.h"
+#include "InfoBoxText.h"
 #include "LutBaker.h"
 #include "WaveformUtils.h"
 
@@ -368,21 +368,21 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   refreshDirectPassthroughUI();
 
   // InfoBox descriptions
-  InfoBox::setInfo(directUI.modeCombo, "Direct source: passthrough or sample");
-  InfoBox::setInfo(directUI.pitch.slider, "Sample pitch shift (±24 semitones)");
-  InfoBox::setInfo(directUI.amp.slider, "Direct amplitude (0–200%)");
-  InfoBox::setInfo(directUI.saturator.driveSlider, "Saturator drive (0–24 dB)");
-  InfoBox::setInfo(directUI.saturator.clipType, "Saturation mode: Soft / Hard / Tube");
-  InfoBox::setInfo(directUI.decay.slider, "Envelope duration (10–2000 ms)");
-  InfoBox::setInfo(directUI.hpf.slider, "High-pass cutoff (20–20k Hz)");
-  InfoBox::setInfo(directUI.hpf.qSlider, "High-pass resonance (Q 0.1–18)");
-  InfoBox::setInfo(directUI.hpf.slope, "HPF slope: 12 / 24 / 48 dB/oct");
-  InfoBox::setInfo(directUI.lpf.slider, "Low-pass cutoff (20–20k Hz)");
-  InfoBox::setInfo(directUI.lpf.qSlider, "Low-pass resonance (Q 0.1–18)");
-  InfoBox::setInfo(directUI.lpf.slope, "LPF slope: 12 / 24 / 48 dB/oct");
-  InfoBox::setInfo(directUI.threshold.slider, "Transient detect threshold (-60–0 dB)");
-  InfoBox::setInfo(directUI.hold.slider, "Transient gate hold time (20–500 ms)");
-  InfoBox::setInfo(directUI.sample.loadButton, "Load audio sample (drop or click)");
+  InfoBox::setInfo(directUI.modeCombo, InfoText::directMode);
+  InfoBox::setInfo(directUI.pitch.slider, InfoText::directPitch);
+  InfoBox::setInfo(directUI.amp.slider, InfoText::directAmp);
+  InfoBox::setInfo(directUI.saturator.driveSlider, InfoText::directDrive);
+  InfoBox::setInfo(directUI.saturator.clipType, InfoText::directClipType);
+  InfoBox::setInfo(directUI.decay.slider, InfoText::directDecay);
+  InfoBox::setInfo(directUI.hpf.slider, InfoText::directHpfFreq);
+  InfoBox::setInfo(directUI.hpf.qSlider, InfoText::directHpfQ);
+  InfoBox::setInfo(directUI.hpf.slope, InfoText::directHpfSlope);
+  InfoBox::setInfo(directUI.lpf.slider, InfoText::directLpfFreq);
+  InfoBox::setInfo(directUI.lpf.qSlider, InfoText::directLpfQ);
+  InfoBox::setInfo(directUI.lpf.slope, InfoText::directLpfSlope);
+  InfoBox::setInfo(directUI.threshold.slider, InfoText::directThreshold);
+  InfoBox::setInfo(directUI.hold.slider, InfoText::directHold);
+  InfoBox::setInfo(directUI.sample.loadButton, InfoText::directSampleLoad);
 }
 
 void BoomBabyAudioProcessorEditor::layoutDirectParams(

@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "DSP/Saturator.h"
+#include "GUI/InfoBoxText.h"
 #include "GUI/LutBaker.h"
 #include "ParamIDs.h"
 #include "PluginProcessor.h"
@@ -272,7 +273,7 @@ BoomBabyAudioProcessorEditor::BoomBabyAudioProcessorEditor(
   masterSection.setLevelProvider(1, [this]() {
     return processorRef.master().getLevelDb(1); // R
   });
-  InfoBox::setInfo(masterSection, "Master output level (-60 … +12 dB)");
+  InfoBox::setInfo(masterSection, InfoText::masterGain);
 
   setSize(UIConstants::windowWidth, UIConstants::windowHeight +
                                         UIConstants::expandedAreaHeight +
