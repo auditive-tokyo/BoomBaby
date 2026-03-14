@@ -195,11 +195,9 @@ constexpr std::array kAllParamIDs = {
 /// LUT 駆動パラメータ: DAW Undo/Redo やオートメーション変更時に
 /// bakeAllLutsFromState() を再呼出しする必要があるパラメータ群。
 constexpr std::array kLutAffectedParamIDs = {
-    ParamIDs::subLength,       ParamIDs::subAmp,
-    ParamIDs::subFreq,         ParamIDs::subMix,
-    ParamIDs::subSatDrive,     ParamIDs::clickSampleAmp,
-    ParamIDs::clickSampleDecay,ParamIDs::directAmp,
-    ParamIDs::directDecay};
+    ParamIDs::subLength,        ParamIDs::subAmp,      ParamIDs::subFreq,
+    ParamIDs::subMix,           ParamIDs::subSatDrive, ParamIDs::clickSampleAmp,
+    ParamIDs::clickSampleDecay, ParamIDs::directAmp,   ParamIDs::directDecay};
 } // namespace
 
 BoomBabyAudioProcessor::BoomBabyAudioProcessor()
@@ -687,13 +685,17 @@ void BoomBabyAudioProcessor::bakeAllLutsFromState() {
   };
 
   // LUT → DSP 単位への変換は Editor 側の knob コールバックと対称にする
-  bakeLut(env("amp", load(ParamIDs::subAmp) / 100.0f), subEngine_.envLut(),
-          subLenMs);
-  bakeLut(env("freq", load(ParamIDs::subFreq)), subEngine_.freqLut(), subLenMs);
-  bakeLut(env("dist", load(ParamIDs::subSatDrive) / 24.0f),
-          subEngine_.distLut(), subLenMs);
-  bakeLut(env("mix", load(ParamIDs::subMix) / 100.0f), subEngine_.mixLut(),
-          subLenMs);
+  // Sub LUT: エンベロープ実効区間に 512 点を集中させる
+  const auto ampEnv = env("amp", load(ParamIDs::subAmp) / 100.0f);
+  const auto freqEnv = env("freq", load(ParamIDs::subFreq));
+  const auto distEnv = env("dist", load(ParamIDs::subSatDrive) / 24.0f);
+  const auto mixEnv = env("mix", load(ParamIDs::subMix) / 100.0f);
+  bakeLut(ampEnv, subEngine_.envLut(), effectiveLutDuration(ampEnv, subLenMs));
+  bakeLut(freqEnv, subEngine_.freqLut(),
+          effectiveLutDuration(freqEnv, subLenMs));
+  bakeLut(distEnv, subEngine_.distLut(),
+          effectiveLutDuration(distEnv, subLenMs));
+  bakeLut(mixEnv, subEngine_.mixLut(), effectiveLutDuration(mixEnv, subLenMs));
   const float clickDecayMs =
       apvts_.getRawParameterValue(ParamIDs::clickSampleDecay)->load();
   bakeLut(env("clickAmp", load(ParamIDs::clickSampleAmp) / 100.0f),

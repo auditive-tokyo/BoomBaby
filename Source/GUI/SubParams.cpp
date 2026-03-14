@@ -49,16 +49,21 @@ void BoomBabyAudioProcessorEditor::setupLengthBox() {
     syncParam(ParamIDs::subLength, v);
     envelopeCurveEditor.setDisplayDurationMs(v);
     processorRef.subEngine().setLengthMs(v);
-    bakeLut(envDatas.amp, processorRef.subEngine().envLut(), v);
-    bakeLut(envDatas.freq, processorRef.subEngine().freqLut(), v);
-    bakeLut(envDatas.dist, processorRef.subEngine().distLut(), v);
-    bakeLut(envDatas.mix, processorRef.subEngine().mixLut(), v);
+    // Sub LUT: エンベロープ実効区間に 512 点を集中させる
+    bakeLut(envDatas.amp, processorRef.subEngine().envLut(),
+            effectiveLutDuration(envDatas.amp, v));
+    bakeLut(envDatas.freq, processorRef.subEngine().freqLut(),
+            effectiveLutDuration(envDatas.freq, v));
+    bakeLut(envDatas.dist, processorRef.subEngine().distLut(),
+            effectiveLutDuration(envDatas.dist, v));
+    bakeLut(envDatas.mix, processorRef.subEngine().mixLut(),
+            effectiveLutDuration(envDatas.mix, v));
     // Sample Decay のダブルクリックリターン値を Sub length と連動させる
     clickUI.sample.decay.slider.setDoubleClickReturnValue(
         true, static_cast<double>(v));
     // Direct Decay も同様に連動
-    directUI.decay.slider.setDoubleClickReturnValue(
-        true, static_cast<double>(v));
+    directUI.decay.slider.setDoubleClickReturnValue(true,
+                                                    static_cast<double>(v));
   };
   // Sample Decay の初期値と初回のバコオフを Sub lengthに合わせる
   const auto initLen =
@@ -72,8 +77,8 @@ void BoomBabyAudioProcessorEditor::setupLengthBox() {
   // Direct Decay も Sub length 初期値に合わせる
   directUI.decay.slider.setValue(static_cast<double>(initLen),
                                  juce::dontSendNotification);
-  directUI.decay.slider.setDoubleClickReturnValue(
-      true, static_cast<double>(initLen));
+  directUI.decay.slider.setDoubleClickReturnValue(true,
+                                                  static_cast<double>(initLen));
   bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
           initLen);
   addAndMakeVisible(subUI.length.slider);
@@ -191,7 +196,8 @@ void BoomBabyAudioProcessorEditor::setupSubKnobsRow() {
   };
   subUI.knobs[3].onValueChange = [this] {
     const float v = static_cast<float>(subUI.knobs[3].getValue()) / 24.0f;
-    syncParam(ParamIDs::subSatDrive, static_cast<float>(subUI.knobs[3].getValue()));
+    syncParam(ParamIDs::subSatDrive,
+              static_cast<float>(subUI.knobs[3].getValue()));
     envDatas.dist.setDefaultValue(v);
     if (!envDatas.dist.isEnvelopeControlled())
       envDatas.dist.setPointValue(0, v);
@@ -228,10 +234,10 @@ void BoomBabyAudioProcessorEditor::setupSubKnobsRow() {
       processorRef.subEngine().oscillator().setHarmonicGain(harmonicNum, gain);
       envelopeCurveEditor.setPreviewHarmonicGain(harmonicNum, gain);
       static constexpr std::array<const char *, 4> kToneIDs = {
-          ParamIDs::subTone1, ParamIDs::subTone2,
-          ParamIDs::subTone3, ParamIDs::subTone4};
+          ParamIDs::subTone1, ParamIDs::subTone2, ParamIDs::subTone3,
+          ParamIDs::subTone4};
       syncParam(kToneIDs[static_cast<std::size_t>(harmonicNum - 1)],
-               static_cast<float>(subUI.knobs[idx].getValue()));
+                static_cast<float>(subUI.knobs[idx].getValue()));
     };
     processorRef.subEngine().oscillator().setHarmonicGain(harmonicNum, 0.25f);
     envelopeCurveEditor.setPreviewHarmonicGain(harmonicNum, 0.25f);
@@ -273,7 +279,7 @@ void BoomBabyAudioProcessorEditor::setupWaveShapeCombo() {
     processorRef.subEngine().oscillator().setWaveShape(shape);
     envelopeCurveEditor.setWaveShape(shape);
     syncParam(ParamIDs::subWaveShape,
-             static_cast<float>(subUI.wave.combo.getSelectedId() - 1));
+              static_cast<float>(subUI.wave.combo.getSelectedId() - 1));
   };
   addAndMakeVisible(subUI.wave.combo);
 }

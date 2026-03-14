@@ -83,10 +83,15 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
   // デフォルト (300ms) のまま焼かれるバグを防止。
   const auto subLenMs = static_cast<float>(subUI.length.slider.getValue());
   envelopeCurveEditor.setDisplayDurationMs(subLenMs);
-  bakeLut(envDatas.amp, processorRef.subEngine().envLut(), subLenMs);
-  bakeLut(envDatas.freq, processorRef.subEngine().freqLut(), subLenMs);
-  bakeLut(envDatas.dist, processorRef.subEngine().distLut(), subLenMs);
-  bakeLut(envDatas.mix, processorRef.subEngine().mixLut(), subLenMs);
+  // Sub LUT: エンベロープ実効区間に 512 点を集中させる
+  bakeLut(envDatas.amp, processorRef.subEngine().envLut(),
+          effectiveLutDuration(envDatas.amp, subLenMs));
+  bakeLut(envDatas.freq, processorRef.subEngine().freqLut(),
+          effectiveLutDuration(envDatas.freq, subLenMs));
+  bakeLut(envDatas.dist, processorRef.subEngine().distLut(),
+          effectiveLutDuration(envDatas.dist, subLenMs));
+  bakeLut(envDatas.mix, processorRef.subEngine().mixLut(),
+          effectiveLutDuration(envDatas.mix, subLenMs));
   const auto clickDecayMs =
       static_cast<float>(clickUI.sample.decay.slider.getValue());
   bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(),

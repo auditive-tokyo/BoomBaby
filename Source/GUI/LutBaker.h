@@ -5,6 +5,19 @@
 
 #include <array>
 
+/// エンベロープの実効区間（最終ポイントの timeMs）を LUT 期間として返す。
+/// 1 点以下（＝ノブ制御 or 未設定）の場合は fallbackMs を使う。
+/// これにより LUT の 512 点をエンベロープ区間に集中させ、
+/// Length 変更時の解像度劣化を防ぐ。
+inline float effectiveLutDuration(const EnvelopeData &envData,
+                                  float fallbackMs) {
+  const auto &pts = envData.getPoints();
+  if (pts.size() > 1)
+    if (const float lastT = pts.back().timeMs; lastT > 0.0f)
+      return lastT;
+  return fallbackMs;
+}
+
 /// EnvelopeData を評価して EnvelopeLutManager に焼き込むユーティリティ。
 /// BoomBabyAudioProcessorEditor のメンバー関数を分割した複数の翻訳単位から
 /// 呼び出せるよう inline free function として提供する。
