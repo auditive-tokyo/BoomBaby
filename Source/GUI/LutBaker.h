@@ -11,8 +11,7 @@
 /// Length 変更時の解像度劣化を防ぐ。
 inline float effectiveLutDuration(const EnvelopeData &envData,
                                   float fallbackMs) {
-  const auto &pts = envData.getPoints();
-  if (pts.size() > 1)
+  if (const auto &pts = envData.getPoints(); pts.size() > 1)
     if (const float lastT = pts.back().timeMs; lastT > 0.0f)
       return lastT;
   return fallbackMs;

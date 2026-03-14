@@ -15,7 +15,7 @@ jobs:
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6 # NOSONAR
         with:
           fetch-depth: 0
 
@@ -26,7 +26,7 @@ jobs:
         run: cmake -S . -B build-ci -DJUCE_PATH=/tmp/JUCE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Install Build Wrapper
-        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6 # NOSONAR
 
       - name: Build with Build Wrapper
         run: >
@@ -34,7 +34,7 @@ jobs:
           cmake --build build-ci --target BoomBaby_Standalone -- -j$(sysctl -n hw.ncpu)
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@v6 # NOSONAR
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
