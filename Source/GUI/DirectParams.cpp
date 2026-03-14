@@ -173,6 +173,9 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
     syncParam(ParamIDs::directClipType, static_cast<float>(t));
     refreshDirectProvider();
   });
+  directUI.saturator.clipType.setOnClicked([this] {
+    switchEditTarget(EnvelopeCurveEditor::EditTarget::none);
+  });
   addAndMakeVisible(directUI.saturator.clipType);
 
   // Decay: 10 〜 2000 ms（LUT の再生期間を制御 — Click の Sample Decay と同一）

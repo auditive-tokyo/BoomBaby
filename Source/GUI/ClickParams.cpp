@@ -190,6 +190,9 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     syncParam(ParamIDs::clickClipType, static_cast<float>(t));
     clickRepaintOrRefresh();
   });
+  clickUI.noise.saturator.clipType.setOnClicked([this] {
+    switchEditTarget(EnvelopeCurveEditor::EditTarget::none);
+  });
   addAndMakeVisible(clickUI.noise.saturator.clipType);
 
   // HPF freq  20–20000 Hz  log
