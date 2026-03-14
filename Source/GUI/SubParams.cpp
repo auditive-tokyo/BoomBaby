@@ -58,28 +58,17 @@ void BoomBabyAudioProcessorEditor::setupLengthBox() {
             effectiveLutDuration(envDatas.dist, v));
     bakeLut(envDatas.mix, processorRef.subEngine().mixLut(),
             effectiveLutDuration(envDatas.mix, v));
-    // Sample Decay のダブルクリックリターン値を Sub length と連動させる
-    clickUI.sample.decay.slider.setDoubleClickReturnValue(
-        true, static_cast<double>(v));
-    // Direct Decay も同様に連動
-    directUI.decay.slider.setDoubleClickReturnValue(true,
-                                                    static_cast<double>(v));
   };
-  // Sample Decay の初期値と初回のバコオフを Sub lengthに合わせる
+  // Click/Direct Decay の初期 LUT ベイク
   const auto initLen =
       static_cast<float>(subUI.length.slider.getValue()); // 300 ms
   clickUI.sample.decay.slider.setValue(static_cast<double>(initLen),
                                        juce::dontSendNotification);
-  clickUI.sample.decay.slider.setDoubleClickReturnValue(
-      true, static_cast<double>(initLen));
   bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(),
           effectiveLutDuration(envDatas.clickAmp, initLen));
   envelopeCurveEditor.setClickDecayMs(initLen);
-  // Direct Decay も Sub length 初期値に合わせる
   directUI.decay.slider.setValue(static_cast<double>(initLen),
                                  juce::dontSendNotification);
-  directUI.decay.slider.setDoubleClickReturnValue(true,
-                                                  static_cast<double>(initLen));
   bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
           effectiveLutDuration(envDatas.directAmp, initLen));
   addAndMakeVisible(subUI.length.slider);
