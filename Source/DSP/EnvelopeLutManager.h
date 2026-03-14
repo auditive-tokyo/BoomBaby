@@ -68,7 +68,8 @@ public:
         constexpr float fadeOutMs = 5.0f;
         if (const float fadeStartMs = std::max(0.0f, ampDurMs - fadeOutMs);
             noteTimeMs > fadeStartMs) {
-            const float t = (noteTimeMs - fadeStartMs) / fadeOutMs;
+            const float t =
+                std::min((noteTimeMs - fadeStartMs) / fadeOutMs, 1.0f);
             amp *= 0.5f * (1.0f + std::cos(t * std::numbers::pi_v<float>));
         }
         return amp;

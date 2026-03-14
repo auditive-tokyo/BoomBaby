@@ -159,3 +159,30 @@ This project uses JUCE framework. An MCP server (`juce-docs`) is available.
     - プリセット読み込みと DAW セッション復元が単一コードパスで統一
     - デフォルト値の変更がコード修正不要（XML 差し替えのみ）
     - ユーザーが「Default」を選ぶだけで全パラメーターをリセット可能
+
+- **LUT 解像度劣化の修正（Click/Direct Amp エンベロープ）**
+  - 問題: 512 点の LUT が decay 全体にマッピングされるため、エンベロープが短い区間に集中していると decay を大きくした際に解像度が劣化し音が変わる（Sub では `effectiveLutDuration` で修正済み）
+  - Click/Direct は `computeMaxTimeSamples()` が `getLutDurationMs()` を停止判定に使うため、Sub と同じ手法だと停止タイミングまで縮まって decay が効かなくなる
+  - 修正方針: Click/Direct にも Sub 同様の独立した停止判定用 duration を持たせ、LUT duration と停止判定を分離する
+  - 実装手順:
+    1. **ClickEngine**: Sample モード用に `sampleDecayMs_` atomic を新設（既存 `decayMs_` は Noise 専用）。`computeMaxTimeSamples()` の mode==2 で `sampleDecayMs_` を参照するよう変更。`setSampleDecayMs(float)` セッター追加
+    2. **DirectEngine**: `maxDurationMs_` atomic を新設。`computeMaxTimeSamples()` で `maxDurationMs_` を参照するよう変更。`setMaxDurationMs(float)` セッター追加
+    3. **Processor 側**: `applyClickParam` に `clickSampleDecay` → `setSampleDecayMs()` ハンドラを追加。`applyDirectParam` に `directDecay` → `setMaxDurationMs()` ハンドラを追加。`prepareToPlay` で初期値を適用
+    4. **Editor 側**: 全 `bakeLut` 呼び出しで clickAmp/directAmp に `effectiveLutDuration` を適用（前回と同じ変更）
+    5. ビルド＋動作確認
+
+- **波形表示の長さを全チャンネル最長に合わせる**
+  - 現状: `envelopeCurveEditor.setDisplayDurationMs()` が Sub の Length のみ参照
+  - 変更: Sub Length / Click Sample Decay / Direct Decay の中で最長の値を `displayDurationMs` として使う
+  - 実装手順:
+    1. ヘルパー関数 `updateDisplayDuration()` を作成し、3 値の `std::max` を `setDisplayDurationMs()` に渡す
+    2. Sub Length / Click Sample Decay / Direct Decay の各 `onValueChange` と `syncUIFromState()` / `onEnvelopeChanged()` からこのヘルパーを呼ぶ
+    3. 既存の `setDisplayDurationMs(v)` 単発呼び出しを置き換え
+
+- **Decay ダブルクリックデフォルト値の修正**
+  - 現状: Click Sample Decay / Direct Decay のダブルクリックリターン値が Sub Length に連動して変わる
+  - 変更: Sub Length への連動を廃止し、固定デフォルト値にする
+    - Click Noise Decay: 30ms 固定（変更なし、現状通り）
+    - Click Sample Decay: 300ms 固定（ダブルクリックで 300ms に戻る）
+    - Direct Decay: 300ms 固定（ダブルクリックで 300ms に戻る）
+  - 実装: SubParams.cpp の `length.slider.onValueChange` から `setDoubleClickReturnValue` 連動を削除。ClickParams.cpp / DirectParams.cpp の初期化で `setDoubleClickReturnValue(true, 300.0)` を固定で設定

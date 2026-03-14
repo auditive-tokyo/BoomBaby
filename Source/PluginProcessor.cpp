@@ -262,6 +262,8 @@ void applyClickParam(const juce::String &id, float v, int idx,
     click.setPitchSemitones(v);
   else if (id == ParamIDs::clickSampleAmp)
     click.setSampleAmpLevel(v / 100.0f);
+  else if (id == ParamIDs::clickSampleDecay)
+    click.setSampleDecayMs(v);
   else if (id == ParamIDs::clickDrive)
     click.setDriveDb(v);
   else if (id == ParamIDs::clickClipType)
@@ -291,6 +293,8 @@ void applyDirectParam(const juce::String &id, float v, int idx,
                       ChannelState &cs) {
   if (id == ParamIDs::directPitch)
     direct.setPitchSemitones(v);
+  else if (id == ParamIDs::directDecay)
+    direct.setMaxDurationMs(v);
   else if (id == ParamIDs::directDrive)
     direct.setDriveDb(v);
   else if (id == ParamIDs::directClipType)
@@ -698,10 +702,14 @@ void BoomBabyAudioProcessor::bakeAllLutsFromState() {
   bakeLut(mixEnv, subEngine_.mixLut(), effectiveLutDuration(mixEnv, subLenMs));
   const float clickDecayMs =
       apvts_.getRawParameterValue(ParamIDs::clickSampleDecay)->load();
-  bakeLut(env("clickAmp", load(ParamIDs::clickSampleAmp) / 100.0f),
-          clickEngine_.clickAmpLut(), clickDecayMs);
-  bakeLut(env("directAmp", load(ParamIDs::directAmp) / 100.0f),
-          directEngine_.directAmpLut(), directDecayMs);
+  const auto clickAmpEnv =
+      env("clickAmp", load(ParamIDs::clickSampleAmp) / 100.0f);
+  bakeLut(clickAmpEnv, clickEngine_.clickAmpLut(),
+          effectiveLutDuration(clickAmpEnv, clickDecayMs));
+  const auto directAmpEnv =
+      env("directAmp", load(ParamIDs::directAmp) / 100.0f);
+  bakeLut(directAmpEnv, directEngine_.directAmpLut(),
+          effectiveLutDuration(directAmpEnv, directDecayMs));
 }
 
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {

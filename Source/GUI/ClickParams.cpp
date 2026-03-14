@@ -309,7 +309,8 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     if (!envDatas.clickAmp.isEnvelopeControlled())
       envDatas.clickAmp.setPointValue(0, v);
     bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(),
-            envelopeCurveEditor.getDisplayDurationMs());
+            effectiveLutDuration(envDatas.clickAmp,
+                                 envelopeCurveEditor.getDisplayDurationMs()));
     envelopeCurveEditor.repaint();
   };
   // 初期デフォルトポイント（1点：ノブ制御状態）
@@ -345,7 +346,8 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     const auto durMs =
         static_cast<float>(clickUI.sample.decay.slider.getValue());
     syncParam(ParamIDs::clickSampleDecay, durMs);
-    bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(), durMs);
+    bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(),
+            effectiveLutDuration(envDatas.clickAmp, durMs));
     envelopeCurveEditor.setClickDecayMs(durMs);
   };
   // ※ LUT は syncUIFromState() → onEnvelopeChanged() で正しい値にベイクされる

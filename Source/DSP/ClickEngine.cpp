@@ -116,7 +116,7 @@ float ClickEngine::computeMaxTimeSamples(float sr, int mode,
   if (mode != 2)
     return decayMs_.load() * sr / 1000.0f;
 
-  const float ampDurMs = clickAmpLut_.getDurationMs();
+  const float ampDurMs = sampleDecayMs_.load();
   const float ampDurSamples = ampDurMs * sr / 1000.0f;
   const double dur = sampler_.durationSec();
   const float samplerDurSamples =

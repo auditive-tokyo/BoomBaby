@@ -43,6 +43,8 @@ public:
   // ── UI→DSP setter（スレッドセーフ） ──
   void setGainDb(float db) { gainDb_.store(db); }
   void setPitchSemitones(float st) { pitchSemitones_.store(st); }
+  /// 停止判定用最大再生時間（LUT 期間とは独立）
+  void setMaxDurationMs(float ms) { maxDurationMs_.store(ms); }
   void setDriveDb(float db) { driveDb_.store(db); }
   void setClipType(int t) { clipType_.store(t); }
 
@@ -124,5 +126,6 @@ private:
   std::atomic<float> driveDb_{0.0f};
   std::atomic<int> clipType_{0};
   std::atomic<bool> passthroughMode_{false};
-  EnvelopeLutManager directAmpLut_; // Direct Amp エンベロープ LUT
+  std::atomic<float> maxDurationMs_{300.0f}; // 停止判定用
+  EnvelopeLutManager directAmpLut_;          // Direct Amp エンベロープ LUT
 };

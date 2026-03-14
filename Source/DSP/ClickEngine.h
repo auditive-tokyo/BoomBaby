@@ -77,6 +77,8 @@ public:
   void setPitchSemitones(float st) { sampleParams_.pitchSemitones.store(st); }
   /// Sample モードの振幅スケーラー (0.0=0%, 2.0=200%)
   void setSampleAmpLevel(float v) { sampleAmpLevel_.store(v); }
+  /// Sample モード停止判定用デケイ時間（LUT 期間とは独立）
+  void setSampleDecayMs(float ms) { sampleDecayMs_.store(ms); }
 
   /// レベル計測用 scratchBuffer の先頭ポインタ
   const float *scratchData() const noexcept { return scratchBuffer_.data(); }
@@ -141,8 +143,9 @@ private:
   SampleModeParams sampleParams_;
   std::atomic<float> driveDb_{0.0f};        // Drive (dB)
   std::atomic<int> clipType_{0};            // 0=Soft, 1=Hard, 2=Tube
-  std::atomic<float> sampleAmpLevel_{1.0f}; // Sample Amp (0。2)
-  EnvelopeLutManager clickAmpLut_;          // Click Amp エンベロープ LUT
+  std::atomic<float> sampleAmpLevel_{1.0f};  // Sample Amp (0–2)
+  std::atomic<float> sampleDecayMs_{300.0f}; // Sample モード停止判定用
+  EnvelopeLutManager clickAmpLut_;           // Click Amp エンベロープ LUT
   FilterParams bpf1Params_{5000.0f, 0.71f,
                            1}; // BPF1: freq=5kHz, Q=0.71, 12dB/oct
   FilterParams hpfParams_{20.0f, 0.71f,

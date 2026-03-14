@@ -99,7 +99,7 @@ float DirectEngine::synthesizeSample(const FilterState &fs, double playRate) {
 }
 
 float DirectEngine::computeMaxTimeSamples(float sr, double playRate) const {
-  const float ampDurMs = directAmpLut_.getDurationMs();
+  const float ampDurMs = maxDurationMs_.load();
   const float ampDurSamples = ampDurMs * sr / 1000.0f;
   const double dur = sampler_.durationSec();
   const float samplerDurSamples =
@@ -187,8 +187,8 @@ void DirectEngine::renderPassthrough(juce::AudioBuffer<float> &buffer,
   const auto sr = static_cast<float>(sampleRate);
   const float gain = juce::Decibels::decibelsToGain(gainDb_.load());
 
-  // Amp Envelope LUT の最大再生時間（パススルーではサンプル長がないので LUT 期間のみ）
-  const float ampDurMs = directAmpLut_.getDurationMs();
+  // 停止判定用最大再生時間（パススルーではサンプル長がないので期間のみ）
+  const float ampDurMs = maxDurationMs_.load();
   const float maxTimeSamples = ampDurMs * sr / 1000.0f;
 
   const FilterState fs = prepareFilters(sr);

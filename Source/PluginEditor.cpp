@@ -95,12 +95,12 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
   const auto clickDecayMs =
       static_cast<float>(clickUI.sample.decay.slider.getValue());
   bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(),
-          clickDecayMs);
+          effectiveLutDuration(envDatas.clickAmp, clickDecayMs));
   envelopeCurveEditor.setClickDecayMs(clickDecayMs);
   const auto directDecayMs =
       static_cast<float>(directUI.decay.slider.getValue());
   bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
-          directDecayMs);
+          effectiveLutDuration(envDatas.directAmp, directDecayMs));
   // 1点=ノブ制御（有効化＋ポイント値をノブに反映）、2点以上=エンベロープ制御（無効化）
 
   // Amp

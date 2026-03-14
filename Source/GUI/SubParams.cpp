@@ -72,7 +72,8 @@ void BoomBabyAudioProcessorEditor::setupLengthBox() {
                                        juce::dontSendNotification);
   clickUI.sample.decay.slider.setDoubleClickReturnValue(
       true, static_cast<double>(initLen));
-  bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(), initLen);
+  bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(),
+          effectiveLutDuration(envDatas.clickAmp, initLen));
   envelopeCurveEditor.setClickDecayMs(initLen);
   // Direct Decay も Sub length 初期値に合わせる
   directUI.decay.slider.setValue(static_cast<double>(initLen),
@@ -80,7 +81,7 @@ void BoomBabyAudioProcessorEditor::setupLengthBox() {
   directUI.decay.slider.setDoubleClickReturnValue(true,
                                                   static_cast<double>(initLen));
   bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
-          initLen);
+          effectiveLutDuration(envDatas.directAmp, initLen));
   addAndMakeVisible(subUI.length.slider);
 }
 
