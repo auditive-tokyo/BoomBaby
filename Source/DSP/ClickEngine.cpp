@@ -95,7 +95,8 @@ float ClickEngine::synthesizeSample(int mode, const FilterFlags &flags,
       return 0.0f; // render 側で active を落とす
   }
   // ── Drive + Clip（BPF 後・HPF/LPF 前）──
-  s = Saturator::process(s, driveDb_.load(), clipType_.load());
+  s = Saturator::process(s, saturatorParams_.driveDb.load(),
+                         saturatorParams_.clipType.load());
   // ── ポスト HPF / LPF ──
   if (flags.hpf) {
     for (int i = 0; i < flags.hpfStages; ++i)
@@ -106,8 +107,9 @@ float ClickEngine::synthesizeSample(int mode, const FilterFlags &flags,
       s = lpfs_[static_cast<std::size_t>(i)].processSample(0, s);
   }
   if (flags.hpf || flags.lpf)
-    s = Saturator::process(s, 0.0f,
-                           clipType_.load()); // 共振ピークを ClipType で整形
+    s = Saturator::process(
+        s, 0.0f,
+        saturatorParams_.clipType.load()); // 共振ピークを ClipType で整形
   return s;
 }
 
@@ -116,7 +118,7 @@ float ClickEngine::computeMaxTimeSamples(float sr, int mode,
   if (mode != 2)
     return decayMs_.load() * sr / 1000.0f;
 
-  const float ampDurMs = sampleDecayMs_.load();
+  const float ampDurMs = sampleParams_.decayMs.load();
   const float ampDurSamples = ampDurMs * sr / 1000.0f;
   const double dur = sampler_.durationSec();
   const float samplerDurSamples =

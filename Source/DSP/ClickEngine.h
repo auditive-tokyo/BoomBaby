@@ -49,9 +49,9 @@ public:
     bpf1Params_.stages.store(stages);
   }
   /// Drive 量（0〜24 dB; 内部: pow(10, dB/20)）
-  void setDriveDb(float db) { driveDb_.store(db); }
+  void setDriveDb(float db) { saturatorParams_.driveDb.store(db); }
   /// ClipType: 0=Soft(tanh), 1=Hard, 2=Tube
-  void setClipType(int t) { clipType_.store(t); }
+  void setClipType(int t) { saturatorParams_.clipType.store(t); }
   void setHpfSlope(int dboct) {
     int stages = 1;
     if (dboct >= 48)
@@ -76,9 +76,9 @@ public:
   // Sample モード用
   void setPitchSemitones(float st) { sampleParams_.pitchSemitones.store(st); }
   /// Sample モードの振幅スケーラー (0.0=0%, 2.0=200%)
-  void setSampleAmpLevel(float v) { sampleAmpLevel_.store(v); }
+  void setSampleAmpLevel(float v) { sampleParams_.ampLevel.store(v); }
   /// Sample モード停止判定用デケイ時間（LUT 期間とは独立）
-  void setSampleDecayMs(float ms) { sampleDecayMs_.store(ms); }
+  void setSampleDecayMs(float ms) { sampleParams_.decayMs.store(ms); }
 
   /// レベル計測用 scratchBuffer の先頭ポインタ
   const float *scratchData() const noexcept { return scratchBuffer_.data(); }
@@ -131,21 +131,25 @@ private:
   int startOffset_{0};
   std::atomic<bool> active_{false};
 
-  /// Sample モード用パラメーターをまとめた構造体（ピッチ）
+  /// Drive + ClipType をまとめた構造体（Noise/Sample 共通ポスト処理）
+  struct SaturatorParams {
+    std::atomic<float> driveDb{0.0f}; ///< Drive (dB)
+    std::atomic<int> clipType{0};     ///< 0=Soft, 1=Hard, 2=Tube
+  };
+
+  /// Sample モード用パラメーターをまとめた構造体
   struct SampleModeParams {
     std::atomic<float> pitchSemitones{0.0f};
+    std::atomic<float> ampLevel{1.0f};  ///< 振幅スケーラー (0–2)
+    std::atomic<float> decayMs{300.0f}; ///< 停止判定用デケイ時間
   };
 
   std::atomic<int> mode_{1}; // 1=Noise, 2=Sample
   std::atomic<float> gainDb_{0.0f};
   std::atomic<float> decayMs_{30.0f};
-  // Sample モード用パラメーター
-  SampleModeParams sampleParams_;
-  std::atomic<float> driveDb_{0.0f};        // Drive (dB)
-  std::atomic<int> clipType_{0};            // 0=Soft, 1=Hard, 2=Tube
-  std::atomic<float> sampleAmpLevel_{1.0f};  // Sample Amp (0–2)
-  std::atomic<float> sampleDecayMs_{300.0f}; // Sample モード停止判定用
-  EnvelopeLutManager clickAmpLut_;           // Click Amp エンベロープ LUT
+  SampleModeParams sampleParams_; ///< Sample モード用パラメーター一式
+  SaturatorParams saturatorParams_; ///< Drive + ClipType
+  EnvelopeLutManager clickAmpLut_;  ///< Click Amp エンベロープ LUT
   FilterParams bpf1Params_{5000.0f, 0.71f,
                            1}; // BPF1: freq=5kHz, Q=0.71, 12dB/oct
   FilterParams hpfParams_{20.0f, 0.71f,
