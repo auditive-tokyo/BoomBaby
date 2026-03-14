@@ -17,6 +17,9 @@ public:
   /// サンプルファイルをロード（メッセージスレッドから呼ぶこと）。
   void loadSample(const juce::File &file);
 
+  /// ロード済みサンプルを解放する（メッセージスレッドから呼ぶこと）。
+  void unloadSample();
+
   bool isLoaded() const noexcept { return loaded_.load(); }
 
   /// NoteOn 時にプレイヘッドをリセット。

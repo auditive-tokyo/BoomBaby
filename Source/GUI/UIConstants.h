@@ -261,6 +261,15 @@ public:
     onFileDropped_ = std::move(cb);
   }
 
+  /// サンプルクリア（X ボタン）コールバックを登録する
+  void setOnClear(std::function<void()> cb) { onClear_ = std::move(cb); }
+
+  /// ファイルがロード済みかどうか（X ボタン表示制御用）
+  void setHasFile(bool loaded) {
+    hasFile_ = loaded;
+    repaint();
+  }
+
   bool isInterestedInFileDrag(const juce::StringArray &files) override {
     return std::ranges::any_of(files, [](const juce::String &f) {
       const auto ext = juce::File(f).getFileExtension().toLowerCase();
@@ -299,11 +308,56 @@ public:
       g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(1.0f), 3.0f,
                              1.5f);
     }
+    // ファイルロード済みなら右端に半透明 X を描画
+    if (hasFile_) {
+      const int sz = getHeight() - 6;
+      const auto xArea =
+          juce::Rectangle<int>(getWidth() - sz - 4, 3, sz, sz).toFloat();
+      const float alpha = clearHovered_ ? 0.8f : 0.4f;
+      g.setColour(juce::Colours::white.withAlpha(alpha));
+      const float m = 3.0f; // X 線のマージン
+      g.drawLine(xArea.getX() + m, xArea.getY() + m,
+                 xArea.getRight() - m, xArea.getBottom() - m, 1.5f);
+      g.drawLine(xArea.getRight() - m, xArea.getY() + m,
+                 xArea.getX() + m, xArea.getBottom() - m, 1.5f);
+    }
+  }
+
+  void mouseMove(const juce::MouseEvent &e) override {
+    const bool wasHovered = clearHovered_;
+    clearHovered_ = hasFile_ && hitClearArea(e.x);
+    if (clearHovered_ != wasHovered)
+      repaint();
+    juce::TextButton::mouseMove(e);
+  }
+
+  void mouseExit(const juce::MouseEvent &e) override {
+    if (clearHovered_) {
+      clearHovered_ = false;
+      repaint();
+    }
+    juce::TextButton::mouseExit(e);
+  }
+
+  void mouseUp(const juce::MouseEvent &e) override {
+    if (hasFile_ && hitClearArea(e.x) && onClear_) {
+      onClear_();
+      return; // ボタン onClick を発火させない
+    }
+    juce::TextButton::mouseUp(e);
   }
 
 private:
+  bool hitClearArea(int mx) const {
+    const int sz = getHeight() - 6;
+    return mx >= getWidth() - sz - 4;
+  }
+
   std::function<void(const juce::File &)> onFileDropped_;
+  std::function<void()> onClear_;
   bool dragHovered_ = false;
+  bool hasFile_ = false;
+  bool clearHovered_ = false;
 };
 
 } // namespace UIConstants

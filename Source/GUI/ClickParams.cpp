@@ -365,6 +365,18 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
   clickUI.sample.loadButton.onClick = [this] { onClickSampleLoadClicked(); };
   clickUI.sample.loadButton.setOnFileDropped(
       [this](const juce::File &file) { onClickSampleFileChosen(file); });
+  clickUI.sample.loadButton.setOnClear([this] {
+    processorRef.clickEngine().sampler().unloadSample();
+    clickUI.sample.loadedFilePath.clear();
+    clickUI.sample.thumbMin.clear();
+    clickUI.sample.thumbMax.clear();
+    clickUI.sample.thumbDurSec = 0.0;
+    clickUI.sample.loadButton.setButtonText("Drop or Click to Load");
+    clickUI.sample.loadButton.setTooltip({});
+    clickUI.sample.loadButton.setHasFile(false);
+    processorRef.getAPVTS().state.setProperty("clickSamplePath", "", nullptr);
+    envelopeCurveEditor.setClickPreviewProvider(nullptr);
+  });
   addAndMakeVisible(clickUI.sample.loadButton);
 
   // ※ DSP デフォルト値の設定は不要 — プロセッサの setStateInformation で
@@ -690,6 +702,7 @@ void BoomBabyAudioProcessorEditor::onClickSampleFileChosen(
   clickUI.sample.loadedFilePath = file.getFullPathName();
   clickUI.sample.loadButton.setButtonText(file.getFileNameWithoutExtension());
   clickUI.sample.loadButton.setTooltip(clickUI.sample.loadedFilePath);
+  clickUI.sample.loadButton.setHasFile(true);
   processorRef.getAPVTS().state.setProperty(
       "clickSamplePath", clickUI.sample.loadedFilePath, nullptr);
   processorRef.clickEngine().sampler().loadSample(file);

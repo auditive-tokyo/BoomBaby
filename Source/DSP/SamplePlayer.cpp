@@ -69,6 +69,18 @@ void SamplePlayer::loadSample(const juce::File &file) {
   loaded_.store(true);
 }
 
+void SamplePlayer::unloadSample() {
+  {
+    const juce::SpinLock::ScopedLockType lk(sampleLock_);
+    buffer_.setSize(0, 0);
+  }
+  thumbMin_.clear();
+  thumbMax_.clear();
+  durationSec_.store(0.0);
+  playheadSamples_ = 0.0;
+  loaded_.store(false);
+}
+
 // ────────────────────────────────────────────────────
 // メタ情報
 // ────────────────────────────────────────────────────

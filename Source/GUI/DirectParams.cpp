@@ -53,6 +53,18 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   directUI.sample.loadButton.onClick = [this] { onSampleLoadClicked(); };
   directUI.sample.loadButton.setOnFileDropped(
       [this](const juce::File &file) { onSampleFileChosen(file); });
+  directUI.sample.loadButton.setOnClear([this] {
+    processorRef.directEngine().sampler().unloadSample();
+    directUI.sample.loadedFilePath.clear();
+    directUI.sample.thumbMin.clear();
+    directUI.sample.thumbMax.clear();
+    directUI.sample.thumbDurSec = 0.0;
+    directUI.sample.loadButton.setButtonText("Drop or Click to Load");
+    directUI.sample.loadButton.setTooltip({});
+    directUI.sample.loadButton.setHasFile(false);
+    processorRef.getAPVTS().state.setProperty("directSamplePath", "", nullptr);
+    envelopeCurveEditor.setDirectProvider(nullptr);
+  });
   addAndMakeVisible(directUI.sample.loadButton);
 
   // ── Mode コンボ変更時: ボタン表示切り替え ──
@@ -62,12 +74,15 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
     directUI.sample.loadButton.setVisible(isSample);
     if (isSample) {
       // サンプルが既にロード済みならファイル名を復元
-      if (directUI.sample.loadedFilePath.isNotEmpty())
+      if (directUI.sample.loadedFilePath.isNotEmpty()) {
         directUI.sample.loadButton.setButtonText(
             juce::File(directUI.sample.loadedFilePath)
                 .getFileNameWithoutExtension());
-      else
+        directUI.sample.loadButton.setHasFile(true);
+      } else {
         directUI.sample.loadButton.setButtonText("Drop or Click to Load");
+        directUI.sample.loadButton.setHasFile(false);
+      }
     }
     processorRef.setDirectSampleMode(isSample);
     syncParam(ParamIDs::directMode, isSample ? 1.0f : 0.0f);
@@ -469,6 +484,7 @@ void BoomBabyAudioProcessorEditor::onSampleFileChosen(const juce::File &file) {
   directUI.sample.loadedFilePath = file.getFullPathName();
   directUI.sample.loadButton.setButtonText(file.getFileNameWithoutExtension());
   directUI.sample.loadButton.setTooltip(directUI.sample.loadedFilePath);
+  directUI.sample.loadButton.setHasFile(true);
   processorRef.getAPVTS().state.setProperty(
       "directSamplePath", directUI.sample.loadedFilePath, nullptr);
   processorRef.directEngine().sampler().loadSample(file);
