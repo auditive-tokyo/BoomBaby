@@ -472,7 +472,7 @@ const juce::Identifier kClickModeStateTag{"CLICK_MODE_STATE"};
 } // namespace
 
 juce::ValueTree BoomBabyAudioProcessorEditor::modeStateToTree(
-    const char *name, const ClickUI::ModeState &ms) {
+    const char *name, const ClickUI::ModeState &ms) const {
   juce::ValueTree t{kClickModeStateTag};
   t.setProperty("name", juce::String(name), nullptr);
   t.setProperty("hpfFreq", ms.hpfFreq, nullptr);
@@ -486,8 +486,8 @@ juce::ValueTree BoomBabyAudioProcessorEditor::modeStateToTree(
   return t;
 }
 
-void BoomBabyAudioProcessorEditor::treeToModeState(
-    const juce::ValueTree &t, ClickUI::ModeState &ms) {
+void BoomBabyAudioProcessorEditor::treeToModeState(const juce::ValueTree &t,
+                                                   ClickUI::ModeState &ms) const {
   ms.hpfFreq = static_cast<double>(t.getProperty("hpfFreq", 20.0));
   ms.hpfQ = static_cast<double>(t.getProperty("hpfQ", 0.71));
   ms.hpfSlope = static_cast<int>(t.getProperty("hpfSlope", 12));
@@ -570,15 +570,15 @@ void BoomBabyAudioProcessorEditor::loadEnvelopesFromState() {
 
   // サンプルファイルパスを先に復元（onEnvelopeChanged → saveEnvelopesToState
   // で上書きされる前に loadedFilePath をセットしておく）
-  const auto directPath = state.getProperty("directSamplePath").toString();
-  if (directPath.isNotEmpty()) {
+  if (const auto directPath = state.getProperty("directSamplePath").toString();
+      directPath.isNotEmpty()) {
     const juce::File f{directPath};
     if (f.existsAsFile())
       onSampleFileChosen(f);
   }
 
-  const auto clickPath = state.getProperty("clickSamplePath").toString();
-  if (clickPath.isNotEmpty()) {
+  if (const auto clickPath = state.getProperty("clickSamplePath").toString();
+      clickPath.isNotEmpty()) {
     const juce::File f{clickPath};
     if (f.existsAsFile())
       onClickSampleFileChosen(f);

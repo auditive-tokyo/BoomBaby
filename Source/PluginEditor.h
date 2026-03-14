@@ -211,9 +211,9 @@ private:
   ClickUI clickUI;
   /// ModeState → ValueTree 変換
   juce::ValueTree modeStateToTree(const char *name,
-                                  const ClickUI::ModeState &ms);
+                                  const ClickUI::ModeState &ms) const;
   /// ValueTree → ModeState 変換
-  void treeToModeState(const juce::ValueTree &t, ClickUI::ModeState &ms);
+  void treeToModeState(const juce::ValueTree &t, ClickUI::ModeState &ms) const;
 
   // ── DIRECTパネル ──
   struct DirectUI {
