@@ -424,6 +424,112 @@ void BoomBabyAudioProcessorEditor::syncUIFromState() {
 }
 
 // ────────────────────────────────────────────────────
+// APVTS ポーリング（timerCallback 用：サイレント更新）
+// ────────────────────────────────────────────────────
+void BoomBabyAudioProcessorEditor::pollUIFromAPVTS() {
+  const auto &apvts = processorRef.getAPVTS();
+  auto load = [&](const char *id) {
+    return apvts.getRawParameterValue(id)->load();
+  };
+  constexpr auto silent = juce::dontSendNotification;
+  constexpr std::array kSlopes = {12, 24, 48};
+
+  // ── Sub ──
+  subUI.length.slider.setValue(load(ParamIDs::subLength), silent);
+  {
+    const int waveId = static_cast<int>(load(ParamIDs::subWaveShape)) + 1;
+    if (subUI.wave.combo.getSelectedId() != waveId)
+      subUI.wave.combo.setSelectedId(waveId, silent);
+  }
+  subUI.knobs[0].setValue(load(ParamIDs::subAmp), silent);
+  subUI.knobs[1].setValue(load(ParamIDs::subFreq), silent);
+  subUI.knobs[2].setValue(load(ParamIDs::subMix), silent);
+  subUI.knobs[3].setValue(load(ParamIDs::subSatDrive), silent);
+  subUI.saturateClipType.setSelected(
+      static_cast<int>(load(ParamIDs::subSatClipType)), false);
+  subUI.knobs[4].setValue(load(ParamIDs::subTone1), silent);
+  subUI.knobs[5].setValue(load(ParamIDs::subTone2), silent);
+  subUI.knobs[6].setValue(load(ParamIDs::subTone3), silent);
+  subUI.knobs[7].setValue(load(ParamIDs::subTone4), silent);
+  subPanel.getFader().setValue(load(ParamIDs::subGain), silent);
+  subPanel.setMuteState(load(ParamIDs::subMute) >= 0.5f);
+  subPanel.setSoloState(load(ParamIDs::subSolo) >= 0.5f);
+
+  // ── Click ──
+  {
+    const int modeId = static_cast<int>(load(ParamIDs::clickMode)) + 1;
+    if (clickUI.modeCombo.getSelectedId() != modeId) {
+      clickUI.modeCombo.setSelectedId(modeId, silent);
+      setClickModeVisible(modeId ==
+                          std::to_underlying(ClickUI::Mode::Sample));
+    }
+  }
+  clickUI.noise.decaySlider.setValue(load(ParamIDs::clickNoiseDecay), silent);
+  clickUI.noise.bpf1.freqSlider.setValue(load(ParamIDs::clickBpf1Freq), silent);
+  clickUI.noise.bpf1.qSlider.setValue(load(ParamIDs::clickBpf1Q), silent);
+  clickUI.noise.bpf1.slopeSelector.setSlope(
+      kSlopes[static_cast<std::size_t>(
+          static_cast<int>(load(ParamIDs::clickBpf1Slope)))]);
+  clickUI.sample.pitch.slider.setValue(load(ParamIDs::clickSamplePitch),
+                                       silent);
+  clickUI.sample.amp.slider.setValue(load(ParamIDs::clickSampleAmp), silent);
+  clickUI.sample.decay.slider.setValue(load(ParamIDs::clickSampleDecay),
+                                       silent);
+  clickUI.noise.saturator.driveSlider.setValue(load(ParamIDs::clickDrive),
+                                               silent);
+  clickUI.noise.saturator.clipType.setSelected(
+      static_cast<int>(load(ParamIDs::clickClipType)), false);
+  clickUI.hpf.slider.setValue(load(ParamIDs::clickHpfFreq), silent);
+  clickUI.hpf.qSlider.setValue(load(ParamIDs::clickHpfQ), silent);
+  clickUI.hpf.slope.setSlope(
+      kSlopes[static_cast<std::size_t>(
+          static_cast<int>(load(ParamIDs::clickHpfSlope)))]);
+  clickUI.lpf.slider.setValue(load(ParamIDs::clickLpfFreq), silent);
+  clickUI.lpf.qSlider.setValue(load(ParamIDs::clickLpfQ), silent);
+  clickUI.lpf.slope.setSlope(
+      kSlopes[static_cast<std::size_t>(
+          static_cast<int>(load(ParamIDs::clickLpfSlope)))]);
+  clickPanel.getFader().setValue(load(ParamIDs::clickGain), silent);
+  clickPanel.setMuteState(load(ParamIDs::clickMute) >= 0.5f);
+  clickPanel.setSoloState(load(ParamIDs::clickSolo) >= 0.5f);
+
+  // ── Direct ──
+  {
+    const int modeId = static_cast<int>(load(ParamIDs::directMode)) + 1;
+    if (directUI.modeCombo.getSelectedId() != modeId) {
+      directUI.modeCombo.setSelectedId(modeId, silent);
+      const bool isSample = (modeId == std::to_underlying(DirectUI::Mode::Sample));
+      directUI.sample.loadButton.setVisible(isSample);
+      refreshDirectPassthroughUI();
+    }
+  }
+  directUI.pitch.slider.setValue(load(ParamIDs::directPitch), silent);
+  directUI.amp.slider.setValue(load(ParamIDs::directAmp), silent);
+  directUI.saturator.driveSlider.setValue(load(ParamIDs::directDrive), silent);
+  directUI.saturator.clipType.setSelected(
+      static_cast<int>(load(ParamIDs::directClipType)), false);
+  directUI.decay.slider.setValue(load(ParamIDs::directDecay), silent);
+  directUI.hpf.slider.setValue(load(ParamIDs::directHpfFreq), silent);
+  directUI.hpf.qSlider.setValue(load(ParamIDs::directHpfQ), silent);
+  directUI.hpf.slope.setSlope(
+      kSlopes[static_cast<std::size_t>(
+          static_cast<int>(load(ParamIDs::directHpfSlope)))]);
+  directUI.lpf.slider.setValue(load(ParamIDs::directLpfFreq), silent);
+  directUI.lpf.qSlider.setValue(load(ParamIDs::directLpfQ), silent);
+  directUI.lpf.slope.setSlope(
+      kSlopes[static_cast<std::size_t>(
+          static_cast<int>(load(ParamIDs::directLpfSlope)))]);
+  directUI.threshold.slider.setValue(load(ParamIDs::directThreshold), silent);
+  directUI.hold.slider.setValue(load(ParamIDs::directHold), silent);
+  directPanel.getFader().setValue(load(ParamIDs::directGain), silent);
+  directPanel.setMuteState(load(ParamIDs::directMute) >= 0.5f);
+  directPanel.setSoloState(load(ParamIDs::directSolo) >= 0.5f);
+
+  // ── Master ──
+  masterSection.setValueDb(load(ParamIDs::masterGain));
+}
+
+// ────────────────────────────────────────────────────
 // エンベロープデータ ↔ APVTS ValueTree シリアライズ
 // ────────────────────────────────────────────────────
 namespace {
@@ -607,6 +713,9 @@ void BoomBabyAudioProcessorEditor::loadEnvelopesFromState() {
 }
 
 void BoomBabyAudioProcessorEditor::timerCallback() {
+  // DAW Undo/Redo / オートメーション: APVTS 値とウィジェットを同期
+  pollUIFromAPVTS();
+
   // Direct がパススルーモードの場合のみリアルタイム入力波形を表示
   if (!processorRef.directMode().isPassthrough()) {
     envelopeCurveEditor.setUseRealtimeInput(false);

@@ -63,6 +63,8 @@ private:
   void syncParam(const char *id, float value);
   /// APVTS 値から UI ウィジェットを復元（エディタ構築時＋状態復元時）
   void syncUIFromState();
+  /// APVTS 値をポーリングし変更があったウィジェットをサイレント更新（timerCallback 用）
+  void pollUIFromAPVTS();
   /// エンベロープデータを APVTS ValueTree に書き出し
   void saveEnvelopesToState();
   /// APVTS ValueTree からエンベロープデータを読み込み＋LUT 再ベイク
