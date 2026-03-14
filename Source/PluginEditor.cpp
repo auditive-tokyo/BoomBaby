@@ -703,6 +703,15 @@ void BoomBabyAudioProcessorEditor::loadEnvelopesFromState() {
                                          : clickUI.noiseState,
                            processorRef.clickEngine());
 
+  // 波形プロバイダーを正しいモードに切り替える
+  // （setupClickParams が常に Noise プロバイダーをセットするため）
+  if (clickIsSample) {
+    envelopeCurveEditor.setClickPreviewProvider(nullptr);
+    refreshClickSampleProvider(); // サンプル未ロード時は早期 return で空表示
+  } else {
+    envelopeCurveEditor.setClickNoiseEnvProvider(clickUI.noiseProvider);
+  }
+
   // LUT 再ベイク＋ノブ有効/無効同期
   onEnvelopeChanged();
 
