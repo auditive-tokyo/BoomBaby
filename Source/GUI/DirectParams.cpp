@@ -511,8 +511,7 @@ void BoomBabyAudioProcessorEditor::refreshDirectProvider() {
       directUI.sample.thumbDurSec / static_cast<double>(speedRatio);
 
   // LUT 期間 (ms) + Amp (0、2.0)
-  const float ampDurMs =
-      processorRef.directEngine().directAmpLut().getDurationMs();
+  const auto ampDurMs = static_cast<float>(directUI.decay.slider.getValue());
   const float ampScale =
       static_cast<float>(directUI.amp.slider.getValue()) / 100.0f;
 
