@@ -98,9 +98,13 @@ public:
 
     bool isPassthrough() const noexcept { return !sampleMode_.load(); }
     TransientDetector &detector() noexcept { return transientDetector_; }
+    /// Sample モード切り替え（UI スレッドから設定）
+    void setSampleMode(bool isSample, DirectEngine &engine) noexcept {
+      sampleMode_.store(isSample);
+      engine.setPassthroughMode(!isSample);
+      transientDetector_.setEnabled(!isSample);
+    }
   };
-  /// Direct Sample モード切り替え（UI スレッドから設定）
-  void setDirectSampleMode(bool isSample) noexcept;
   DirectMode &directMode() noexcept { return directMode_; }
 
 private:

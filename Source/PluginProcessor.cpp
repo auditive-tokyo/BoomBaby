@@ -375,7 +375,7 @@ void BoomBabyAudioProcessor::parameterChanged(const juce::String &parameterID,
   if (parameterID.startsWith("sub_"))
     applySubParam(parameterID, v, idx, subEngine_, channelState_);
   else if (parameterID == ParamIDs::directMode)
-    setDirectSampleMode(idx == 1);
+    directMode_.setSampleMode(idx == 1, directEngine_);
   else if (parameterID.startsWith("click_"))
     applyClickParam(parameterID, v, idx, clickEngine_, channelState_);
   else if (parameterID.startsWith("direct_"))
@@ -456,12 +456,7 @@ void BoomBabyAudioProcessor::prepareToPlay(double sampleRate,
   bakeAllLutsFromState();
 }
 
-void BoomBabyAudioProcessor::setDirectSampleMode(bool isSample) noexcept {
-  directMode_.sampleMode_.store(isSample);
-  directEngine_.setPassthroughMode(!isSample);
-  // パススルーモード時はトランジェント検出を自動有効化
-  directMode_.transientDetector_.setEnabled(!isSample);
-}
+
 
 void BoomBabyAudioProcessor::releaseResources() {
   // Currently no resources to release - will be populated when adding DSP

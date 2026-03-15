@@ -90,7 +90,7 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
         directUI.sample.loadButton.setHasFile(false);
       }
     }
-    processorRef.setDirectSampleMode(isSample);
+    processorRef.directMode().setSampleMode(isSample, processorRef.directEngine());
     syncParam(ParamIDs::directMode, isSample ? 1.0f : 0.0f);
     refreshDirectPassthroughUI();
     resized();
