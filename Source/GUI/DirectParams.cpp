@@ -5,6 +5,7 @@
 #include "../PluginEditor.h"
 #include "InfoBoxText.h"
 #include "LutBaker.h"
+#include "SampleChooserUtils.h"
 #include "WaveformUtils.h"
 
 namespace {
@@ -19,20 +20,6 @@ void styleKnobLabelDirect(juce::Label &label, const juce::String &text,
   label.setFont(font);
   label.setColour(juce::Label::textColourId, UIConstants::Colours::labelText);
   label.setJustificationType(juce::Justification::centred);
-}
-
-void launchSampleChooser(auto &fileChooser, auto onChosen) {
-  fileChooser = std::make_unique<juce::FileChooser>(
-      "Load Sample",
-      juce::File::getSpecialLocation(juce::File::userMusicDirectory),
-      "*.wav;*.aif;*.aiff;*.flac;*.ogg");
-  fileChooser->launchAsync(
-      juce::FileBrowserComponent::openMode |
-          juce::FileBrowserComponent::canSelectFiles,
-      [cb = std::move(onChosen)](const juce::FileChooser &fc) {
-        if (const auto r = fc.getResult(); r.existsAsFile())
-          cb(r);
-      });
 }
 
 } // namespace

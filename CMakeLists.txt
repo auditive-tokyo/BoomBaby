@@ -52,6 +52,7 @@ target_sources(BoomBaby
         Source/GUI/MasterFader.h
         Source/GUI/MasterFader.cpp
         Source/GUI/WaveformUtils.h
+        Source/GUI/SampleChooserUtils.h
         Source/DSP/ChannelState.h
         Source/DSP/ClickEngine.h
         Source/DSP/ClickEngine.cpp
