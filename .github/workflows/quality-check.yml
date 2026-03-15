@@ -27,20 +27,21 @@ jobs:
         run: git clone --depth 1 --branch 8.0.6 https://github.com/juce-framework/JUCE.git /tmp/JUCE
 
       - name: Configure CMake
-        run: cmake -S . -B build-ci -DJUCE_PATH=/tmp/JUCE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-
-      - name: Build Tests with Coverage
         run: >
-          cmake --build build-ci --target BoomBabyTests
-          --
-          -j$(sysctl -n hw.ncpu)
-          OTHER_CPLUSPLUSFLAGS="-fprofile-instr-generate -fcoverage-mapping"
-          OTHER_LDFLAGS="-fprofile-instr-generate"
+          cmake -S . -B build-ci
+          -DJUCE_PATH=/tmp/JUCE
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -DCMAKE_CXX_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
+          -DCMAKE_C_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
+          -DCMAKE_EXE_LINKER_FLAGS="-fprofile-instr-generate"
+
+      - name: Build Tests
+        run: cmake --build build-ci --target BoomBabyTests -- -j$(sysctl -n hw.ncpu)
 
       - name: Run Tests
         run: |
           mkdir -p build-ci/coverage
-          cd build-ci && LLVM_PROFILE_FILE="coverage/%p.profraw" ctest --output-on-failure
+          cd build-ci && LLVM_PROFILE_FILE="${{ github.workspace }}/build-ci/coverage/%p.profraw" ctest --output-on-failure
 
       - name: Generate Coverage Report
         run: |
