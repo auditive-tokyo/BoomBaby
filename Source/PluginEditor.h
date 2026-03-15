@@ -35,8 +35,7 @@ struct DarkComboLAF : public juce::LookAndFeel_V4 {
 
 class BoomBabyAudioProcessorEditor final
     : public juce::AudioProcessorEditor,
-      private juce::Timer,
-      private juce::AudioProcessorListener {
+      private juce::Timer {
 public:
   explicit BoomBabyAudioProcessorEditor(BoomBabyAudioProcessor &);
   ~BoomBabyAudioProcessorEditor() override;
@@ -49,16 +48,6 @@ public:
 
 private:
   void onEnvelopeChanged();
-
-  // AudioProcessorListener — パラメータジェスチャー開始を検出し
-  // 統合 Undo スタックに Parameter フレームを積む
-  void audioProcessorParameterChangeGestureBegin(juce::AudioProcessor *,
-                                                 int) override;
-  void audioProcessorChanged(juce::AudioProcessor *,
-                             const juce::AudioProcessorListener::ChangeDetails &)
-      override {}
-  void audioProcessorParameterChanged(juce::AudioProcessor *, int,
-                                      float) override {}
 
   // ── 入力波形リアルタイム表示（30fps Timer）──
   void timerCallback() override;

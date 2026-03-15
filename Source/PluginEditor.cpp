@@ -231,20 +231,6 @@ void BoomBabyAudioProcessorEditor::mouseDown(const juce::MouseEvent &e) {
 // ────────────────────────────────────────────────────
 // エンベロープ Undo/Redo（プラグイン内部スタック）
 // ────────────────────────────────────────────────────
-// パラメータジェスチャー開始時（DAW オートメーション経由など）
-// UI ドラッグ時は syncParam 内で既に Parameter フレームが積まれるため、
-// ここでは重複チェック付きで念のため追加する。
-void BoomBabyAudioProcessorEditor::audioProcessorParameterChangeGestureBegin(
-    juce::AudioProcessor *, int) {
-  if (!envUndo_.undoStack.empty() &&
-      envUndo_.undoStack.back().type == EnvUndoState::FrameType::Parameter)
-    return;
-  envUndo_.redoStack.clear();
-  envUndo_.undoStack.push_back({EnvUndoState::FrameType::Parameter, {}});
-  if (static_cast<int>(envUndo_.undoStack.size()) > kMaxEnvUndoSteps)
-    envUndo_.undoStack.erase(envUndo_.undoStack.begin());
-}
-
 bool BoomBabyAudioProcessorEditor::keyPressed(const juce::KeyPress &key) {
   if (const bool isCmdZ =
           key.getModifiers().isCommandDown() && key.getKeyCode() == 'Z';
@@ -340,9 +326,6 @@ BoomBabyAudioProcessorEditor::BoomBabyAudioProcessorEditor(
   envelopeCurveEditor.addMouseListener(&envUndo_.listener, false);
   envelopeCurveEditor.setWantsKeyboardFocus(true);
 
-  // パラメータジェスチャー開始/終了を受け取り、統合 Undo スタックを更新する
-  processorRef.addListener(this);
-
   setupPanelRouting(p);
   setupEnvelopeCurveEditor();
   setupClickParams();
@@ -387,7 +370,6 @@ BoomBabyAudioProcessorEditor::BoomBabyAudioProcessorEditor(
 }
 
 BoomBabyAudioProcessorEditor::~BoomBabyAudioProcessorEditor() {
-  processorRef.removeListener(this);
   envelopeCurveEditor.removeMouseListener(&envUndo_.listener);
   stopTimer();
   subUI.wave.combo.setLookAndFeel(nullptr);
