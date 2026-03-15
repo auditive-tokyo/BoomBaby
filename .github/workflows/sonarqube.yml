@@ -1,4 +1,4 @@
-name: SonarQube
+name: Quality Check
 
 on:
   push:
@@ -28,6 +28,11 @@ jobs:
 
       - name: Configure CMake
         run: cmake -S . -B build-ci -DJUCE_PATH=/tmp/JUCE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Build and Run Tests
+        run: |
+          cmake --build build-ci --target BoomBabyTests -- -j$(sysctl -n hw.ncpu)
+          cd build-ci && ctest --output-on-failure
 
       - name: Install Build Wrapper
         uses: SonarSource/sonarqube-scan-action/install-build-wrapper@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
