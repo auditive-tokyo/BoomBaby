@@ -9,6 +9,7 @@ using namespace Catch::Matchers;
 
 // ── ピーク検出 ──────────────────────────────────────
 
+// 正のピーク値 (0.5f → -6.02 dB) が正しく検出されることを確認する
 TEST_CASE("LevelDetector: detects positive peak", "[level_detector]") {
   LevelDetector det;
   std::vector<float> buf = {0.0f, 0.3f, -0.1f, 0.5f, -0.2f};
@@ -18,6 +19,7 @@ TEST_CASE("LevelDetector: detects positive peak", "[level_detector]") {
   CHECK_THAT(det.getPeakDb(), WithinAbs(-6.0206, 0.01));
 }
 
+// 負のピーク値 (-0.8f) が絶対値として正しく検出されることを確認する (-1.94 dB)
 TEST_CASE("LevelDetector: detects negative peak (abs)", "[level_detector]") {
   LevelDetector det;
   std::vector<float> buf = {0.0f, -0.8f, 0.1f};
@@ -27,6 +29,7 @@ TEST_CASE("LevelDetector: detects negative peak (abs)", "[level_detector]") {
   CHECK_THAT(det.getPeakDb(), WithinAbs(-1.9382, 0.01));
 }
 
+// 入力値 1.0f (Unity Gain) が 0 dB として読み取れることを確認する
 TEST_CASE("LevelDetector: unity gain reads 0 dB", "[level_detector]") {
   LevelDetector det;
   std::vector<float> buf = {1.0f};
@@ -35,6 +38,7 @@ TEST_CASE("LevelDetector: unity gain reads 0 dB", "[level_detector]") {
   CHECK_THAT(det.getPeakDb(), WithinAbs(0.0, 0.01));
 }
 
+// 初期状態（入力なし）でピークがフロア値 -100 dB であることを確認する
 TEST_CASE("LevelDetector: silence reads -100 dB", "[level_detector]") {
   LevelDetector det;
   CHECK_THAT(det.getPeakDb(), WithinAbs(-100.0, 0.01));
@@ -42,6 +46,7 @@ TEST_CASE("LevelDetector: silence reads -100 dB", "[level_detector]") {
 
 // ── nullptr 処理 ────────────────────────────────────
 
+// nullptr を渡したときにクラッシュせず、ピーク値が減衰することを確認する
 TEST_CASE("LevelDetector: nullptr data decays without crash",
           "[level_detector]") {
   LevelDetector det;
@@ -57,6 +62,7 @@ TEST_CASE("LevelDetector: nullptr data decays without crash",
 
 // ── リリース（減衰）特性 ────────────────────────────
 
+// 無音ブロックを繰り返すたびにピーク値が単調減少することを確認する
 TEST_CASE("LevelDetector: peak decays over successive silent blocks",
           "[level_detector]") {
   LevelDetector det;
@@ -75,6 +81,7 @@ TEST_CASE("LevelDetector: peak decays over successive silent blocks",
   }
 }
 
+// setDecayPerBlock(0.5f) で 1 ブロックごとに半減することを数値で確認する
 TEST_CASE("LevelDetector: custom decay rate", "[level_detector]") {
   LevelDetector det;
   det.setDecayPerBlock(0.5f); // 非常に速い減衰
@@ -96,6 +103,7 @@ TEST_CASE("LevelDetector: custom decay rate", "[level_detector]") {
 
 // ── ピーク保持（大信号後の小信号で即座に落ちない）──
 
+// 大きい入力の直後に小さい入力が来ても、減衰後の値が対小入力より大きければそちらが保持されることを確認する
 TEST_CASE("LevelDetector: holds peak when new block is smaller",
           "[level_detector]") {
   LevelDetector det;
@@ -115,6 +123,7 @@ TEST_CASE("LevelDetector: holds peak when new block is smaller",
 
 // ── リセット ────────────────────────────────────────
 
+// reset() 後にピーク値がフロア値 -100 dB に戻ることを確認する
 TEST_CASE("LevelDetector: reset clears peak", "[level_detector]") {
   LevelDetector det;
   std::vector<float> buf = {1.0f};

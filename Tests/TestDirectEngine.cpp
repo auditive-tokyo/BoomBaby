@@ -52,6 +52,7 @@ float maxAbsScratch(const DirectEngine &e, int numSamples) {
 
 // ─── 非アクティブ時は render 出力ゼロ ──────────────────────────
 
+// triggerNote() を呼ばずに render しても scratchBuffer・出力バッファ共にゼロであることを確認する
 TEST_CASE("DirectEngine: inactive render produces silence", "[direct_engine]") {
   auto engine = std::make_unique<DirectEngine>();
   engine->prepareToPlay(kSampleRate, kBlockSize);
@@ -72,6 +73,7 @@ TEST_CASE("DirectEngine: inactive render produces silence", "[direct_engine]") {
 
 // ─── 非アクティブ時は renderPassthrough 出力ゼロ ────────────────
 
+// triggerNote() なしで renderPassthrough しても amp=0 のため全出力がゼロであることを確認する
 TEST_CASE("DirectEngine: inactive passthrough produces silence",
           "[direct_engine]") {
   auto engine = makePassthroughEngine();
@@ -89,6 +91,7 @@ TEST_CASE("DirectEngine: inactive passthrough produces silence",
 
 // ─── Tube バイアスリーク回帰テスト（amp==0） ────────────────────
 
+// 非アクティブ（amp==0）のとき Tube ClipType の DC バイアスが出力に漏れないことを確認する
 TEST_CASE("DirectEngine: Tube clipType does not leak DC when inactive (amp==0)",
           "[direct_engine]") {
   auto engine = makePassthroughEngine();
@@ -107,6 +110,7 @@ TEST_CASE("DirectEngine: Tube clipType does not leak DC when inactive (amp==0)",
 
 // ─── Tube バイアスリーク回帰テスト（input==0） ──────────────────
 
+// 入力がゼロのとき Tube ClipType の DC バイアスが出力に漏れないことを確認する
 TEST_CASE("DirectEngine: Tube clipType does not leak DC when input is zero",
           "[direct_engine]") {
   auto engine = makePassthroughEngine();
@@ -126,6 +130,7 @@ TEST_CASE("DirectEngine: Tube clipType does not leak DC when input is zero",
 
 // ─── パススルーモード: triggerNote 後に入力信号が出力される ──────
 
+// triggerNote() 後に renderPassthrough すると入力信号がそのまま出力されることを確認する
 TEST_CASE("DirectEngine: passthrough outputs signal after trigger",
           "[direct_engine]") {
   auto engine = makePassthroughEngine();
@@ -143,6 +148,7 @@ TEST_CASE("DirectEngine: passthrough outputs signal after trigger",
 
 // ─── パススルー: ゼロ入力は全ClipTypeで出力ゼロ ─────────────────
 
+// Soft/Hard/Tube の全 ClipType で入力ゼロなら出力もゼロであることを確認する
 TEST_CASE("DirectEngine: zero input passthrough is silent for all clip types",
           "[direct_engine]") {
   for (int ct = 0; ct <= 2; ++ct) {
@@ -165,6 +171,7 @@ TEST_CASE("DirectEngine: zero input passthrough is silent for all clip types",
 
 // ─── triggerNote のフィルターリセット ────────────────────────────
 
+// triggerNote() でフィルター状態がリセットされ、同じ入力に対して 2 回目も同一出力になることを確認する
 TEST_CASE("DirectEngine: triggerNote resets filters", "[direct_engine]") {
   auto engine = makePassthroughEngine();
   engine->setHpfFreq(1000.0f);
@@ -191,6 +198,7 @@ TEST_CASE("DirectEngine: triggerNote resets filters", "[direct_engine]") {
 
 // ─── Drive がゲインを増加させる ─────────────────────────────────
 
+// Drive 18dB の出力エネルギーが Drive 0dB より大きくなることを確認する
 TEST_CASE("DirectEngine: drive increases output level", "[direct_engine]") {
   // Drive = 0 dB
   auto engineA = makePassthroughEngine();
@@ -216,6 +224,7 @@ TEST_CASE("DirectEngine: drive increases output level", "[direct_engine]") {
 
 // ─── maxDuration 超過で出力停止 ─────────────────────────────────
 
+// setMaxDurationMs(5ms) を超えたブロック後半で scratchBuffer がゼロに戻ることを確認する
 TEST_CASE("DirectEngine: passthrough stops after maxDuration",
           "[direct_engine]") {
   auto engine = makePassthroughEngine();

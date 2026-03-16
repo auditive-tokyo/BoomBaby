@@ -39,6 +39,7 @@ float energy(const ClickEngine &e, int numSamples) {
 
 // ─── 非アクティブ時は出力ゼロ ─────────────────────────────────
 
+// triggerNote() を呼ばずに render しても、scratchBuffer・出力バッファ共にゼロであることを確認する
 TEST_CASE("ClickEngine: inactive produces silence", "[click_engine]") {
   auto engine = makeEngine();
   juce::AudioBuffer<float> buf(2, kBlockSize);
@@ -56,6 +57,7 @@ TEST_CASE("ClickEngine: inactive produces silence", "[click_engine]") {
 
 // ─── triggerNote 後は出力が非ゼロ ──────────────────────────────
 
+// triggerNote() 後に render すると Noise モードで音が出ること（エネルギー > 0）を確認する
 TEST_CASE("ClickEngine: Noise mode produces output after trigger",
           "[click_engine]") {
   auto engine = makeEngine();
@@ -71,6 +73,7 @@ TEST_CASE("ClickEngine: Noise mode produces output after trigger",
 
 // ─── 出力値が有限（NaN / Inf でない）──────────────────────────
 
+// 最大 drive・Tube クリップ・高 Q フィルターなど負荷の高い設定でも NaN/Inf が出ないことを確認する
 TEST_CASE("ClickEngine: output is finite", "[click_engine]") {
   auto engine = makeEngine();
   engine->setDriveDb(24.0f); // 最大 drive
@@ -91,6 +94,7 @@ TEST_CASE("ClickEngine: output is finite", "[click_engine]") {
 
 // ─── decay 後にエンジンが非アクティブになる ────────────────────
 
+// setDecayMs(5ms) の長さを超えて複数ブロック回した後、出力がゼロに戻ることを確認する
 TEST_CASE("ClickEngine: deactivates after decay", "[click_engine]") {
   auto engine = makeEngine();
   engine->setDecayMs(5.0f); // 5ms → ~220 samples
@@ -112,6 +116,7 @@ TEST_CASE("ClickEngine: deactivates after decay", "[click_engine]") {
 
 // ─── triggerNote でフィルター状態がリセットされる ───────────────
 
+// 同じ設定で triggerNote() を2回呼んで render した結果が完全一致することを確認する（再現性・リセット検証）
 TEST_CASE("ClickEngine: triggerNote resets state (deterministic output)",
           "[click_engine]") {
   auto engine = makeEngine();
@@ -137,6 +142,7 @@ TEST_CASE("ClickEngine: triggerNote resets state (deterministic output)",
 
 // ─── clickPass=false だと buffer に加算されない ────────────────
 
+// clickPass=false のとき、scratchBuffer には音があるが出力バッファは無音のままであることを確認する（ミュート動作）
 TEST_CASE("ClickEngine: clickPass=false does not add to buffer",
           "[click_engine]") {
   auto engine = makeEngine();
@@ -155,6 +161,7 @@ TEST_CASE("ClickEngine: clickPass=false does not add to buffer",
 
 // ─── HPF/LPF スロープ設定がクラッシュしない ────────────────────
 
+// 12/24/48 dB/oct の全スロープ設定で render してもクラッシュせず出力が有限であることを確認する
 TEST_CASE("ClickEngine: all filter slopes render without crash",
           "[click_engine]") {
   for (int slope : {12, 24, 48}) {
@@ -179,6 +186,7 @@ TEST_CASE("ClickEngine: all filter slopes render without crash",
 
 // ─── 全 ClipType でクラッシュしない ────────────────────────────
 
+// Soft/Hard/Tube の全 ClipType でドライブをかけても NaN/Inf が出ないことを確認する
 TEST_CASE("ClickEngine: all ClipTypes produce finite output",
           "[click_engine]") {
   for (int clipType : {0, 1, 2}) {

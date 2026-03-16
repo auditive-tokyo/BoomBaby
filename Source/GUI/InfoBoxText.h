@@ -10,16 +10,25 @@ inline constexpr const char *masterGain =
 
 // ── Sub ──
 inline constexpr const char *subLength = "Sub note duration (10-2000 ms)";
-inline constexpr const char *subAmp = "Sub amplitude (0-200%)";
-inline constexpr const char *subFreq = "Sub fundamental frequency (20-20k Hz)";
-inline constexpr const char *subMix = "Dry/wet mix (-100 dry ... +100 wet)";
-inline constexpr const char *subSaturate = "Saturation drive (0-24 dB)";
+inline constexpr const char *subAmp =
+    "Sub amplitude (0-200%)\nEnvelope available - click label to draw."
+    "\nKnob greys out when envelope is active.";
+inline constexpr const char *subFreq =
+    "Sub frequency (20-20k Hz)\nEnvelope available - click label to draw."
+    "\nKnob greys out when envelope is active.";
+inline constexpr const char *subMix =
+    "Waveform mix: 0 = Sine\n-100 = Tri/SQR/SAW mix\n+100 = Tone mix"
+    "\nEnvelope available - click label to draw."
+    "\nKnob greys out when envelope is active.";
+inline constexpr const char *subSaturate =
+    "Saturation drive (0-24 dB)\nEnvelope available - click label to draw."
+    "\nKnob greys out when envelope is active.";
 inline constexpr const char *subClipType =
     "Saturation mode: Soft / Hard / Tube";
-inline constexpr const char *subTone2 = "2nd harmonic level";
-inline constexpr const char *subTone3 = "3rd harmonic level";
-inline constexpr const char *subTone4 = "4th harmonic level";
-inline constexpr const char *subTone5 = "5th harmonic level";
+inline constexpr const char *subTone1 = "1st additive sine (fundamental)";
+inline constexpr const char *subTone2 = "2nd additive sine (+1 oct)";
+inline constexpr const char *subTone3 = "3rd additive sine (+1 oct + 5th)";
+inline constexpr const char *subTone4 = "4th additive sine (+2 oct)";
 inline constexpr const char *subWave =
     "Sub oscillator waveform: Tri / SQR / SAW";
 
@@ -43,7 +52,9 @@ inline constexpr const char *clickLpfQ = "Low-pass resonance (Q 0.1-18)";
 inline constexpr const char *clickLpfSlope = "LPF slope: 12 / 24 / 48 dB/oct";
 inline constexpr const char *clickSamplePitch =
     "Sample pitch shift (+/-24 semitones)";
-inline constexpr const char *clickSampleAmp = "Sample amplitude (0-200%)";
+inline constexpr const char *clickSampleAmp =
+    "Sample amplitude (0-200%)\nEnvelope available - click label to draw."
+    "\nKnob greys out when envelope is active.";
 inline constexpr const char *clickSampleDecay =
     "Sample envelope duration (10-2000 ms)";
 inline constexpr const char *clickSampleLoad =
@@ -54,7 +65,9 @@ inline constexpr const char *directMode =
     "Direct source: passthrough or sample";
 inline constexpr const char *directPitch =
     "Sample pitch shift (+/-24 semitones)";
-inline constexpr const char *directAmp = "Direct amplitude (0-200%)";
+inline constexpr const char *directAmp =
+    "Direct amplitude (0-200%)\nEnvelope available - click label to draw."
+    "\nKnob greys out when envelope is active.";
 inline constexpr const char *directDrive = "Saturator drive (0-24 dB)";
 inline constexpr const char *directClipType =
     "Saturation mode: Soft / Hard / Tube";

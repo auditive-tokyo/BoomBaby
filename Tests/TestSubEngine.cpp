@@ -63,6 +63,7 @@ float absPeak(const std::vector<float> &v) {
 
 // ── prepareToPlay ───────────────────────────────────
 
+// prepareToPlay() を呼んでもクラッシュしないことを確認する（基本的な初期化テスト）
 TEST_CASE("SubEngine: prepareToPlay does not crash", "[sub_engine]") {
   SubEngine eng;
   eng.prepareToPlay(kSampleRate, kBlockSize);
@@ -71,6 +72,7 @@ TEST_CASE("SubEngine: prepareToPlay does not crash", "[sub_engine]") {
 
 // ── triggerNote + render ────────────────────────────
 
+// triggerNote() を呼ぶ前は render が無音（ゼロ）を出力することを確認する
 TEST_CASE("SubEngine: render produces silence before trigger", "[sub_engine]") {
   auto eng = makeEngine();
 
@@ -78,6 +80,7 @@ TEST_CASE("SubEngine: render produces silence before trigger", "[sub_engine]") {
   CHECK(absPeak(samples) < 1e-6f);
 }
 
+// triggerNote() 後に render が無音以外の値を出力することを確認する（発音テスト）
 TEST_CASE("SubEngine: render produces output after trigger", "[sub_engine]") {
   auto eng = makeEngine();
   eng->triggerNote();
@@ -88,6 +91,7 @@ TEST_CASE("SubEngine: render produces output after trigger", "[sub_engine]") {
 
 // ── 出力値域 ────────────────────────────────────────
 
+// 20 ブロック分レンダリングして、全サンプルが ±2.0f 以内に収まることを確認する（クリップ・発散防止）
 TEST_CASE("SubEngine: output stays within reasonable range", "[sub_engine]") {
   auto eng = makeEngine(500.0f);
   eng->triggerNote();
@@ -101,6 +105,7 @@ TEST_CASE("SubEngine: output stays within reasonable range", "[sub_engine]") {
 
 // ── gainDb ──────────────────────────────────────────
 
+// setGainDb(0dB) の出力が setGainDb(-12dB) より大きくなることを確認する（ゲイン制御テスト）
 TEST_CASE("SubEngine: setGainDb affects output level", "[sub_engine]") {
   auto peakOf = [](float gainDb) {
     auto eng = makeEngine(300.0f, gainDb);
@@ -119,6 +124,7 @@ TEST_CASE("SubEngine: setGainDb affects output level", "[sub_engine]") {
 
 // ── lengthMs（One-shot 長さ）────────────────────────
 
+// setLengthMs(10ms) で設定した長さを超えたあとに出力が無音に戻ることを確認する（One-shot 終端テスト）
 TEST_CASE("SubEngine: stops after lengthMs", "[sub_engine]") {
   auto eng = makeEngine(10.0f);
   eng->triggerNote();
@@ -132,6 +138,7 @@ TEST_CASE("SubEngine: stops after lengthMs", "[sub_engine]") {
 
 // ── subPass=false（Mute 時: buffer に加算しない）────
 
+// subPass=false のとき、出力バッファは無音のまま、scratchBuffer にのみデータが書かれることを確認する
 TEST_CASE("SubEngine: subPass=false writes scratchBuffer only",
           "[sub_engine]") {
   auto eng = makeEngine();
@@ -158,6 +165,7 @@ TEST_CASE("SubEngine: subPass=false writes scratchBuffer only",
 
 // ── triggerNote offset ──────────────────────────────
 
+// triggerNote(100) でサンプルオフセットを渡した場合、先頭 100 サンプルが無音で、以降に音が出ることを確認する
 TEST_CASE("SubEngine: triggerNote offset delays start", "[sub_engine]") {
   auto eng = makeEngine();
   eng->triggerNote(100); // 100 サンプル遅延
@@ -177,6 +185,7 @@ TEST_CASE("SubEngine: triggerNote offset delays start", "[sub_engine]") {
 
 // ── stereo render ───────────────────────────────────
 
+// ステレオバッファで render したとき、L チャンネルと R チャンネルが完全に一致することを確認する（モノ信号の検証）
 TEST_CASE("SubEngine: renders identical L/R in stereo", "[sub_engine]") {
   auto eng = makeEngine();
   eng->triggerNote();

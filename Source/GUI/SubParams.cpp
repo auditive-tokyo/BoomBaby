@@ -244,10 +244,10 @@ void BoomBabyAudioProcessorEditor::setupSubKnobsRow() {
   InfoBox::setInfo(subUI.knobs[2], InfoText::subMix);
   InfoBox::setInfo(subUI.knobs[3], InfoText::subSaturate);
   InfoBox::setInfo(subUI.saturateClipType, InfoText::subClipType);
-  InfoBox::setInfo(subUI.knobs[4], InfoText::subTone2);
-  InfoBox::setInfo(subUI.knobs[5], InfoText::subTone3);
-  InfoBox::setInfo(subUI.knobs[6], InfoText::subTone4);
-  InfoBox::setInfo(subUI.knobs[7], InfoText::subTone5);
+  InfoBox::setInfo(subUI.knobs[4], InfoText::subTone1);
+  InfoBox::setInfo(subUI.knobs[5], InfoText::subTone2);
+  InfoBox::setInfo(subUI.knobs[6], InfoText::subTone3);
+  InfoBox::setInfo(subUI.knobs[7], InfoText::subTone4);
 }
 
 // ────────────────────────────────────────────────────
