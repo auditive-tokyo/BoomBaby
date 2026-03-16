@@ -10,6 +10,7 @@ help:
 	@echo "  make check     - コンパイルをチェック（エラーのみ表示）"
 	@echo "  make lint      - コンパイラ警告をチェック"
 	@echo "  make test      - ユニットテストをビルド＆実行"
+	@echo "  make coverage  - HTMLカバレッジレポートを生成してブラウザで開く"
 	@echo "  make tidy      - （非推奨: JUCE では動作不安定）"
 	@echo "  make tidy-fix  - （非推奨）"
 	@echo "  make clean     - ビルドディレクトリをクリーン"
@@ -65,4 +66,21 @@ test:
 	  xcrun llvm-cov report ./BoomBabyTests_artefacts/Debug/BoomBabyTests \
 	    -instr-profile=cov.profdata \
 	    -ignore-filename-regex='(JUCE|Catch2|_deps|Tests/)' && \
-	  rm -f cov_*.profraw cov.profdata || echo "(カバレッジデータなし)"
+	  rm -f cov_*.profraw || echo "(カバレッジデータなし)"
+
+coverage:
+	@echo "テストを実行してカバレッジデータを収集中..."
+	@cd build && xcodebuild -scheme "BoomBabyTests" -configuration Debug build 2>&1 | grep -E "(error:|Build succeeded|FAILED)" || true
+	@cd build && LLVM_PROFILE_FILE=cov_%p.profraw ctest -C Debug -Q
+	@echo "HTMLレポートを生成中..."
+	@cd build && xcrun llvm-profdata merge -sparse cov_*.profraw -o cov.profdata 2>/dev/null && \
+	  xcrun llvm-cov show ./BoomBabyTests_artefacts/Debug/BoomBabyTests \
+	    -instr-profile=cov.profdata \
+	    -ignore-filename-regex='(JUCE|Catch2|_deps|Tests/)' \
+	    -format=html \
+	    -output-dir=../coverage-report \
+	    -show-line-counts-or-regions \
+	    -show-instantiations=false && \
+	  rm -f cov_*.profraw cov.profdata && \
+	  echo "✓ レポート生成完了: coverage-report/index.html" && \
+	  open ../coverage-report/index.html || echo "(カバレッジデータなし)"

@@ -38,3 +38,8 @@ Builds/
 
 # Logs
 *.log
+
+# Coverage reports
+coverage-report/
+*.profraw
+*.profdata
