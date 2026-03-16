@@ -148,10 +148,10 @@ private:
                              const CoordMapper &c);
     /// fillPath / topLine / botLine を構築する共通ループ
     template <typename GetSample, typename GetAmpMul>
-    static void buildStereoWavePaths(
-        juce::Path &fillPath, juce::Path &topLine, juce::Path &botLine,
-        const CoordMapper &c, float centreY,
-        GetSample getSample, GetAmpMul getAmpMul);
+    static void buildStereoWavePaths(juce::Path &fillPath, juce::Path &topLine,
+                                     juce::Path &botLine, const CoordMapper &c,
+                                     float centreY, GetSample getSample,
+                                     GetAmpMul getAmpMul);
   };
 
   // [0]=amp, [1]=freq, [2]=dist, [3]=mix, [4]=clickAmp, [5]=directAmp

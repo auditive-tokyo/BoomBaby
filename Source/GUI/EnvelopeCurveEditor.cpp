@@ -1045,11 +1045,10 @@ void EnvelopeCurveEditor::startPointValueEdit(int pointIndex) {
   if (!bounds)
     return;
 
-  const auto &pt =
-      editEnvData->getPoints()[static_cast<size_t>(pointIndex)];
+  const auto &pt = editEnvData->getPoints()[static_cast<size_t>(pointIndex)];
   pointValueEditor_ = std::make_unique<PointValueEditor>(
-      this, pointIndex, *bounds,
-      pointValueToDisplayString(pt.value), PointValueEditor::Mode::Value);
+      this, pointIndex, *bounds, pointValueToDisplayString(pt.value),
+      PointValueEditor::Mode::Value);
 }
 
 void EnvelopeCurveEditor::startPointTimeEdit(int pointIndex) {
@@ -1057,8 +1056,7 @@ void EnvelopeCurveEditor::startPointTimeEdit(int pointIndex) {
   if (!bounds)
     return;
 
-  const auto &pt =
-      editEnvData->getPoints()[static_cast<size_t>(pointIndex)];
+  const auto &pt = editEnvData->getPoints()[static_cast<size_t>(pointIndex)];
   // 現在の時間を表示文字列に変換
   const float ms = pt.timeMs;
   juce::String currentText;
@@ -1070,8 +1068,7 @@ void EnvelopeCurveEditor::startPointTimeEdit(int pointIndex) {
     currentText = juce::String(static_cast<int>(std::round(ms)));
 
   pointValueEditor_ = std::make_unique<PointValueEditor>(
-      this, pointIndex, *bounds,
-      currentText, PointValueEditor::Mode::Time);
+      this, pointIndex, *bounds, currentText, PointValueEditor::Mode::Time);
 }
 
 juce::String EnvelopeCurveEditor::pointValueToDisplayString(float value) const {

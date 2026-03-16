@@ -125,6 +125,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float v = envDatas.amp.getPoints()[0].value;
     envDatas.amp.setDefaultValue(v);
     subUI.knobs[0].setValue(v * 100.0, juce::dontSendNotification);
+    syncParam(ParamIDs::subAmp, v * 100.0f);
   }
 
   // Freq
@@ -136,6 +137,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float hz = envDatas.freq.getPoints()[0].value;
     envDatas.freq.setDefaultValue(hz);
     subUI.knobs[1].setValue(hz, juce::dontSendNotification);
+    syncParam(ParamIDs::subFreq, hz);
     envelopeCurveEditor.setDisplayCycles(
         hz * envelopeCurveEditor.getDisplayDurationMs() / 1000.0f);
   }
@@ -149,6 +151,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float v = envDatas.dist.getPoints()[0].value;
     envDatas.dist.setDefaultValue(v);
     subUI.knobs[3].setValue(v * 24.0, juce::dontSendNotification);
+    syncParam(ParamIDs::subSatDrive, v * 24.0f);
   }
 
   // Mix
@@ -160,6 +163,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float v = envDatas.mix.getPoints()[0].value;
     envDatas.mix.setDefaultValue(v);
     subUI.knobs[2].setValue(v * 100.0, juce::dontSendNotification);
+    syncParam(ParamIDs::subMix, v * 100.0f);
     envelopeCurveEditor.setPreviewMix(v);
   }
 
@@ -172,6 +176,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float v = envDatas.clickAmp.getPoints()[0].value;
     envDatas.clickAmp.setDefaultValue(v);
     clickUI.sample.amp.slider.setValue(v * 100.0, juce::dontSendNotification);
+    syncParam(ParamIDs::clickSampleAmp, v * 100.0f);
   }
 
   // Direct Amp
@@ -183,6 +188,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float v = envDatas.directAmp.getPoints()[0].value;
     envDatas.directAmp.setDefaultValue(v);
     directUI.amp.slider.setValue(v * 100.0, juce::dontSendNotification);
+    syncParam(ParamIDs::directAmp, v * 100.0f);
   }
 
   // エンベロープデータを APVTS に保存（状態永続化）
@@ -197,8 +203,8 @@ void BoomBabyAudioProcessorEditor::setupEnvelopeCurveEditor() {
     // 編集前スナップショットを Undo スタックに確定（ジェスチャー先頭のみ）
     if (envUndo_.hasPending) {
       envUndo_.redoStack.clear();
-      envUndo_.undoStack.emplace_back(
-          EnvUndoState::FrameType::Envelope, envUndo_.pendingPreEdit);
+      envUndo_.undoStack.emplace_back(EnvUndoState::FrameType::Envelope,
+                                      envUndo_.pendingPreEdit);
       if (static_cast<int>(envUndo_.undoStack.size()) > kMaxEnvUndoSteps)
         envUndo_.undoStack.erase(envUndo_.undoStack.begin());
       envUndo_.hasPending = false;
@@ -244,8 +250,8 @@ bool BoomBabyAudioProcessorEditor::keyPressed(const juce::KeyPress &key) {
     auto frame = envUndo_.redoStack.back();
     envUndo_.redoStack.pop_back();
     if (frame.type == EnvUndoState::FrameType::Envelope) {
-      envUndo_.undoStack.emplace_back(
-          EnvUndoState::FrameType::Envelope, envDatas);
+      envUndo_.undoStack.emplace_back(EnvUndoState::FrameType::Envelope,
+                                      envDatas);
       envDatas = frame.snapshot;
       onEnvelopeChanged();
       envelopeCurveEditor.repaint();
@@ -262,8 +268,8 @@ bool BoomBabyAudioProcessorEditor::keyPressed(const juce::KeyPress &key) {
     auto frame = envUndo_.undoStack.back();
     envUndo_.undoStack.pop_back();
     if (frame.type == EnvUndoState::FrameType::Envelope) {
-      envUndo_.redoStack.emplace_back(
-          EnvUndoState::FrameType::Envelope, envDatas);
+      envUndo_.redoStack.emplace_back(EnvUndoState::FrameType::Envelope,
+                                      envDatas);
       envDatas = frame.snapshot;
       onEnvelopeChanged();
       envelopeCurveEditor.repaint();
@@ -388,7 +394,8 @@ void BoomBabyAudioProcessorEditor::syncParam(const char *id, float value) {
     if (envUndo_.undoStack.empty() ||
         envUndo_.undoStack.back().type != EnvUndoState::FrameType::Parameter) {
       envUndo_.redoStack.clear();
-      envUndo_.undoStack.emplace_back(EnvUndoState::FrameType::Parameter, EnvelopeDatas{});
+      envUndo_.undoStack.emplace_back(EnvUndoState::FrameType::Parameter,
+                                      EnvelopeDatas{});
       if (static_cast<int>(envUndo_.undoStack.size()) > kMaxEnvUndoSteps)
         envUndo_.undoStack.erase(envUndo_.undoStack.begin());
     }
