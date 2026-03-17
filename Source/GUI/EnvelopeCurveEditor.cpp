@@ -1,6 +1,7 @@
 #include "EnvelopeCurveEditor.h"
 #include "../DSP/EnvelopeData.h"
 #include "CustomSliderLAF.h"
+#include "InfoBoxText.h"
 #include "UIConstants.h"
 
 #include <array>
@@ -954,6 +955,7 @@ void EnvelopeCurveEditor::mouseMove(const juce::MouseEvent &e) {
       hoverPointIndex_ = -1;
       repaint();
     }
+    getProperties().remove("info");
     return;
   }
   const auto px = static_cast<float>(e.x);
@@ -964,6 +966,15 @@ void EnvelopeCurveEditor::mouseMove(const juce::MouseEvent &e) {
     hoverPointIndex_ = hit;
     repaint();
   }
+
+  // InfoBox 用: ポイント上 or セグメント上でヒントを表示
+  if (hoverPointIndex_ >= 0) {
+    getProperties().set("info", InfoText::envelopePoint);
+  } else if (HitTester::findSegment(*this, c, px, py) >= 0) {
+    getProperties().set("info", InfoText::envelopeCurve);
+  } else {
+    getProperties().remove("info");
+  }
 }
 
 void EnvelopeCurveEditor::mouseExit(const juce::MouseEvent & /*e*/) {
@@ -971,6 +982,7 @@ void EnvelopeCurveEditor::mouseExit(const juce::MouseEvent & /*e*/) {
     hoverPointIndex_ = -1;
     repaint();
   }
+  getProperties().remove("info");
 }
 
 void EnvelopeCurveEditor::setEditTarget(EditTarget target) {

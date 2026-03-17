@@ -85,4 +85,9 @@ inline constexpr const char *directHold =
 inline constexpr const char *directSampleLoad =
     "Load audio sample (drop or click)";
 
+// ── Envelope Editor ──
+inline constexpr const char *envelopePoint =
+    "Right-click: enter value / set position";
+inline constexpr const char *envelopeCurve = "Shift-drag on line to draw curve";
+
 } // namespace InfoText
