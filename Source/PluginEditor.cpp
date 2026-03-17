@@ -795,8 +795,10 @@ void BoomBabyAudioProcessorEditor::loadEnvelopesFromState() {
     auto tree = findEnv(name);
     if (tree.isValid())
       treeToEnvelope(tree, data);
-    else
-      data.clearPoints(); // ツリーなし → デフォルト（ポイントなし）にリセット
+    else {
+      data.clearPoints();
+      data.addPoint(0.0f, data.getDefaultValue());
+    }
   }
 
   // サンプルファイルパスを先に復元（onEnvelopeChanged → saveEnvelopesToState
