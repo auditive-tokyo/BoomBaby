@@ -30,6 +30,14 @@ float computeNoiseEnv(float decayMs, float timeSec) {
              : 0.0f;
 }
 
+int slopeToIndex(int dboct) {
+  constexpr std::array kSlopes = {12, 24, 48};
+  for (int i = 0; i < 3; ++i)
+    if (kSlopes[static_cast<std::size_t>(i)] == dboct)
+      return i;
+  return 0;
+}
+
 float computeNoiseAmplitudeScale(const auto &clickUI, float kSr) {
   const auto q = static_cast<float>(clickUI.noise.bpf1.qSlider.getValue());
   const auto freq =
@@ -114,10 +122,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
   styleKnobLabel(clickUI.noise.decayLabel, "Decay", tinyFont);
   clickUI.noise.bpf1.slopeSelector.setOnChange([this](int dboct) {
     processorRef.clickEngine().setBpf1Slope(dboct);
-    constexpr std::array kSlopes = {12, 24, 48};
-    for (int i = 0; i < 3; ++i)
-      if (kSlopes[static_cast<std::size_t>(i)] == dboct)
-        syncParam(ParamIDs::clickBpf1Slope, static_cast<float>(i));
+    syncParam(ParamIDs::clickBpf1Slope, static_cast<float>(slopeToIndex(dboct)));
     envelopeCurveEditor.repaint();
   });
   styleKnobLabel(clickUI.noise.bpf1.qLabel, "Q", tinyFont);
@@ -135,19 +140,13 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
   // HPF slope selector
   clickUI.hpf.slope.setOnChange([this](int dboct) {
     processorRef.clickEngine().setHpfSlope(dboct);
-    constexpr std::array kSlopes = {12, 24, 48};
-    for (int i = 0; i < 3; ++i)
-      if (kSlopes[static_cast<std::size_t>(i)] == dboct)
-        syncParam(ParamIDs::clickHpfSlope, static_cast<float>(i));
+    syncParam(ParamIDs::clickHpfSlope, static_cast<float>(slopeToIndex(dboct)));
     clickUI.repaintOrRefreshFn();
   });
   // LPF slope selector
   clickUI.lpf.slope.setOnChange([this](int dboct) {
     processorRef.clickEngine().setLpfSlope(dboct);
-    constexpr std::array kSlopes = {12, 24, 48};
-    for (int i = 0; i < 3; ++i)
-      if (kSlopes[static_cast<std::size_t>(i)] == dboct)
-        syncParam(ParamIDs::clickLpfSlope, static_cast<float>(i));
+    syncParam(ParamIDs::clickLpfSlope, static_cast<float>(slopeToIndex(dboct)));
     clickUI.repaintOrRefreshFn();
   });
 
@@ -365,8 +364,9 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
     if (!envDatas.clickAmp.isEnvelopeControlled())
       envDatas.clickAmp.setPointValue(0, v);
     saveEnvelopesToState();
-    syncParamSilent(ParamIDs::clickSampleAmp,
-                    static_cast<float>(clickUI.sample.amp.slider.getValue()));
+    syncParam(ParamIDs::clickSampleAmp,
+                    static_cast<float>(clickUI.sample.amp.slider.getValue()),
+                    true);
     bakeLut(envDatas.clickAmp, processorRef.clickEngine().clickAmpLut(),
             effectiveLutDuration(envDatas.clickAmp,
                                  envelopeCurveEditor.getDisplayDurationMs()));
@@ -568,28 +568,28 @@ void BoomBabyAudioProcessorEditor::layoutClickParams(
     botKnobs[idx]->setBounds(slot);
   }
 }
-void BoomBabyAudioProcessorEditor::setClickModeVisible(bool isSample) {
+void BoomBabyAudioProcessorEditor::ClickUI::setModeVisible(bool isSample) {
   for (juce::Component *c :
-       {static_cast<juce::Component *>(&clickUI.noise.decayLabel),
-        static_cast<juce::Component *>(&clickUI.noise.decaySlider),
-        static_cast<juce::Component *>(&clickUI.noise.bpf1.slopeSelector),
-        static_cast<juce::Component *>(&clickUI.noise.bpf1.freqSlider),
-        static_cast<juce::Component *>(&clickUI.noise.bpf1.qLabel),
-        static_cast<juce::Component *>(&clickUI.noise.bpf1.qSlider)})
+       {static_cast<juce::Component *>(&noise.decayLabel),
+        static_cast<juce::Component *>(&noise.decaySlider),
+        static_cast<juce::Component *>(&noise.bpf1.slopeSelector),
+        static_cast<juce::Component *>(&noise.bpf1.freqSlider),
+        static_cast<juce::Component *>(&noise.bpf1.qLabel),
+        static_cast<juce::Component *>(&noise.bpf1.qSlider)})
     c->setVisible(!isSample);
 
   // Saturator（Drive + ClipType）は両モード共通で常時表示
-  clickUI.noise.saturator.driveSlider.setVisible(true);
-  clickUI.noise.saturator.clipType.setVisible(true);
+  noise.saturator.driveSlider.setVisible(true);
+  noise.saturator.clipType.setVisible(true);
 
   for (juce::Component *c :
-       {static_cast<juce::Component *>(&clickUI.sample.loadButton),
-        static_cast<juce::Component *>(&clickUI.sample.pitch.slider),
-        static_cast<juce::Component *>(&clickUI.sample.pitch.label),
-        static_cast<juce::Component *>(&clickUI.sample.amp.slider),
-        static_cast<juce::Component *>(&clickUI.sample.amp.label),
-        static_cast<juce::Component *>(&clickUI.sample.decay.slider),
-        static_cast<juce::Component *>(&clickUI.sample.decay.label)})
+       {static_cast<juce::Component *>(&sample.loadButton),
+        static_cast<juce::Component *>(&sample.pitch.slider),
+        static_cast<juce::Component *>(&sample.pitch.label),
+        static_cast<juce::Component *>(&sample.amp.slider),
+        static_cast<juce::Component *>(&sample.amp.label),
+        static_cast<juce::Component *>(&sample.decay.slider),
+        static_cast<juce::Component *>(&sample.decay.label)})
     c->setVisible(isSample);
 }
 
@@ -599,7 +599,7 @@ void BoomBabyAudioProcessorEditor::applyClickMode(int modeId) {
       isSample) {
     // 旧モード（Noise）の共有パラメーターを保存
     saveModeStateFromWidgets(clickUI, clickUI.noiseState);
-    setClickModeVisible(true);
+    clickUI.setModeVisible(true);
     // Sample モードの保存値を復元
     restoreModeStateToWidgets(clickUI, clickUI.sampleState,
                               processorRef.clickEngine());
@@ -613,7 +613,7 @@ void BoomBabyAudioProcessorEditor::applyClickMode(int modeId) {
   } else {
     // 旧モード（Sample）の共有パラメーターを保存
     saveModeStateFromWidgets(clickUI, clickUI.sampleState);
-    setClickModeVisible(false);
+    clickUI.setModeVisible(false);
     // Noise モードの保存値を復元
     restoreModeStateToWidgets(clickUI, clickUI.noiseState,
                               processorRef.clickEngine());
@@ -636,26 +636,14 @@ void BoomBabyAudioProcessorEditor::applyClickMode(int modeId) {
             static_cast<float>(clickUI.hpf.slider.getValue()));
   syncParam(ParamIDs::clickHpfQ,
             static_cast<float>(clickUI.hpf.qSlider.getValue()));
-  {
-    constexpr std::array kSlopes = {12, 24, 48};
-    int idx = 0;
-    for (int i = 0; i < 3; ++i)
-      if (kSlopes[static_cast<std::size_t>(i)] == clickUI.hpf.slope.getSlope())
-        idx = i;
-    syncParam(ParamIDs::clickHpfSlope, static_cast<float>(idx));
-  }
+  syncParam(ParamIDs::clickHpfSlope,
+            static_cast<float>(slopeToIndex(clickUI.hpf.slope.getSlope())));
   syncParam(ParamIDs::clickLpfFreq,
             static_cast<float>(clickUI.lpf.slider.getValue()));
   syncParam(ParamIDs::clickLpfQ,
             static_cast<float>(clickUI.lpf.qSlider.getValue()));
-  {
-    constexpr std::array kSlopes = {12, 24, 48};
-    int idx = 0;
-    for (int i = 0; i < 3; ++i)
-      if (kSlopes[static_cast<std::size_t>(i)] == clickUI.lpf.slope.getSlope())
-        idx = i;
-    syncParam(ParamIDs::clickLpfSlope, static_cast<float>(idx));
-  }
+  syncParam(ParamIDs::clickLpfSlope,
+            static_cast<float>(slopeToIndex(clickUI.lpf.slope.getSlope())));
   syncParam(ParamIDs::clickDrive,
             static_cast<float>(clickUI.noise.saturator.driveSlider.getValue()));
   syncParam(ParamIDs::clickClipType,

@@ -116,7 +116,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
           effectiveLutDuration(envDatas.directAmp, directDecayMs));
   // 1点=ノブ制御（有効化＋ポイント値をノブに反映）、2点以上=エンベロープ制御（無効化）
 
-  // ValueTree を先に保存しておく。syncParamSilent → parameterChanged →
+  // ValueTree を先に保存しておく。syncParam(silent) → parameterChanged →
   // bakeAllLutsFromState が正しいデータを読めるようにするため。
   saveEnvelopesToState();
 
@@ -129,7 +129,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float v = envDatas.amp.getPoints()[0].value;
     envDatas.amp.setDefaultValue(v);
     subUI.knobs[0].setValue(v * 100.0, juce::dontSendNotification);
-    syncParamSilent(ParamIDs::subAmp, v * 100.0f);
+    syncParam(ParamIDs::subAmp, v * 100.0f, true);
   }
 
   // Freq
@@ -141,7 +141,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float hz = envDatas.freq.getPoints()[0].value;
     envDatas.freq.setDefaultValue(hz);
     subUI.knobs[1].setValue(hz, juce::dontSendNotification);
-    syncParamSilent(ParamIDs::subFreq, hz);
+    syncParam(ParamIDs::subFreq, hz, true);
     envelopeCurveEditor.setDisplayCycles(
         hz * envelopeCurveEditor.getDisplayDurationMs() / 1000.0f);
   }
@@ -155,7 +155,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float v = envDatas.dist.getPoints()[0].value;
     envDatas.dist.setDefaultValue(v);
     subUI.knobs[3].setValue(v * 24.0, juce::dontSendNotification);
-    syncParamSilent(ParamIDs::subSatDrive, v * 24.0f);
+    syncParam(ParamIDs::subSatDrive, v * 24.0f, true);
   }
 
   // Mix
@@ -167,7 +167,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float v = envDatas.mix.getPoints()[0].value;
     envDatas.mix.setDefaultValue(v);
     subUI.knobs[2].setValue(v * 100.0, juce::dontSendNotification);
-    syncParamSilent(ParamIDs::subMix, v * 100.0f);
+    syncParam(ParamIDs::subMix, v * 100.0f, true);
     envelopeCurveEditor.setPreviewMix(v);
   }
 
@@ -180,7 +180,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float v = envDatas.clickAmp.getPoints()[0].value;
     envDatas.clickAmp.setDefaultValue(v);
     clickUI.sample.amp.slider.setValue(v * 100.0, juce::dontSendNotification);
-    syncParamSilent(ParamIDs::clickSampleAmp, v * 100.0f);
+    syncParam(ParamIDs::clickSampleAmp, v * 100.0f, true);
   }
 
   // Direct Amp
@@ -192,7 +192,7 @@ void BoomBabyAudioProcessorEditor::onEnvelopeChanged() {
     const float v = envDatas.directAmp.getPoints()[0].value;
     envDatas.directAmp.setDefaultValue(v);
     directUI.amp.slider.setValue(v * 100.0, juce::dontSendNotification);
-    syncParamSilent(ParamIDs::directAmp, v * 100.0f);
+    syncParam(ParamIDs::directAmp, v * 100.0f, true);
   }
 }
 
@@ -380,26 +380,21 @@ BoomBabyAudioProcessorEditor::~BoomBabyAudioProcessorEditor() {
 // ────────────────────────────────────────────────────
 // APVTS ↔ UI 同期ヘルパー
 // ────────────────────────────────────────────────────
-void BoomBabyAudioProcessorEditor::syncParam(const char *id, float value) {
-  if (auto *p = processorRef.getAPVTS().getParameter(id)) {
-    // 統合 Undo スタック: パラメータ変更を記録（連続ドラッグは 1
-    // フレームにまとめる）
-    if (envUndo_.undoStack.empty() ||
-        envUndo_.undoStack.back().type != EnvUndoState::FrameType::Parameter) {
-      envUndo_.redoStack.clear();
-      envUndo_.undoStack.emplace_back(EnvUndoState::FrameType::Parameter,
-                                      EnvelopeDatas{});
-      if (static_cast<int>(envUndo_.undoStack.size()) > kMaxEnvUndoSteps)
-        envUndo_.undoStack.erase(envUndo_.undoStack.begin());
-    }
-    p->setValueNotifyingHost(p->convertTo0to1(value));
+void BoomBabyAudioProcessorEditor::syncParam(const char *id, float value,
+                                              bool silent) {
+  auto *p = processorRef.getAPVTS().getParameter(id);
+  if (p == nullptr)
+    return;
+  if (!silent &&
+      (envUndo_.undoStack.empty() ||
+       envUndo_.undoStack.back().type != EnvUndoState::FrameType::Parameter)) {
+    envUndo_.redoStack.clear();
+    envUndo_.undoStack.emplace_back(EnvUndoState::FrameType::Parameter,
+                                    EnvelopeDatas{});
+    if (static_cast<int>(envUndo_.undoStack.size()) > kMaxEnvUndoSteps)
+      envUndo_.undoStack.erase(envUndo_.undoStack.begin());
   }
-}
-
-void BoomBabyAudioProcessorEditor::syncParamSilent(const char *id,
-                                                   float value) {
-  if (auto *p = processorRef.getAPVTS().getParameter(id))
-    p->setValueNotifyingHost(p->convertTo0to1(value));
+  p->setValueNotifyingHost(p->convertTo0to1(value));
 }
 
 void BoomBabyAudioProcessorEditor::pushEnvUndoIfPending() {
@@ -487,7 +482,7 @@ void BoomBabyAudioProcessorEditor::syncUIFromState() {
   clickPanel.setSoloState(load(ParamIDs::clickSolo) >= 0.5f);
 
   // Mode → 表示切替のみ（DSP は prepareToPlay で初期化済み）
-  setClickModeVisible(clickModeIdx == 1);
+  clickUI.setModeVisible(clickModeIdx == 1);
 
   // ── Direct ──
   const auto directModeIdx = static_cast<int>(load(ParamIDs::directMode));
@@ -518,7 +513,11 @@ void BoomBabyAudioProcessorEditor::syncUIFromState() {
   // Mode → 表示切替のみ（DSP は prepareToPlay で初期化済み）
   const bool isSample = directModeIdx == 1;
   directUI.sample.loadButton.setVisible(isSample);
-  refreshDirectPassthroughUI();
+  {
+    const bool isPt = processorRef.directMode().isPassthrough();
+    directUI.applyPassthroughVisibility(isPt);
+    processorRef.directMode().detector().setEnabled(isPt);
+  }
 
   // ── Master ──
   masterSection.setValueDb(load(ParamIDs::masterGain));
@@ -589,7 +588,7 @@ void BoomBabyAudioProcessorEditor::pollUIFromAPVTS() {
     const int modeId = static_cast<int>(load(ParamIDs::clickMode)) + 1;
     if (clickUI.modeCombo.getSelectedId() != modeId) {
       clickUI.modeCombo.setSelectedId(modeId, silent);
-      setClickModeVisible(modeId == std::to_underlying(ClickUI::Mode::Sample));
+      clickUI.setModeVisible(modeId == std::to_underlying(ClickUI::Mode::Sample));
     }
   }
   clickUI.noise.decaySlider.setValue(load(ParamIDs::clickNoiseDecay), silent);
@@ -626,7 +625,11 @@ void BoomBabyAudioProcessorEditor::pollUIFromAPVTS() {
       const bool isSample =
           (modeId == std::to_underlying(DirectUI::Mode::Sample));
       directUI.sample.loadButton.setVisible(isSample);
-      refreshDirectPassthroughUI();
+      {
+        const bool isPt = processorRef.directMode().isPassthrough();
+        directUI.applyPassthroughVisibility(isPt);
+        processorRef.directMode().detector().setEnabled(isPt);
+      }
     }
   }
   directUI.pitch.slider.setValue(load(ParamIDs::directPitch), silent);

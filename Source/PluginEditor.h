@@ -67,12 +67,11 @@ private:
   void layoutClickParams(juce::Rectangle<int> area);
   void setupDirectParams();
   void layoutDirectParams(juce::Rectangle<int> area);
-  void refreshDirectPassthroughUI();
+  void onDirectModeChanged();
   void onSampleFileChosen(const juce::File &file);
   void refreshDirectProvider();
   void onClickSampleFileChosen(const juce::File &file);
   void refreshClickSampleProvider();
-  void setClickModeVisible(bool isSample);
   void applyClickMode(int modeId);
   void updateDisplayDuration();
   void setupLengthBox();
@@ -81,8 +80,7 @@ private:
   void setupSubKnobsRow();
 
   /// APVTS パラメータ同期ヘルパー（UI → APVTS）
-  void syncParam(const char *id, float value);
-  void syncParamSilent(const char *id, float value);
+  void syncParam(const char *id, float value, bool silent = false);
   /// ノブ onValueChange から呼び出し: 保留中の Envelope Undo フレームを確定
   void pushEnvUndoIfPending();
   /// APVTS 値から UI ウィジェットを復元（エディタ構築時＋状態復元時）
@@ -240,6 +238,7 @@ private:
     std::function<float(float)> noiseProvider;
     /// Noise → repaint, Sample → refreshClickSampleProvider
     std::function<void()> repaintOrRefreshFn;
+    void setModeVisible(bool isSample);
   };
   ClickUI clickUI;
 
@@ -292,6 +291,7 @@ private:
     FilterBand hpf{"HP"}; // 11
     FilterBand lpf{"LP"}; // 12
     // 合計: 12 フィールド（旧: 23）
+    void applyPassthroughVisibility(bool isPassthrough);
   };
   DirectUI directUI;
 

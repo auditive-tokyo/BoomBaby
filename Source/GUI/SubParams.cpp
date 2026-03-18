@@ -123,7 +123,7 @@ void BoomBabyAudioProcessorEditor::setupSubKnobsRow() {
     if (!envDatas.freq.isEnvelopeControlled())
       envDatas.freq.setPointValue(0, hz);
     saveEnvelopesToState();
-    syncParamSilent(ParamIDs::subFreq, hz);
+    syncParam(ParamIDs::subFreq, hz, true);
     bakeLut(envDatas.freq, processorRef.subEngine().freqLut(),
             envelopeCurveEditor.getDisplayDurationMs());
     const float cycles =
@@ -157,8 +157,8 @@ void BoomBabyAudioProcessorEditor::setupSubKnobsRow() {
     if (!envDatas.amp.isEnvelopeControlled())
       envDatas.amp.setPointValue(0, v);
     saveEnvelopesToState();
-    syncParamSilent(ParamIDs::subAmp,
-                    static_cast<float>(subUI.knobs[0].getValue()));
+    syncParam(ParamIDs::subAmp,
+                    static_cast<float>(subUI.knobs[0].getValue()), true);
     bakeLut(envDatas.amp, processorRef.subEngine().envLut(),
             envelopeCurveEditor.getDisplayDurationMs());
     envelopeCurveEditor.repaint();
@@ -189,8 +189,8 @@ void BoomBabyAudioProcessorEditor::setupSubKnobsRow() {
     if (!envDatas.mix.isEnvelopeControlled())
       envDatas.mix.setPointValue(0, v);
     saveEnvelopesToState();
-    syncParamSilent(ParamIDs::subMix,
-                    static_cast<float>(subUI.knobs[2].getValue()));
+    syncParam(ParamIDs::subMix,
+                    static_cast<float>(subUI.knobs[2].getValue()), true);
     bakeLut(envDatas.mix, processorRef.subEngine().mixLut(),
             envelopeCurveEditor.getDisplayDurationMs());
     envelopeCurveEditor.setPreviewMix(v);
@@ -218,8 +218,8 @@ void BoomBabyAudioProcessorEditor::setupSubKnobsRow() {
     if (!envDatas.dist.isEnvelopeControlled())
       envDatas.dist.setPointValue(0, v);
     saveEnvelopesToState();
-    syncParamSilent(ParamIDs::subSatDrive,
-                    static_cast<float>(subUI.knobs[3].getValue()));
+    syncParam(ParamIDs::subSatDrive,
+                    static_cast<float>(subUI.knobs[3].getValue()), true);
     bakeLut(envDatas.dist, processorRef.subEngine().distLut(),
             envelopeCurveEditor.getDisplayDurationMs());
     envelopeCurveEditor.repaint();

@@ -9,6 +9,13 @@
 #include "WaveformUtils.h"
 
 namespace {
+int slopeToIndex(int dboct) {
+  constexpr std::array kSlopes = {12, 24, 48};
+  for (int i = 0; i < 3; ++i)
+    if (kSlopes[static_cast<std::size_t>(i)] == dboct)
+      return i;
+  return 0;
+}
 void styleDirectKnob(juce::Slider &s, ColouredSliderLAF &laf) {
   s.setSliderStyle(juce::Slider::RotaryVerticalDrag);
   s.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 1, 1);
@@ -74,28 +81,7 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   addAndMakeVisible(directUI.sample.loadButton);
 
   // ── Mode コンボ変更時: ボタン表示切り替え ──
-  directUI.modeCombo.onChange = [this] {
-    const bool isSample = directUI.modeCombo.getSelectedId() ==
-                          std::to_underlying(DirectUI::Mode::Sample);
-    directUI.sample.loadButton.setVisible(isSample);
-    if (isSample) {
-      // サンプルが既にロード済みならファイル名を復元
-      if (directUI.sample.loadedFilePath.isNotEmpty()) {
-        directUI.sample.loadButton.setButtonText(
-            juce::File(directUI.sample.loadedFilePath)
-                .getFileNameWithoutExtension());
-        directUI.sample.loadButton.setHasFile(true);
-      } else {
-        directUI.sample.loadButton.setButtonText("Drop or Click to Load");
-        directUI.sample.loadButton.setHasFile(false);
-      }
-    }
-    processorRef.directMode().setSampleMode(isSample,
-                                            processorRef.directEngine());
-    syncParam(ParamIDs::directMode, isSample ? 1.0f : 0.0f);
-    refreshDirectPassthroughUI();
-    resized();
-  };
+  directUI.modeCombo.onChange = [this] { onDirectModeChanged(); };
   // ── 8 ノブ セットアップ ──
   const auto knobFont =
       juce::Font(juce::FontOptions(UIConstants::fontSizeSmall));
@@ -138,8 +124,8 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
     if (!envDatas.directAmp.isEnvelopeControlled())
       envDatas.directAmp.setPointValue(0, v);
     saveEnvelopesToState();
-    syncParamSilent(ParamIDs::directAmp,
-                    static_cast<float>(directUI.amp.slider.getValue()));
+    syncParam(ParamIDs::directAmp,
+                    static_cast<float>(directUI.amp.slider.getValue()), true);
     bakeLut(envDatas.directAmp, processorRef.directEngine().directAmpLut(),
             effectiveLutDuration(
                 envDatas.directAmp,
@@ -218,10 +204,7 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   // HPF: SlopeSelector (label) + freq knob + Q knob
   directUI.hpf.slope.setOnChange([this](int dboct) {
     processorRef.directEngine().setHpfSlope(dboct);
-    constexpr std::array kSlopes = {12, 24, 48};
-    for (int i = 0; i < 3; ++i)
-      if (kSlopes[static_cast<std::size_t>(i)] == dboct)
-        syncParam(ParamIDs::directHpfSlope, static_cast<float>(i));
+    syncParam(ParamIDs::directHpfSlope, static_cast<float>(slopeToIndex(dboct)));
     refreshDirectProvider();
   });
   addAndMakeVisible(directUI.hpf.slope);
@@ -268,10 +251,7 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   // LPF: SlopeSelector (label) + freq knob + Q knob
   directUI.lpf.slope.setOnChange([this](int dboct) {
     processorRef.directEngine().setLpfSlope(dboct);
-    constexpr std::array kSlopes = {12, 24, 48};
-    for (int i = 0; i < 3; ++i)
-      if (kSlopes[static_cast<std::size_t>(i)] == dboct)
-        syncParam(ParamIDs::directLpfSlope, static_cast<float>(i));
+    syncParam(ParamIDs::directLpfSlope, static_cast<float>(slopeToIndex(dboct)));
     refreshDirectProvider();
   });
   addAndMakeVisible(directUI.lpf.slope);
@@ -379,7 +359,11 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   addAndMakeVisible(directUI.hold.label);
 
   // 起動時のパススルー UI 状態を設定
-  refreshDirectPassthroughUI();
+  {
+    const bool isPt = processorRef.directMode().isPassthrough();
+    directUI.applyPassthroughVisibility(isPt);
+    processorRef.directMode().detector().setEnabled(isPt);
+  }
 
   // InfoBox descriptions
   InfoBox::setInfo(directUI.modeCombo, InfoText::directMode);
@@ -397,6 +381,33 @@ void BoomBabyAudioProcessorEditor::setupDirectParams() {
   InfoBox::setInfo(directUI.threshold.slider, InfoText::directThreshold);
   InfoBox::setInfo(directUI.hold.slider, InfoText::directHold);
   InfoBox::setInfo(directUI.sample.loadButton, InfoText::directSampleLoad);
+}
+
+void BoomBabyAudioProcessorEditor::onDirectModeChanged() {
+  const bool isSample = directUI.modeCombo.getSelectedId() ==
+                        std::to_underlying(DirectUI::Mode::Sample);
+  directUI.sample.loadButton.setVisible(isSample);
+  if (isSample) {
+    // サンプルが既にロード済みならファイル名を復元
+    if (directUI.sample.loadedFilePath.isNotEmpty()) {
+      directUI.sample.loadButton.setButtonText(
+          juce::File(directUI.sample.loadedFilePath)
+              .getFileNameWithoutExtension());
+      directUI.sample.loadButton.setHasFile(true);
+    } else {
+      directUI.sample.loadButton.setButtonText("Drop or Click to Load");
+      directUI.sample.loadButton.setHasFile(false);
+    }
+  }
+  processorRef.directMode().setSampleMode(isSample,
+                                          processorRef.directEngine());
+  syncParam(ParamIDs::directMode, isSample ? 1.0f : 0.0f);
+  {
+    const bool isPt = processorRef.directMode().isPassthrough();
+    directUI.applyPassthroughVisibility(isPt);
+    processorRef.directMode().detector().setEnabled(isPt);
+  }
+  resized();
 }
 
 void BoomBabyAudioProcessorEditor::layoutDirectParams(
@@ -483,21 +494,17 @@ void BoomBabyAudioProcessorEditor::layoutDirectParams(
   }
 }
 
-void BoomBabyAudioProcessorEditor::refreshDirectPassthroughUI() {
-  const bool isPassthrough = processorRef.directMode().isPassthrough();
-
+void BoomBabyAudioProcessorEditor::DirectUI::applyPassthroughVisibility(
+    bool isPassthrough) {
   // Pitch ⇔ Threshold 表示切り替え
-  directUI.pitch.slider.setVisible(!isPassthrough);
-  directUI.pitch.label.setVisible(!isPassthrough);
-  directUI.threshold.slider.setVisible(isPassthrough);
-  directUI.threshold.label.setVisible(isPassthrough);
+  pitch.slider.setVisible(!isPassthrough);
+  pitch.label.setVisible(!isPassthrough);
+  threshold.slider.setVisible(isPassthrough);
+  threshold.label.setVisible(isPassthrough);
 
   // Hold: パススルーモード時のみ表示
-  directUI.hold.label.setVisible(isPassthrough);
-  directUI.hold.slider.setVisible(isPassthrough);
-
-  // Auto Trigger: パススルーモード時は自動有効、サンプルモード時は無効
-  processorRef.directMode().detector().setEnabled(isPassthrough);
+  hold.label.setVisible(isPassthrough);
+  hold.slider.setVisible(isPassthrough);
 }
 
 void BoomBabyAudioProcessorEditor::onSampleFileChosen(const juce::File &file) {

@@ -81,7 +81,9 @@ inline constexpr const char *directLpfSlope = "LPF slope: 12 / 24 / 48 dB/oct";
 inline constexpr const char *directThreshold =
     "Transient detect threshold (-60-0 dB)";
 inline constexpr const char *directHold =
-    "Transient gate hold time (20-500 ms)";
+    "Transient gate hold time (20-500 ms)\n"
+    "Below ~50ms risks double-triggering on the same hit.\n"
+    "For fast kick rolls, use sample mode with MIDI trigger instead.";
 inline constexpr const char *directSampleLoad =
     "Load audio sample (drop or click)";
 
