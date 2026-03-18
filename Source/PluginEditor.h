@@ -10,6 +10,11 @@
 #include "PluginProcessor.h"
 
 #include <array>
+#include <utility>
+#include <vector>
+
+/// Parameter undo スナップショット型（パラメータ ID, 正規化値）
+using ParamSnapshot = std::vector<std::pair<juce::String, float>>;
 
 /// SUB展開パネル: 波形選択（プルダウン）用 LAF
 struct DarkComboLAF : public juce::LookAndFeel_V4 {
@@ -124,11 +129,12 @@ private:
   };
   struct EnvUndoState {
     // エンベロープ編集とパラメータ編集を時系列順に1つのスタックで管理する。
-    // Cmd+Z 時にトップフレームの種類に応じて内部処理 / DAW 委譲を切り替える。
+    // Cmd+Z 時にトップフレームの種類に応じてスナップショットから復元する。
     enum class FrameType { Envelope, Parameter };
     struct Frame {
       FrameType type;
       EnvelopeDatas snapshot; // Envelope フレームのみ有効
+      ParamSnapshot paramSnapshot; // Parameter フレームのみ有効
     };
     EnvEditMouseListener listener;
     std::vector<Frame> undoStack;

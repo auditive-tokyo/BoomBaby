@@ -227,6 +227,25 @@ void BoomBabyAudioProcessorEditor::mouseDown(const juce::MouseEvent &e) {
     switchEditTarget(directAmp);
 }
 
+namespace {
+ParamSnapshot
+captureParamSnapshot(const juce::AudioProcessorValueTreeState &apvts) {
+  ParamSnapshot snap;
+  for (const auto *p : apvts.processor.getParameters())
+    if (const auto *rp = dynamic_cast<const juce::RangedAudioParameter *>(p))
+      snap.emplace_back(rp->paramID, rp->getValue());
+  return snap;
+}
+
+void restoreParamSnapshot(const juce::AudioProcessorValueTreeState &apvts,
+                          const ParamSnapshot &snap) {
+  for (const auto &[id, val] : snap)
+    if (auto *p = apvts.getParameter(id))
+      if (!juce::approximatelyEqual(p->getValue(), val))
+        p->setValueNotifyingHost(val);
+}
+} // namespace
+
 // ────────────────────────────────────────────────────
 // エンベロープ Undo/Redo（プラグイン内部スタック）
 // ────────────────────────────────────────────────────
@@ -250,9 +269,14 @@ bool BoomBabyAudioProcessorEditor::keyPressed(const juce::KeyPress &key) {
       envelopeCurveEditor.repaint();
       return true;
     } else {
-      // Parameter フレーム → DAWに委譲してから redo スタックに戻す
-      envUndo_.undoStack.emplace_back(frame);
-      return false;
+      // Parameter フレーム → 現在値を undo
+      // スタックへ保存し、スナップショットから復元
+      envUndo_.undoStack.push_back(
+          {EnvUndoState::FrameType::Parameter,
+           {},
+           captureParamSnapshot(processorRef.getAPVTS())});
+      restoreParamSnapshot(processorRef.getAPVTS(), frame.paramSnapshot);
+      return true;
     }
   } else {
     // ── Undo ──
@@ -268,9 +292,14 @@ bool BoomBabyAudioProcessorEditor::keyPressed(const juce::KeyPress &key) {
       envelopeCurveEditor.repaint();
       return true;
     } else {
-      // Parameter フレーム → redo スタックに戻して DAW に委譲
-      envUndo_.redoStack.emplace_back(frame);
-      return false;
+      // Parameter フレーム → 現在値を redo
+      // スタックへ保存し、スナップショットから復元
+      envUndo_.redoStack.push_back(
+          {EnvUndoState::FrameType::Parameter,
+           {},
+           captureParamSnapshot(processorRef.getAPVTS())});
+      restoreParamSnapshot(processorRef.getAPVTS(), frame.paramSnapshot);
+      return true;
     }
   }
 }
@@ -381,7 +410,7 @@ BoomBabyAudioProcessorEditor::~BoomBabyAudioProcessorEditor() {
 // APVTS ↔ UI 同期ヘルパー
 // ────────────────────────────────────────────────────
 void BoomBabyAudioProcessorEditor::syncParam(const char *id, float value,
-                                              bool silent) {
+                                             bool silent) {
   auto *p = processorRef.getAPVTS().getParameter(id);
   if (p == nullptr)
     return;
@@ -389,8 +418,10 @@ void BoomBabyAudioProcessorEditor::syncParam(const char *id, float value,
       (envUndo_.undoStack.empty() ||
        envUndo_.undoStack.back().type != EnvUndoState::FrameType::Parameter)) {
     envUndo_.redoStack.clear();
-    envUndo_.undoStack.emplace_back(EnvUndoState::FrameType::Parameter,
-                                    EnvelopeDatas{});
+    envUndo_.undoStack.push_back(
+        {EnvUndoState::FrameType::Parameter,
+         {},
+         captureParamSnapshot(processorRef.getAPVTS())});
     if (static_cast<int>(envUndo_.undoStack.size()) > kMaxEnvUndoSteps)
       envUndo_.undoStack.erase(envUndo_.undoStack.begin());
   }
@@ -587,8 +618,21 @@ void BoomBabyAudioProcessorEditor::pollUIFromAPVTS() {
   {
     const int modeId = static_cast<int>(load(ParamIDs::clickMode)) + 1;
     if (clickUI.modeCombo.getSelectedId() != modeId) {
+      // 旧モードの共有パラメーターを保存してからコンボ切替
+      const bool wasSample = clickUI.modeCombo.getSelectedId() ==
+                             std::to_underlying(ClickUI::Mode::Sample);
+      saveModeStateFromWidgets(clickUI, wasSample ? clickUI.sampleState
+                                                  : clickUI.noiseState);
       clickUI.modeCombo.setSelectedId(modeId, silent);
-      clickUI.setModeVisible(modeId == std::to_underlying(ClickUI::Mode::Sample));
+      clickUI.setModeVisible(modeId ==
+                             std::to_underlying(ClickUI::Mode::Sample));
+      // エンベローププロバイダーを切替
+      if (modeId == std::to_underlying(ClickUI::Mode::Sample)) {
+        envelopeCurveEditor.setClickPreviewProvider(nullptr);
+        refreshClickSampleProvider();
+      } else {
+        envelopeCurveEditor.setClickNoiseEnvProvider(clickUI.noiseProvider);
+      }
     }
   }
   clickUI.noise.decaySlider.setValue(load(ParamIDs::clickNoiseDecay), silent);
