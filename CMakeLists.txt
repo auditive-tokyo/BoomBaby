@@ -126,6 +126,7 @@ target_sources(BoomBabyTests PRIVATE
     Tests/TestDirectEngine.cpp
     Tests/TestSubEngine.cpp
     Tests/TestLevelDetector.cpp
+    Tests/TestSamplePlayer.cpp
 )
 target_compile_definitions(BoomBabyTests PRIVATE
     JUCE_USE_CURL=0

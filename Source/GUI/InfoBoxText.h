@@ -82,7 +82,7 @@ inline constexpr const char *directThreshold =
     "Transient detect threshold (-60-0 dB)";
 inline constexpr const char *directHold =
     "Transient gate hold time (20-500 ms)\n"
-    "Below ~50ms risks double-triggering on the same hit.\n"
+    "Set it long enough to avoid double-triggering.\n"
     "For fast kick rolls, use sample mode with MIDI trigger instead.";
 inline constexpr const char *directSampleLoad =
     "Load audio sample (drop or click)";
