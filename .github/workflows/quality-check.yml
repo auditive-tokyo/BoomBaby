@@ -5,9 +5,12 @@ on:
   push:
     branches-ignore:
       - "release"
-    paths-ignore:
-      - "*.md"
-      - "docs/**"
+    paths:
+      - "Source/**"
+      - "Tests/**"
+      - "CMakeLists.txt"
+      - "Makefile"
+      - ".github/workflows/quality-check.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

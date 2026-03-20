@@ -86,30 +86,30 @@ jobs:
             ### Installation
 
             **VST3** — `BoomBaby-${{ steps.version.outputs.version }}-VST3-macOS.zip`
-            1. Unzip the archive
-            2. Move `BoomBaby.vst3` to `/Library/Audio/Plug-Ins/VST3/`
-            3. Remove the quarantine flag:
+            1. Close your DAW
+            2. Unzip the archive
+            3. Move `BoomBaby.vst3` to `/Library/Audio/Plug-Ins/VST3/`
+            4. Open Terminal and remove the quarantine flag:
                ```
                xattr -rd com.apple.quarantine /Library/Audio/Plug-Ins/VST3/BoomBaby.vst3
                ```
-            4. Rescan plugins in your DAW
             5. If macOS still blocks it (System Settings → Privacy & Security shows a warning):
                - Click **"Allow Anyway"** — or if the button is unresponsive (known macOS 15 Sequoia bug), run:
                ```
                sudo codesign --force --deep --sign - /Library/Audio/Plug-Ins/VST3/BoomBaby.vst3
                ```
-            6. Rescan plugins in your DAW again
+            6. Open your DAW
 
             **AU (Audio Unit)** — `BoomBaby-${{ steps.version.outputs.version }}-AU-macOS.zip`
-            1. Unzip the archive
-            2. Move `BoomBaby.component` to `/Library/Audio/Plug-Ins/Components/`
-            3. Remove the quarantine flag:
+            1. Close your DAW
+            2. Unzip the archive
+            3. Move `BoomBaby.component` to `/Library/Audio/Plug-Ins/Components/`
+            4. Open Terminal and remove the quarantine flag:
                ```
                xattr -rd com.apple.quarantine /Library/Audio/Plug-Ins/Components/BoomBaby.component
                ```
-            4. Rescan plugins in your DAW
             5. If macOS still blocks it, run:
                ```
                sudo codesign --force --deep --sign - /Library/Audio/Plug-Ins/Components/BoomBaby.component
                ```
-            6. Rescan plugins in your DAW again
+            6. Open your DAW
