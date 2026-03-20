@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches-ignore:
-      - "release/**"
+      - "release"
     paths-ignore:
       - "*.md"
       - "docs/**"
