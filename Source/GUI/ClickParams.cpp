@@ -169,7 +169,7 @@ void BoomBabyAudioProcessorEditor::setupClickParams() {
         static_cast<float>(clickUI.noise.decaySlider.getValue()));
     syncParam(ParamIDs::clickNoiseDecay,
               static_cast<float>(clickUI.noise.decaySlider.getValue()));
-    envelopeCurveEditor.repaint();
+    updateDisplayDuration();
   };
   addAndMakeVisible(clickUI.noise.decaySlider);
 

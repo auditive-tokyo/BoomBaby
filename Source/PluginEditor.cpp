@@ -83,9 +83,11 @@ void BoomBabyAudioProcessorEditor::setupPanelRouting(
 // ────────────────────────────────────────────────────
 void BoomBabyAudioProcessorEditor::updateDisplayDuration() {
   const auto sub = static_cast<float>(subUI.length.slider.getValue());
-  const auto click = static_cast<float>(clickUI.sample.decay.slider.getValue());
+  const auto clickSample = static_cast<float>(clickUI.sample.decay.slider.getValue());
+  const auto clickNoise = static_cast<float>(clickUI.noise.decaySlider.getValue());
   const auto direct = static_cast<float>(directUI.decay.slider.getValue());
-  envelopeCurveEditor.setDisplayDurationMs(std::max({sub, click, direct}));
+  envelopeCurveEditor.setDisplayDurationMs(
+      std::max({sub, clickSample, clickNoise, direct}));
 }
 
 // ────────────────────────────────────────────────────
