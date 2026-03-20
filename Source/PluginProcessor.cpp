@@ -205,9 +205,13 @@ BoomBabyAudioProcessor::BoomBabyAudioProcessor()
           BusesProperties()
               .withInput("Input", juce::AudioChannelSet::stereo(), true)
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts_(*this, nullptr, "BoomBabyState", createParameterLayout()) {
+      apvts_(*this, nullptr, "BoomBabyState", createParameterLayout()),
+      presetManager_(apvts_) {
   for (const auto *id : kAllParamIDs)
     apvts_.addParameterListener(id, this);
+
+  // PresetManager → Processor 状態復元コールバック
+  presetManager_.onStateReplaced = [this] { applyRestoredState(); };
 }
 
 BoomBabyAudioProcessor::~BoomBabyAudioProcessor() {
@@ -641,6 +645,10 @@ void BoomBabyAudioProcessor::setStateInformation(
     return;
 
   apvts_.replaceState(juce::ValueTree::fromXml(*xml));
+  applyRestoredState();
+}
+
+void BoomBabyAudioProcessor::applyRestoredState() {
   nonParamStateVersion_.fetch_add(1);
 
   // replaceState は parameterChanged を発火しないため、

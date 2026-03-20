@@ -43,6 +43,9 @@ constexpr int masterGainLabelWidth = 52;    // 右端に確保する幅 (px)
 // ── 鍵盤 ──
 constexpr int keyboardHeight = 70;
 
+// ── プリセットバー ──
+constexpr int presetBarHeight = 28;
+
 // ── フォント ──
 constexpr float fontSizeSmall = 10.0f; // ノブラベル、エンベロープ等
 constexpr float fontSizeMedium = 12.0f; // ComboBox、Length ボックス等
@@ -183,7 +186,8 @@ public:
       return;
     const int slotsW = getWidth() - prefixW;
     const int slotW = slotsW / 3;
-    if (const int idx = juce::jlimit(0, 2, xInSlots / slotW); idx != selected_) {
+    if (const int idx = juce::jlimit(0, 2, xInSlots / slotW);
+        idx != selected_) {
       selected_ = idx;
       repaint();
       if (onChange_)
@@ -321,10 +325,10 @@ public:
       const float alpha = clearHovered_ ? 0.8f : 0.4f;
       g.setColour(juce::Colours::white.withAlpha(alpha));
       const float m = 3.0f; // X 線のマージン
-      g.drawLine(xArea.getX() + m, xArea.getY() + m,
-                 xArea.getRight() - m, xArea.getBottom() - m, 1.5f);
-      g.drawLine(xArea.getRight() - m, xArea.getY() + m,
-                 xArea.getX() + m, xArea.getBottom() - m, 1.5f);
+      g.drawLine(xArea.getX() + m, xArea.getY() + m, xArea.getRight() - m,
+                 xArea.getBottom() - m, 1.5f);
+      g.drawLine(xArea.getRight() - m, xArea.getY() + m, xArea.getX() + m,
+                 xArea.getBottom() - m, 1.5f);
     }
   }
 

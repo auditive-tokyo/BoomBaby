@@ -334,8 +334,9 @@ void BoomBabyAudioProcessorEditor::switchEditTarget(
 // ────────────────────────────────────────────────────
 BoomBabyAudioProcessorEditor::BoomBabyAudioProcessorEditor(
     BoomBabyAudioProcessor &p)
-    : AudioProcessorEditor(&p), processorRef(p),
-      keyboard(p.getKeyboardState()) {
+    : AudioProcessorEditor(&p), processorRef(p), keyboard(p.getKeyboardState()),
+      presetBar(p.presetManager()) {
+  addAndMakeVisible(presetBar);
   addAndMakeVisible(subPanel);
   addAndMakeVisible(clickPanel);
   addAndMakeVisible(directPanel);
@@ -383,9 +384,10 @@ BoomBabyAudioProcessorEditor::BoomBabyAudioProcessorEditor(
   });
   InfoBox::setInfo(masterSection, InfoText::masterGain);
 
-  setSize(UIConstants::windowWidth, UIConstants::windowHeight +
-                                        UIConstants::expandedAreaHeight +
-                                        UIConstants::panelGap);
+  setSize(UIConstants::windowWidth,
+          UIConstants::presetBarHeight + UIConstants::panelGap +
+              UIConstants::windowHeight + UIConstants::expandedAreaHeight +
+              UIConstants::panelGap);
 
   // 入力波形 Timer 開始（30fps）
   waveDisplay_.buf.assign(static_cast<std::size_t>(kWaveDisplayCapacity), 0.0f);
@@ -584,6 +586,7 @@ void BoomBabyAudioProcessorEditor::pollUIFromAPVTS() {
       v != lastSeenStateVersion_) {
     lastSeenStateVersion_ = v;
     loadEnvelopesFromState();
+    presetBar.refreshPresetName();
   }
 
   const auto &apvts = processorRef.getAPVTS();
@@ -1036,6 +1039,10 @@ void BoomBabyAudioProcessorEditor::paint(juce::Graphics &g) {
 
 void BoomBabyAudioProcessorEditor::resized() {
   auto area = getLocalBounds().reduced(UIConstants::panelPadding);
+
+  // プリセットバー（最上部）
+  presetBar.setBounds(area.removeFromTop(UIConstants::presetBarHeight));
+  area.removeFromTop(UIConstants::panelGap);
 
   // 常時表示の展開エリア（下部）
   {

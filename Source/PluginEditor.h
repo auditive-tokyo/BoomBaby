@@ -7,6 +7,7 @@
 #include "GUI/KeyboardComponent.h"
 #include "GUI/MasterFader.h"
 #include "GUI/PanelComponent.h"
+#include "GUI/PresetBar.h"
 #include "PluginProcessor.h"
 
 #include <array>
@@ -106,6 +107,7 @@ private:
   // ── 共有展開エリア（常時表示） ──
   BoomBabyAudioProcessor &processorRef;
   KeyboardComponent keyboard;
+  PresetBar presetBar;
   struct EnvelopeDatas {
     EnvelopeData amp;
     EnvelopeData freq;
@@ -133,7 +135,7 @@ private:
     enum class FrameType { Envelope, Parameter };
     struct Frame {
       FrameType type;
-      EnvelopeDatas snapshot; // Envelope フレームのみ有効
+      EnvelopeDatas snapshot;      // Envelope フレームのみ有効
       ParamSnapshot paramSnapshot; // Parameter フレームのみ有効
     };
     EnvEditMouseListener listener;

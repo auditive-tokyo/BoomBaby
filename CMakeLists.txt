@@ -33,6 +33,7 @@ target_sources(BoomBaby
     PRIVATE
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp
+        Source/PresetManager.cpp
         Source/GUI/SubParams.cpp
         Source/GUI/ClickParams.cpp
         Source/GUI/DirectParams.cpp
@@ -54,6 +55,8 @@ target_sources(BoomBaby
         Source/GUI/WaveformUtils.h
         Source/GUI/SampleChooserUtils.h
         Source/GUI/ClickModeStateUtils.h
+        Source/GUI/PresetBar.h
+        Source/PresetManager.h
         Source/DSP/ChannelState.h
         Source/DSP/ClickEngine.h
         Source/DSP/ClickEngine.cpp
