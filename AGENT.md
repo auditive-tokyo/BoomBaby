@@ -109,34 +109,71 @@ This project uses JUCE framework. An MCP server (`juce-docs`) is available.
 
 ## TODO
 
-- **プリセット管理 + デフォルトプリセット**
-  - 目的: 全パラメーター（エンベロープ含む）の初期値をハードコードではなく設定ファイルとして管理。ユーザーリセット・将来のプリセット追加に対応
-  - 方式: **JUCE `BinaryData` 埋め込み**（外部ファイル依存なし、単一バイナリ配布を維持）
-  - ディレクトリ構成:
+- **プリセットシステム（サンプル込み）**
+  - 目的: パラメーター＋エンベロープ＋サンプルを一括で保存・呼び出し。ファクトリープリセットとユーザープリセットの両方に対応
+  - **プリセットフォーマット: `.bbpreset` フォルダ**
     ```
-    Resources/presets/
-      default.preset    ← 出荷時デフォルト（Standalone の Save current state で生成）
-      // 将来: fat_kick.preset, punchy.preset ...
+    Fat Kick.bbpreset/
+      state.xml           ← getStateInformation 同一フォーマット（サンプルパスは相対化）
+      click_sample.wav    ← あれば（元ファイルのコピー）
+      direct_sample.wav   ← あれば（元ファイルのコピー）
     ```
-  - CMakeLists.txt に追加:
-    ```cmake
-    juce_add_binary_data(BoomBabyBinaryData
-        SOURCES Resources/presets/default.preset)
+  - **保存先ディレクトリ（クロスプラットフォーム）**
     ```
-  - 実装手順:
-    1. Standalone を起動し、全パラメーターとエンベロープを望ましい初期値に設定
-    2. Standalone の「Save current state...」で `Resources/presets/default.preset` として保存（`getStateInformation()` と同一フォーマット）
-    3. `BinaryData` に追加（`make cmake` で反映）
-    4. `PluginProcessor` コンストラクタまたは `setStateInformation()` に fallback:
-       DAW データがなければ `BinaryData::default_preset` を読む
-       ```cpp
-       setStateInformation(BinaryData::default_preset,
-                           BinaryData::default_presetSize);
-       ```
-  - 利点:
-    - プリセット読み込みと DAW セッション復元が単一コードパスで統一（`setStateInformation` をそのまま使える）
-    - デフォルト値の変更がコード修正不要（`.preset` ファイル差し替え + `make cmake` のみ）
-    - ユーザーが「Default」を選ぶだけで全パラメーターをリセット可能
+    <userDocumentsDirectory>/Auditive/BoomBaby/Presets/
+    ```
+    `juce::File::getSpecialLocation(userDocumentsDirectory)` で OS 自動解決:
+    - macOS: `~/Documents/Auditive/BoomBaby/Presets/`
+    - Windows: `C:\Users\<name>\Documents\Auditive\BoomBaby\Presets\`
+    - 初回起動時に `createDirectory()` で作成（インストーラー不要）
+  - **ファクトリープリセット**
+    - `Resources/presets/` にソース管理
+    - `BinaryData` としてバイナリに埋め込み
+    - **バージョンチェック方式で展開** — `Factory/.version` ファイルにプラグインバージョンを記録し、不一致時に再展開:
+      ```cpp
+      auto factoryDir = presetsDir.getChildFile("Factory");
+      auto versionFile = factoryDir.getChildFile(".version");
+      const auto current = juce::String(ProjectInfo::versionString);
+
+      if (!versionFile.existsAsFile()
+          || versionFile.loadFileAsString().trim() != current) {
+          factoryDir.createDirectory();
+          expandFactoryPresets(factoryDir);  // BinaryData → .bbpreset 展開
+          versionFile.replaceWithText(current);
+      }
+      ```
+    - 動作:
+      | 状況 | `.version` | Factory フォルダ | 動作 |
+      |------|-----------|-----------------|------|
+      | 初インストール | なし | なし | 作成＆展開 |
+      | プラグイン更新 | 旧バージョン | あり | 再展開（新プリセット追加対応） |
+      | 同一バージョン起動 | 一致 | あり | **何もしない** |
+      | ユーザーが Factory 削除 | なし | なし | 再作成＆再展開 |
+    - ユーザープリセットは `<Presets>/` 直下なので Factory 再展開の影響を受けない
+  - **プリセット保存フロー（DAW 上で音作り → 保存）**
+    1. DAW でパラメーター / サンプル / エンベロープを設定
+    2. UI 上部の **[Save]** をクリック → プリセット名入力
+    3. `<Presets>/<名前>.bbpreset/` フォルダを作成
+    4. `state.xml` 書き出し（サンプルパスは `./click_sample.wav` に相対化）
+    5. Click / Direct のサンプルファイルをプリセットフォルダにコピー
+  - **プリセット読み込みフロー**
+    1. UI 上部のブラウザからプリセット選択
+    2. `state.xml` を読み込み → `setStateInformation` 相当の処理
+    3. サンプルパスを `.bbpreset/` フォルダ内の実体に解決してロード
+  - **UI: プリセットバー（プラグイン最上部）**
+    ```
+    ┌──────────────────────────────────────────────────┐
+    │ [◀] Fat Kick                          [▶] [Save] │
+    ├──────────────────────────────────────────────────┤
+    │  SUB  │  CLICK  │  DIRECT                        │
+    ```
+    - `[◀][▶]` で前後プリセット切替
+    - プリセット名クリック → ドロップダウンリスト（Factory / User セクション分け）
+    - `[Save]` で現在の状態をユーザープリセットとして保存
+  - **実装フェーズ**
+    - Phase 1: プリセットフォルダ構造 + 保存 / 読み込みロジック + UI プリセットバー
+    - Phase 2: ファクトリープリセット（BinaryData 埋め込み + 初回展開）
+    - Phase 3: プリセット削除 / リネーム / 上書き確認
 
 - **ユニットテスト導入**
   - フレームワーク: **Catch2 v3**（`FetchContent` で取得、ヘッダ軽量、CTest/CI 親和性高）
