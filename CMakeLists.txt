@@ -75,6 +75,13 @@ target_sources(BoomBaby
         Source/DSP/TransientDetector.h
 )
 
+# ─── Factory Presets (BinaryData) ─────────────────────────────────
+
+juce_add_binary_data(BoomBabyPresets
+    SOURCES
+        Resources/factory_presets/default_state.xml
+)
+
 target_compile_definitions(BoomBaby
     PUBLIC
         JUCE_WEB_BROWSER=0
@@ -89,6 +96,7 @@ target_include_directories(BoomBaby
 
 target_link_libraries(BoomBaby
     PRIVATE
+        BoomBabyPresets
         juce::juce_audio_utils
         juce::juce_dsp
         juce::juce_opengl

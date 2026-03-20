@@ -40,4 +40,5 @@ private:
 
   juce::Array<juce::File> getAllPresetFolders() const;
   void ensureDirectoryExists() const;
+  void expandFactoryPresets() const;
 };

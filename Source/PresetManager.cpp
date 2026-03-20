@@ -1,4 +1,5 @@
 #include "PresetManager.h"
+#include "BinaryData.h"
 
 // ─────────────────────────────────────────────────────────────────
 // ctor
@@ -6,6 +7,18 @@
 PresetManager::PresetManager(juce::AudioProcessorValueTreeState &apvts)
     : apvts_(apvts) {
   ensureDirectoryExists();
+
+  // Factory プリセット展開（バージョン不一致 or 未展開時のみ）
+  auto factoryDir = getFactoryDirectory();
+  auto versionFile = factoryDir.getChildFile(".version");
+  const juce::String currentVersion(JucePlugin_VersionString);
+
+  if (!versionFile.existsAsFile() ||
+      versionFile.loadFileAsString().trim() != currentVersion) {
+    factoryDir.createDirectory();
+    expandFactoryPresets();
+    versionFile.replaceWithText(currentVersion);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -174,4 +187,44 @@ juce::Array<juce::File> PresetManager::getAllPresetFolders() const {
   results.addArray(getFactoryPresets());
   results.addArray(getUserPresets());
   return results;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Factory プリセット展開（BinaryData → ディスク）
+// ─────────────────────────────────────────────────────────────────
+void PresetManager::expandFactoryPresets() const {
+  struct FactoryEntry {
+    const char *presetName;
+    const char *stateData;
+    int stateSize;
+    // サンプル付きプリセット用（将来拡張）
+    const char *clickData = nullptr;
+    int clickSize = 0;
+    const char *directData = nullptr;
+    int directSize = 0;
+  };
+
+  const FactoryEntry entries[] = {
+      {"default", BinaryData::default_state_xml,
+       BinaryData::default_state_xmlSize},
+  };
+
+  auto factoryDir = getFactoryDirectory();
+
+  for (const auto &e : entries) {
+    auto presetDir =
+        factoryDir.getChildFile(juce::String(e.presetName) + ".bbpreset");
+    presetDir.createDirectory();
+
+    presetDir.getChildFile("state.xml")
+        .replaceWithData(e.stateData, static_cast<size_t>(e.stateSize));
+
+    if (e.clickData != nullptr)
+      presetDir.getChildFile("click_sample.wav")
+          .replaceWithData(e.clickData, static_cast<size_t>(e.clickSize));
+
+    if (e.directData != nullptr)
+      presetDir.getChildFile("direct_sample.wav")
+          .replaceWithData(e.directData, static_cast<size_t>(e.directSize));
+  }
 }
