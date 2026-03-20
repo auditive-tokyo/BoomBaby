@@ -638,6 +638,7 @@ void BoomBabyAudioProcessorEditor::pollUIFromAPVTS() {
       } else {
         envelopeCurveEditor.setClickNoiseEnvProvider(clickUI.noiseProvider);
       }
+      resized(); // モード変更後のレイアウト更新（Sample ノブの bounds 確定）
     }
   }
   clickUI.noise.decaySlider.setValue(load(ParamIDs::clickNoiseDecay), silent);
@@ -679,6 +680,7 @@ void BoomBabyAudioProcessorEditor::pollUIFromAPVTS() {
         directUI.applyPassthroughVisibility(isPt);
         processorRef.directMode().detector().setEnabled(isPt);
       }
+      resized(); // モード変更後のレイアウト更新
     }
   }
   directUI.pitch.slider.setValue(load(ParamIDs::directPitch), silent);
