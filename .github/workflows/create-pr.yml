@@ -1,0 +1,31 @@
+name: Create Release PR
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  create-pr:
+    name: Open PR to release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Create or update PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh pr list --base release --head main --state open --json number --jq '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING already exists — skipping"
+          else
+            gh pr create \
+              --base release \
+              --head main \
+              --title "Release $(date +%Y-%m-%d)" \
+              --body "Automated PR from main → release"
+          fi
