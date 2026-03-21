@@ -104,3 +104,11 @@ This project uses JUCE framework. An MCP server (`juce-docs`) is available.
   - `std::array` のテンプレート引数 `N` をプリセット数に合わせて更新
   - `make cmake && make check` で確認
   - clangd エラーが出る場合は `cd build-clangd && make BoomBabyPresets` → VS Code で「Restart Language Server」
+
+- **UT カバレッジ向上**: `DSP/` 配下のユニットテストカバレッジを 100% 目標で改善する。
+
+## TODO（追加実装）
+
+- **リリース Changelog 自動生成**: `create-pr.yml` で PR 本文に `release..main` の変更概要を自動生成する。PR 説明に各コミット / PR タイトルを箇条書きで入れ、`release.yml` のリリースページ冒頭にその本文を転記する形にする。既存 PR の場合は本文も日付と同様に更新する。GitHub Copilot使う方法も検討するが正確性が欲しいため自分でやった方が良いかも。
+
+- **Branch protection の required checks 整理（確認事項）**: `SonarCloud Code Analysis` と `SonarQube analysis` が重複している可能性があるため、運用を決めたらどちらか片方を required から外す。

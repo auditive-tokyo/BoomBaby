@@ -14,26 +14,37 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
 
       - name: Create or update PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TODAY="Release $(date +%Y-%m-%d)"
+
+          # release ブランチ以降の新規コミットをchangelogに（マージコミット除外）
+          git fetch origin release 2>/dev/null || true
+          CHANGELOG=$(git log origin/release..HEAD --pretty=format:"- %s" --no-merges)
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="- No new commits"
+          fi
+
           EXISTING=$(gh pr list --base release --head main --state open --json number,title --jq '.[0]')
           if [ -z "$EXISTING" ]; then
             gh pr create \
               --base release \
               --head main \
               --title "$TODAY" \
-              --body "Automated PR from main → release"
+              --body "$CHANGELOG"
           else
             PR_NUMBER=$(echo "$EXISTING" | jq -r '.number')
             PR_TITLE=$(echo "$EXISTING" | jq -r '.title')
             if [ "$PR_TITLE" != "$TODAY" ]; then
-              gh pr edit "$PR_NUMBER" --title "$TODAY"
-              echo "PR #$PR_NUMBER title updated: '$PR_TITLE' → '$TODAY'"
+              gh pr edit "$PR_NUMBER" --title "$TODAY" --body "$CHANGELOG"
+              echo "PR #$PR_NUMBER updated: '$PR_TITLE' → '$TODAY'"
             else
-              echo "PR #$PR_NUMBER is up to date — skipping"
+              gh pr edit "$PR_NUMBER" --body "$CHANGELOG"
+              echo "PR #$PR_NUMBER body updated"
             fi
           fi

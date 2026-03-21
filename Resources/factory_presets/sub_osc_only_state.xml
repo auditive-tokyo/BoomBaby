@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<BoomBabyState directSamplePath="" clickSamplePath="" presetName="just-sub-osc">
+<BoomBabyState directSamplePath="" clickSamplePath="" presetName="sub osc only">
   <PARAM id="click_bpf1_freq" value="5000.00048828125"/>
   <PARAM id="click_bpf1_q" value="0.7099999785423279"/>
   <PARAM id="click_bpf1_slope" value="0.0"/>
