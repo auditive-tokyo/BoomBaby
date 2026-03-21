@@ -620,6 +620,10 @@ void BoomBabyAudioProcessorEditor::pollUIFromAPVTS() {
   subPanel.getFader().setValue(load(ParamIDs::subGain), silent);
   subPanel.setMuteState(load(ParamIDs::subMute) >= 0.5f);
   subPanel.setSoloState(load(ParamIDs::subSolo) >= 0.5f);
+  envelopeCurveEditor.setChannelMuted(EnvelopeCurveEditor::Channel::sub,
+                                      load(ParamIDs::subMute) >= 0.5f);
+  envelopeCurveEditor.setChannelSoloed(EnvelopeCurveEditor::Channel::sub,
+                                       load(ParamIDs::subSolo) >= 0.5f);
 
   // ── Click ──
   {
@@ -668,6 +672,10 @@ void BoomBabyAudioProcessorEditor::pollUIFromAPVTS() {
   clickPanel.getFader().setValue(load(ParamIDs::clickGain), silent);
   clickPanel.setMuteState(load(ParamIDs::clickMute) >= 0.5f);
   clickPanel.setSoloState(load(ParamIDs::clickSolo) >= 0.5f);
+  envelopeCurveEditor.setChannelMuted(EnvelopeCurveEditor::Channel::click,
+                                      load(ParamIDs::clickMute) >= 0.5f);
+  envelopeCurveEditor.setChannelSoloed(EnvelopeCurveEditor::Channel::click,
+                                       load(ParamIDs::clickSolo) >= 0.5f);
 
   // ── Direct ──
   {
@@ -704,6 +712,10 @@ void BoomBabyAudioProcessorEditor::pollUIFromAPVTS() {
   directPanel.getFader().setValue(load(ParamIDs::directGain), silent);
   directPanel.setMuteState(load(ParamIDs::directMute) >= 0.5f);
   directPanel.setSoloState(load(ParamIDs::directSolo) >= 0.5f);
+  envelopeCurveEditor.setChannelMuted(EnvelopeCurveEditor::Channel::direct,
+                                      load(ParamIDs::directMute) >= 0.5f);
+  envelopeCurveEditor.setChannelSoloed(EnvelopeCurveEditor::Channel::direct,
+                                       load(ParamIDs::directSolo) >= 0.5f);
 
   // ── Master ──
   masterSection.setValueDb(load(ParamIDs::masterGain));
@@ -908,8 +920,15 @@ void BoomBabyAudioProcessorEditor::loadEnvelopesFromState() {
   }
 
   // アクティブモードのウィジェットに反映
-  const bool clickIsSample = clickUI.modeCombo.getSelectedId() ==
-                             std::to_underlying(ClickUI::Mode::Sample);
+  // APVTS パラメータから読み取る（pollUIFromAPVTS 経由の場合、
+  // コンボがまだ旧モードのため widget ではなくパラメータが正しい）
+  const bool clickIsSample =
+      static_cast<int>(
+          processorRef.getAPVTS()
+              .getRawParameterValue(ParamIDs::clickMode)
+              ->load()) +
+          1 ==
+      std::to_underlying(ClickUI::Mode::Sample);
   restoreModeStateToWidgets(
       clickUI, clickIsSample ? clickUI.sampleState : clickUI.noiseState,
       processorRef.clickEngine());
