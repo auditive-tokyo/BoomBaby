@@ -80,6 +80,9 @@ target_sources(BoomBaby
 juce_add_binary_data(BoomBabyPresets
     SOURCES
         Resources/factory_presets/default_state.xml
+        Resources/factory_presets/junglist_state.xml
+        Resources/factory_presets/junglist_direct.wav
+        Resources/factory_presets/sub_osc_only_state.xml
 )
 
 target_compile_definitions(BoomBaby

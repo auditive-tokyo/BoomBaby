@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<BoomBabyState directSamplePath="./direct_sample.wav" clickSamplePath="">
+  <PARAM id="click_bpf1_freq" value="5000.0"/>
+  <PARAM id="click_bpf1_q" value="6.0"/>
+  <PARAM id="click_bpf1_slope" value="2.0"/>
+  <PARAM id="click_clip_type" value="0.0"/>
+  <PARAM id="click_drive" value="3.0"/>
+  <PARAM id="click_gain" value="-11.00000095367432"/>
+  <PARAM id="click_hpf_freq" value="4350.0"/>
+  <PARAM id="click_hpf_q" value="6.0"/>
+  <PARAM id="click_hpf_slope" value="0.0"/>
+  <PARAM id="click_lpf_freq" value="8880.0"/>
+  <PARAM id="click_lpf_q" value="6.0"/>
+  <PARAM id="click_lpf_slope" value="2.0"/>
+  <PARAM id="click_mode" value="0.0"/>
+  <PARAM id="click_mute" value="0.0"/>
+  <PARAM id="click_noise_decay" value="30.0"/>
+  <PARAM id="click_sample_amp" value="100.0"/>
+  <PARAM id="click_sample_decay" value="300.0"/>
+  <PARAM id="click_sample_pitch" value="0.0"/>
+  <PARAM id="click_solo" value="0.0"/>
+  <PARAM id="direct_amp" value="100.0"/>
+  <PARAM id="direct_clip_type" value="0.0"/>
+  <PARAM id="direct_decay" value="300.0"/>
+  <PARAM id="direct_drive" value="2.0"/>
+  <PARAM id="direct_gain" value="-1.500001311302185"/>
+  <PARAM id="direct_hold" value="220.0"/>
+  <PARAM id="direct_hpf_freq" value="60.0"/>
+  <PARAM id="direct_hpf_q" value="0.7099999785423279"/>
+  <PARAM id="direct_hpf_slope" value="0.0"/>
+  <PARAM id="direct_lpf_freq" value="10200.0"/>
+  <PARAM id="direct_lpf_q" value="1.799999952316284"/>
+  <PARAM id="direct_lpf_slope" value="1.0"/>
+  <PARAM id="direct_mode" value="1.0"/>
+  <PARAM id="direct_mute" value="0.0"/>
+  <PARAM id="direct_pitch" value="0.0"/>
+  <PARAM id="direct_solo" value="0.0"/>
+  <PARAM id="direct_threshold" value="-23.99999809265137"/>
+  <PARAM id="master_gain" value="-1.341104507446289e-6"/>
+  <PARAM id="sub_amp" value="133.8000030517578"/>
+  <PARAM id="sub_freq" value="1261.909912109375"/>
+  <PARAM id="sub_gain" value="-2.000001192092896"/>
+  <PARAM id="sub_length" value="300.0"/>
+  <PARAM id="sub_mix" value="54.0"/>
+  <PARAM id="sub_mute" value="0.0"/>
+  <PARAM id="sub_sat_clip_type" value="2.0"/>
+  <PARAM id="sub_sat_drive" value="2.0"/>
+  <PARAM id="sub_solo" value="0.0"/>
+  <PARAM id="sub_tone1" value="25.0"/>
+  <PARAM id="sub_tone2" value="45.0"/>
+  <PARAM id="sub_tone3" value="25.0"/>
+  <PARAM id="sub_tone4" value="43.0"/>
+  <PARAM id="sub_wave_shape" value="0.0"/>
+  <ENVELOPE name="amp" defaultValue="1.338461518287659">
+    <POINT timeMs="0.0" value="1.399999976158142" curve="0.0"/>
+    <POINT timeMs="5.0" value="1.053846120834351" curve="0.0"/>
+    <POINT timeMs="10.0" value="1.0" curve="0.300000011920929"/>
+    <POINT timeMs="25.0" value="0.75" curve="0.0"/>
+    <POINT timeMs="40.0" value="0.550000011920929" curve="-0.3100000023841858"/>
+    <POINT timeMs="140.0" value="0.300000011920929" curve="0.4400000274181366"/>
+    <POINT timeMs="300.0" value="0.0" curve="0.0"/>
+  </ENVELOPE>
+  <ENVELOPE name="freq" defaultValue="1261.914916992188">
+    <POINT timeMs="0.0" value="1047.7578125" curve="0.0"/>
+    <POINT timeMs="3.321033239364624" value="381.7677001953125" curve="0.0"/>
+    <POINT timeMs="5.535055160522461" value="154.700439453125" curve="0.0"/>
+    <POINT timeMs="16.32841300964355" value="88.54901885986328" curve="0.0"/>
+    <POINT timeMs="28.78228950500488" value="81.76518249511719" curve="0.0"/>
+    <POINT timeMs="52.30627059936523" value="45.57453155517578" curve="-1.0"/>
+    <POINT timeMs="140.8671569824219" value="53.45066452026367" curve="0.0"/>
+    <POINT timeMs="210.0" value="43.65353012084961" curve="0.0"/>
+  </ENVELOPE>
+  <ENVELOPE name="dist" defaultValue="0.0833333358168602">
+    <POINT timeMs="0.0" value="0.0833333358168602" curve="0.0"/>
+  </ENVELOPE>
+  <ENVELOPE name="mix" defaultValue="0.5400000214576721">
+    <POINT timeMs="0.0" value="0.01538467407226562" curve="-0.6299999952316284"/>
+    <POINT timeMs="8.025830268859863" value="-0.2846153974533081" curve="1.0"/>
+    <POINT timeMs="27.12177085876465" value="0.2923076152801514" curve="0.3100000023841858"/>
+    <POINT timeMs="37.36162185668945" value="-0.2923077344894409" curve="-0.449999988079071"/>
+    <POINT timeMs="55.6273078918457" value="0.1846153736114502" curve="0.0"/>
+    <POINT timeMs="84.13284301757812" value="-0.3153846263885498" curve="0.0"/>
+    <POINT timeMs="115.9594039916992" value="0.0923076868057251" curve="0.0"/>
+    <POINT timeMs="123.1549835205078" value="0.0" curve="0.0"/>
+    <POINT timeMs="187.0848693847656" value="0.0" curve="0.0"/>
+  </ENVELOPE>
+  <ENVELOPE name="clickAmp" defaultValue="1.0">
+    <POINT timeMs="0.0" value="1.0" curve="0.0"/>
+  </ENVELOPE>
+  <ENVELOPE name="directAmp" defaultValue="1.0">
+    <POINT timeMs="1.107011079788208" value="0.0" curve="0.4549999833106995"/>
+    <POINT timeMs="30.0" value="1.100000023841858" curve="0.0"/>
+    <POINT timeMs="36.8081169128418" value="0.7461538314819336" curve="0.0"/>
+    <POINT timeMs="107.9335784912109" value="1.0" curve="0.0"/>
+    <POINT timeMs="260.0" value="0.5" curve="0.0"/>
+    <POINT timeMs="300.0" value="0.0" curve="0.0"/>
+  </ENVELOPE>
+  <CLICK_MODE_STATE name="clickNoise" hpfFreq="4350.0" hpfQ="6.0" hpfSlope="12" lpfFreq="8699.0"
+                    lpfQ="6.0" lpfSlope="48" drive="1.0" clipType="0"/>
+  <CLICK_MODE_STATE name="clickSample" hpfFreq="20.0" hpfQ="0.71" hpfSlope="12" lpfFreq="20000.0"
+                    lpfQ="0.71" lpfSlope="12" drive="0.0" clipType="0"/>
+</BoomBabyState>

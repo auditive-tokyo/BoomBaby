@@ -202,9 +202,15 @@ void PresetManager::expandFactoryPresets() const {
     int directSize = 0;
   };
 
-  const std::array<FactoryEntry, 1> entries = {{
-      {"default", BinaryData::default_state_xml,
+  const std::array<FactoryEntry, 3> entries = {{
+      {"default",      BinaryData::default_state_xml,
        BinaryData::default_state_xmlSize},
+      {"junglist",     BinaryData::junglist_state_xml,
+       BinaryData::junglist_state_xmlSize,
+       nullptr, 0,
+       BinaryData::junglist_direct_wav, BinaryData::junglist_direct_wavSize},
+      {"sub osc only", BinaryData::sub_osc_only_state_xml,
+       BinaryData::sub_osc_only_state_xmlSize},
   }};
 
   auto factoryDir = getFactoryDirectory();

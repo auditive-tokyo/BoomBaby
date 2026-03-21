@@ -38,6 +38,7 @@ BoomBabyは3つのモジュールで構成されています：
 - 変更を行う際は、どのファイルを、なぜ、どう修正したかを簡潔に報告し、必要ならビルド／確認手順を添えること。
 - **コード改修後の必須確認手順:** 変更を行ったら必ず `make check && make lint` を実行し、問題がなければ `make test` でユニットテストが通ることを確認してから `make run` で動作確認を行うこと。
 - **CMake／ファイル構成変更時の手順:** 新規ファイルの追加・削除、または `CMakeLists.txt` の変更を行った場合は、まず `make cmake` を実行してプロジェクトを再生成し、その後に `make check && make lint` → `make run` の順で確認すること。
+- **BinaryData 追加後の clangd エラー解消:** `juce_add_binary_data` に新ファイルを追加した後、clangd が `No member named '...' in namespace 'BinaryData'` を報告する場合は、`cd build-clangd && make BoomBabyPresets` を実行すること。これは CMake が `build-clangd/` に生成した Makefile のターゲットで、BinaryData の `.h`/`.cpp` を生成する。プロジェクトルートの `Makefile` にはないコマンド。実行後に VS Code で「Restart Language Server」を行うと赤波線が消える。
 
 ## JUCE Documentation
 
@@ -125,23 +126,4 @@ This project uses JUCE framework. An MCP server (`juce-docs`) is available.
     ```
   - `std::array` のテンプレート引数 `N` をプリセット数に合わせて更新
   - `make cmake && make check` で確認
-
-- **ユニットテスト導入**
-  - フレームワーク: **Catch2 v3**（`FetchContent` で取得、ヘッダ軽量、CTest/CI 親和性高）
-  - CMake 構成:
-    - DSP ソース（`Source/DSP/*.cpp`）を `add_library(BoomBabyDSP OBJECT ...)` として分離
-    - プラグインターゲット・テストターゲット両方がリンク（ソース構造の変更なし）
-    - `Tests/` ディレクトリにテストファイルを配置
-    - `make test` で CTest 経由実行
-  - テスト対象（DSP — 必須）:
-    - `Saturator`: 零入力→零出力（Tube bias 回帰テスト）、全ClipTypeの単調性、drive=0で恒等性
-    - `EnvelopeLutManager`: `computeAmp` の値域（0〜1）、duration外は0、LUT切替の整合性
-    - `ClickEngine`: triggerNote→フィルターリセット、silence in→silence out
-    - `DirectEngine`: renderPassthrough で入力ゼロ→出力ゼロ（Tube bias 回帰テスト）
-    - `SubEngine`: render出力の値域、周波数精度
-    - `LevelDetector`: ピーク検出の正確性、リリース特性
-  - テスト対象（GUI純関数 — 推奨）:
-    - `WaveformUtils::computePreview()`: 境界値、時間外アクセス
-    - `LutBaker` のベイク関数: 入出力サイズ整合性
-    - Component 描画テスト: **スキップ**（MessageManager 依存、費用対効果低）
-  - CI: GitHub Actions で `make test` + SonarQube 連携
+  - clangd エラーが出る場合は `cd build-clangd && make BoomBabyPresets` → VS Code で「Restart Language Server」
