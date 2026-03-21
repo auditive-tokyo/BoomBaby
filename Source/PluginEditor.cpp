@@ -774,6 +774,17 @@ juce::ValueTree envelopeToTree(const char *name, const EnvelopeData &env) {
   return tree;
 }
 
+juce::ValueTree findEnvInState(const juce::ValueTree &state,
+                               const char *name) {
+  for (int i = 0; i < state.getNumChildren(); ++i) {
+    auto child = state.getChild(i);
+    if (child.hasType(kEnvelopeTag) &&
+        child.getProperty(kPropName).toString() == name)
+      return child;
+  }
+  return {};
+}
+
 void treeToEnvelope(const juce::ValueTree &tree, EnvelopeData &env) {
   env.clearPoints();
   env.setDefaultValue(tree.getProperty(kPropDefault, 1.0f));
@@ -858,16 +869,6 @@ void BoomBabyAudioProcessorEditor::saveEnvelopesToState() {
 void BoomBabyAudioProcessorEditor::loadEnvelopesFromState() {
   const auto &state = processorRef.getAPVTS().state;
 
-  auto findEnv = [&](const char *name) -> juce::ValueTree {
-    for (int i = 0; i < state.getNumChildren(); ++i) {
-      auto child = state.getChild(i);
-      if (child.hasType(kEnvelopeTag) &&
-          child.getProperty(kPropName).toString() == name)
-        return child;
-    }
-    return {};
-  };
-
   struct EnvEntry {
     const char *name;
     EnvelopeData &data;
@@ -882,7 +883,7 @@ void BoomBabyAudioProcessorEditor::loadEnvelopesFromState() {
   }};
 
   for (auto &[name, data] : entries) {
-    auto tree = findEnv(name);
+    auto tree = findEnvInState(state, name);
     if (tree.isValid())
       treeToEnvelope(tree, data);
     else {
