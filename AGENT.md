@@ -1,20 +1,5 @@
 # BoomBaby Project Rules
 
-## プラグイン構成
-
-BoomBabyは3つのモジュールで構成されています：
-
-1. **Sub** - サブ周波数の生成
-2. **Click** - アタック部分の生成（Noise / Sample）
-3. **Direct** - オリジナルのキック音（入力信号）またはSample Load
-
-これらを組み合わせることで、より豊かで立体的なキックサウンドを実現します。
-
-## 対応フォーマット
-
-- AUv2
-- VST3
-
 ## ビルド環境
 
 - macOS
@@ -103,9 +88,9 @@ This project uses JUCE framework. An MCP server (`juce-docs`) is available.
 └── PresetManager.h            // PresetManager 宣言
 ```
 
-## TODO
+## 進行中（時間があるときに進める）
 
-- **ファクトリープリセット追加**
+- **ファクトリープリセット追加**（随時追加中）
   - プラグインを起動した状態で音を作り、PresetBar の **[Save]** で保存
   - 保存された `.bbpreset/state.xml` を `Resources/factory_presets/<名前>_state.xml` にコピー
   - `CMakeLists.txt` の `juce_add_binary_data(BoomBabyPresets SOURCES ...)` に追加
