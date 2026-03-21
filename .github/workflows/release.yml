@@ -80,6 +80,13 @@ jobs:
           body: |
             ## BoomBaby v${{ steps.version.outputs.version }} — macOS Beta
 
+            ### Download
+
+            Scroll to the **Assets** section at the bottom of this page and download the zip for your format:
+
+            - `BoomBaby-${{ steps.version.outputs.version }}-VST3-macOS.zip` — VST3
+            - `BoomBaby-${{ steps.version.outputs.version }}-AU-macOS.zip` — AUv2
+
             > **macOS Gatekeeper Notice**
             > This build is not notarized. Follow the steps below to load it in your DAW.
 
