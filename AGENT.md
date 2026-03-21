@@ -104,3 +104,8 @@ This project uses JUCE framework. An MCP server (`juce-docs`) is available.
   - `std::array` のテンプレート引数 `N` をプリセット数に合わせて更新
   - `make cmake && make check` で確認
   - clangd エラーが出る場合は `cd build-clangd && make BoomBabyPresets` → VS Code で「Restart Language Server」
+
+## TODO（バグ修正）
+
+- **Preset ブラウザの左ボタンが効かない**
+- **Preset 切り替え時にサンプルが残る**: Sample モードで SamplePlayer にロードされているサンプルは、Preset 切り替え時にアンロードされるべき。現状はサンプルを使わない Preset に切り替えても前のサンプルが残ったままになる。
