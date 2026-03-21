@@ -15,6 +15,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
 
       - name: Extract version from CMakeLists.txt
         id: version
@@ -23,6 +25,24 @@ jobs:
             | sed 's/.*VERSION \([0-9.]*\).*/\1/')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION"    >> "$GITHUB_OUTPUT"
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG="${{ steps.version.outputs.prev_tag }}"
+          if [ -n "$PREV_TAG" ]; then
+            LOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
+          else
+            LOG=$(git log --pretty=format:"- %s" --no-merges)
+          fi
+          if [ -z "$LOG" ]; then
+            LOG="- Initial release"
+          fi
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$LOG"           >> "$GITHUB_OUTPUT"
+          echo "EOF"            >> "$GITHUB_OUTPUT"
 
       - name: Clone JUCE
         run: git clone --depth 1 --branch 8.0.6 https://github.com/juce-framework/JUCE.git /tmp/JUCE
@@ -79,6 +99,8 @@ jobs:
             BoomBaby-${{ steps.version.outputs.version }}-AU-macOS.zip
           body: |
             ## BoomBaby v${{ steps.version.outputs.version }} — macOS Beta
+
+            ${{ steps.changelog.outputs.changelog }}
 
             ### Download
 
