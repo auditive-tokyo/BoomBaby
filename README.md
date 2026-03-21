@@ -42,6 +42,10 @@ macOS on Apple Silicon only. Intel Macs and Windows/Linux are not supported at t
 
 For DAW-specific test results and full compatibility details, see [docs/compatibility.md](docs/compatibility.md).
 
+## Installation
+
+Download the latest release from the [GitHub Releases page](https://github.com/auditive-tokyo/BoomBaby/releases/latest). Installation instructions are included on the release page.
+
 ## Community and Feedback
 
 Detailed contribution guidelines will be documented in CONTRIBUTING.md (coming soon).
