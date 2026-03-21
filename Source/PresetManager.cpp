@@ -113,7 +113,10 @@ bool PresetManager::loadPreset(const juce::File &presetDir) {
 
   // APVTS state 差し替え
   apvts_.replaceState(state);
+  // XML 内の presetName 属性が古い名前の場合でも上書きされないよう、
+  // ディレクトリ名を正とし、applyRestoredState() より先に両方更新する
   currentPresetName_ = presetDir.getFileNameWithoutExtension();
+  apvts_.state.setProperty("presetName", currentPresetName_, nullptr);
 
   if (onStateReplaced_)
     onStateReplaced_();
@@ -168,6 +171,7 @@ juce::Array<juce::File> PresetManager::getFactoryPresets() const {
              factoryDir, false, "*.bbpreset", juce::File::findDirectories))
       results.add(entry.getFile());
   }
+  results.sort();
   return results;
 }
 
@@ -177,6 +181,7 @@ juce::Array<juce::File> PresetManager::getUserPresets() const {
   for (const auto &entry : juce::RangedDirectoryIterator(
            presetsDir, false, "*.bbpreset", juce::File::findDirectories))
     results.add(entry.getFile());
+  results.sort();
   return results;
 }
 
@@ -214,6 +219,17 @@ void PresetManager::expandFactoryPresets() const {
   }};
 
   auto factoryDir = getFactoryDirectory();
+
+  // 旧バージョンの不要プリセットを削除
+  juce::StringArray validNames;
+  for (const auto &e : entries)
+    validNames.add(juce::String(e.presetName) + ".bbpreset");
+
+  for (const auto &entry : juce::RangedDirectoryIterator(
+           factoryDir, false, "*.bbpreset", juce::File::findDirectories)) {
+    if (!validNames.contains(entry.getFile().getFileName()))
+      entry.getFile().deleteRecursively();
+  }
 
   for (const auto &e : entries) {
     auto presetDir =
