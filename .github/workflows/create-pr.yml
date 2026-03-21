@@ -28,9 +28,6 @@ jobs:
           git fetch origin release 2>/dev/null || true
           CHANGELOG=$(git log origin/release..HEAD --pretty=format:"- %s" --no-merges \
             -- Source/ Tests/ CMakeLists.txt Makefile Resources/)
-          if [ -z "$CHANGELOG" ]; then
-            CHANGELOG="- No new commits"
-          fi
 
           MARKER="<!-- auto-changelog -->"
           BODY_WITH_MARKER=$(printf '%s\n%s' "$CHANGELOG" "$MARKER")
