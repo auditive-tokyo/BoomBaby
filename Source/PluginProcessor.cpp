@@ -668,6 +668,8 @@ void BoomBabyAudioProcessor::applyRestoredState() {
     const juce::File f{clickPath};
     if (f.existsAsFile())
       clickEngine_.sampler().loadSample(f);
+  } else {
+    clickEngine_.sampler().unloadSample();
   }
   if (const auto directPath =
           apvts_.state.getProperty("directSamplePath").toString();
@@ -675,6 +677,8 @@ void BoomBabyAudioProcessor::applyRestoredState() {
     const juce::File f{directPath};
     if (f.existsAsFile())
       directEngine_.sampler().loadSample(f);
+  } else {
+    directEngine_.sampler().unloadSample();
   }
 
   // プリセット名を復元

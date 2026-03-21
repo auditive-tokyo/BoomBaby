@@ -898,6 +898,13 @@ void BoomBabyAudioProcessorEditor::loadEnvelopesFromState() {
     const juce::File f{directPath};
     if (f.existsAsFile())
       onSampleFileChosen(f);
+  } else {
+    directUI.sample.loadedFilePath = {};
+    directUI.sample.loadButton.setButtonText("Drop or Click to Load");
+    directUI.sample.loadButton.setHasFile(false);
+    directUI.sample.thumbMin.clear();
+    directUI.sample.thumbMax.clear();
+    envelopeCurveEditor.setDirectProvider(nullptr);
   }
 
   if (const auto clickPath = state.getProperty("clickSamplePath").toString();
@@ -905,6 +912,13 @@ void BoomBabyAudioProcessorEditor::loadEnvelopesFromState() {
     const juce::File f{clickPath};
     if (f.existsAsFile())
       onClickSampleFileChosen(f);
+  } else {
+    clickUI.sample.loadedFilePath = {};
+    clickUI.sample.loadButton.setButtonText("Drop or Click to Load");
+    clickUI.sample.loadButton.setHasFile(false);
+    clickUI.sample.thumbMin.clear();
+    clickUI.sample.thumbMax.clear();
+    envelopeCurveEditor.setClickPreviewProvider(nullptr);
   }
 
   // Click ModeState を復元

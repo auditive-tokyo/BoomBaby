@@ -107,11 +107,6 @@ This project uses JUCE framework. An MCP server (`juce-docs`) is available.
 
 - **UT カバレッジ向上**: `DSP/` 配下のユニットテストカバレッジを 100% 目標で改善する。
 
-## TODO（バグ修正）
-
-- **Preset ブラウザの左ボタンが効かない**
-- **Preset 切り替え時にサンプルが残る**: Sample モードで SamplePlayer にロードされているサンプルは、Preset 切り替え時にアンロードされるべき。現状はサンプルを使わない Preset に切り替えても前のサンプルが残ったままになる。
-
 ## TODO（追加実装）
 
 - **リリース Changelog 自動生成**: `create-pr.yml` で PR 本文に `release..main` の変更概要を自動生成する。PR 説明に各コミット / PR タイトルを箇条書きで入れ、`release.yml` のリリースページ冒頭にその本文を転記する形にする。既存 PR の場合は本文も日付と同様に更新する。GitHub Copilot使う方法も検討するが正確性が欲しいため自分でやった方が良いかも。
