@@ -50,7 +50,7 @@ I'm planning a commercial version with a broader feature set and a redesigned GU
 
 ## Community and Feedback
 
-- Compatibility reports: Reporting your DAW/OS/CPU test results in [GitHub Discussions](https://github.com/auditive-tokyo/BoomBaby/discussions/1) is highly appreciated.
+- Compatibility reports: Reporting your DAW/OS/CPU test results in [Compatibility Reports page](https://github.com/auditive-tokyo/BoomBaby/discussions/1) is highly appreciated.
 - Preset contributions: Shareing your presets in [Share Your Presets page](https://github.com/auditive-tokyo/BoomBaby/discussions/12) is highly appreciated.
 - Bug reports: Please open them in [GitHub Issues](https://github.com/auditive-tokyo/BoomBaby/issues).
 - Feature requests: This project is open source, but implementation scope is selective. Features that strongly improve the developer and producer workflows are more likely to be implemented.
