@@ -30,7 +30,7 @@ You can insert it directly on an audio track, or load samples and trigger kicks 
 
 macOS on Apple Silicon only. Intel Macs and Windows/Linux are not supported at this time.
 
-For DAW-specific test results and full compatibility details, see [docs/compatibility.md](docs/compatibility.md).
+For DAW-specific test results and full compatibility details, see [Compatibility Page](docs/compatibility.md).
 
 ## Installation
 
@@ -50,8 +50,8 @@ I'm planning a commercial version with a broader feature set and a redesigned GU
 
 ## Community and Feedback
 
-- Compatibility reports: Reporting your DAW/OS/CPU test results in [GitHub Discussions](https://github.com/auditive-tokyo/BoomBaby/discussions/1) is highly appreciated. See the [Compatibility Page](docs/compatibility.md) for the reporting format.
-- Preset contributions: Share your presets in [GitHub Discussions #12](https://github.com/auditive-tokyo/BoomBaby/discussions/12). Presets selected for an official release will be credited by your developer or producer name in the Contributors section below.
+- Compatibility reports: Reporting your DAW/OS/CPU test results in [GitHub Discussions](https://github.com/auditive-tokyo/BoomBaby/discussions/1) is highly appreciated.
+- Preset contributions: Shareing your presets in [Share Your Presets page](https://github.com/auditive-tokyo/BoomBaby/discussions/12) is highly appreciated.
 - Bug reports: Please open them in [GitHub Issues](https://github.com/auditive-tokyo/BoomBaby/issues).
 - Feature requests: This project is open source, but implementation scope is selective. Features that strongly improve the developer and producer workflows are more likely to be implemented.
 
