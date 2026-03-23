@@ -40,7 +40,7 @@ jobs:
           echo "EOF"            >> "$GITHUB_OUTPUT"
 
       - name: Clone JUCE
-        run: git clone --depth 1 --branch 8.0.6 https://github.com/juce-framework/JUCE.git /tmp/JUCE
+        run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git /tmp/JUCE
 
       # COPY_PLUGIN_AFTER_BUILD が有効なので、コピー先ディレクトリを事前に作成
       - name: Create plugin install directories
