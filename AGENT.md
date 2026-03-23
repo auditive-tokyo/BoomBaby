@@ -110,3 +110,40 @@ This project uses JUCE framework. An MCP server (`juce-docs`) is available.
 ## TODO（追加実装）
 
 - **Branch protection の required checks 整理（確認事項）**: `SonarCloud Code Analysis` と `SonarQube analysis` が重複している可能性があるため、運用を決めたらどちらか片方を required から外す。
+
+## TODO（修正）
+
+- **Direct パススルー: 自動検出トリガーのゲート開タイミングがずれてポップが発生する**:
+
+  **原因**: `processBlock()` の処理順序は ① `processPassthroughMonitor`（モノミックス保存 + トランジェント検出） → ② `buffer.clear()` → ③ `renderPassthrough(monoMixBuf)` 。TransientDetector の envFast は attack 0.2ms（≈9 サンプル）の指数エンベロープフォロワーのため、実際のアタック先頭より ~9 サンプル遅れて `pos` が返る。  
+
+  `triggerNote(pos)` → `startOffset_ = pos` → renderPassthrough で sample 0〜pos-1 は `amp=0` → sample pos で突然 `monoMixBuf[pos]`（アタックのピーク付近・大振幅）に切り替わる → 0→大振幅の不連続 = ポップ。
+
+  MIDI モードは DAW の NoteOn サンプル位置がアタック先頭に合致するため同じゲート機構でもポップが出ない。
+
+  **修正方針**: `processPassthroughMonitor()` 内でトリガー位置を補正する。
+
+  ```cpp
+  // 検出遅延（envFast attack ≈ 0.2ms）分を手前にシフト
+  constexpr int kDetectionLag = 9; // サンプル数 (44.1kHz 基準; sr に合わせて計算してもよい)
+  const int correctedPos = std::max(0, pos - kDetectionLag);
+  eng.direct.triggerNote(correctedPos);
+  ```
+
+  これは同一ブロック内の `monoMixBuf` に対する位置補正であり、ホストへのレイテンシ報告（`setLatencySamples`）は不要。ブロック外への参照が発生しないため偽陽性リスクも実質ゼロ（補正分はアタック前の静寂か、直前のキックテールであり、振幅は小さい）。
+
+- **波形表示長が Click の非表示モード decay まで含めてしまう**: 波形表示長は `Sub length`、`Direct decay`、および `Click` の現在選択中モードの decay だけを比較して最長を選ぶべき。現状は `Click` の `Noise` / `Sample` 両方の decay を比較対象に含めているため、未使用モード側のデフォルト値（例: 300ms）が残っているだけで表示波形長が不必要に長くなる。
+
+- **Click Sample / Direct のステレオ化**: 現在プラグイン全体がモノ信号。Sub（OSC）と Click Noise（白色雑音）はモノのままでよいが、Click Sample と Direct（パススルー・サンプル両モード）をステレオ対応にする。
+
+  **現状の実態**:
+  - `SamplePlayer::loadSample()` がステレオファイルをモノサムする (`mono.addFrom` で全 ch 平均)
+  - `DirectEngine::renderPassthrough()` の入力が `std::span<const float> inputMono` — `PluginProcessor` 側で `(ch0 + ch1) * 0.5f` に落としてから渡している
+  - `DirectEngine` / `ClickEngine` の HPF/LPF/BPF フィルター（`StateVariableTPTFilter`）は単一インスタンスで、`processSample(0, s)` と ch0 ステートのみ使用
+  - 各エンジンの render ループは `for (ch) buffer.addSample(ch, i, out)` で同一モノ値を全 ch に複製（dual-mono 出力）
+
+  **対応方針**:
+  1. `SamplePlayer`: `loadSample()` でモノサムせずステレオバッファ (`buffer_` を 2ch) で保持。モノファイルの場合は ch0 を ch1 にコピー。`readNext()` / `readInterpolated()` の戻り値を `std::pair<float,float>` (L/R) に変更
+  2. `DirectEngine`: (a) passthrough — `inputMono` を `inputL` / `inputR` の 2ch 入力に変更。`PluginProcessor::processPassthroughMonitor()` のモノサムを廃止し、ch0/ch1 をそのまま渡す。(b) sample — `SamplePlayer` のステレオ出力をそのまま使う。(c) HPF/LPF フィルターを `std::array<..., kMaxCascade>[2]` にして ch ごとに独立処理
+  3. `ClickEngine` sample モード: `SamplePlayer` のステレオ出力を使い、BPF/HPF/LPF フィルターも `[2]` に。Noise モードは変更不要（モノのまま dual-mono 出力）
+  4. `PluginProcessor::processBlock()`: `processPassthroughMonitor()` のモノサムは FIFO への書き込み用に残しつつ、Direct passthrough 用にはステレオのまま渡す経路を追加
